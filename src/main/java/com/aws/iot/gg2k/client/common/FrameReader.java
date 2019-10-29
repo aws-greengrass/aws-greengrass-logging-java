@@ -20,7 +20,6 @@ public class FrameReader {
         return null;
     }
 
-
     /**
      * Reads a MessageFrame from input steam.
      * @param dis input stream
@@ -30,10 +29,10 @@ public class FrameReader {
     public static MessageFrame readFrame(DataInputStream dis) throws Exception {
         int totalLength = dis.readShort();
         int opCode = ((int) dis.readByte()) & BYTE_MASK;
-        int thirdByte = ((int) dis.readByte()) & BYTE_MASK;
+        int fourthByte = ((int) dis.readByte()) & BYTE_MASK;
 
-        RequestType type = fromOrdinal(thirdByte >> 4);
-        int version = thirdByte & VERSION_MASK;
+        RequestType type = fromOrdinal(fourthByte >> 4);
+        int version = fourthByte & VERSION_MASK;
         long mostSigBits = 0, leastSigBits = 0;
         if (type.equals(REQUEST_RESPONSE)) {
             mostSigBits = dis.readLong();
@@ -48,7 +47,8 @@ public class FrameReader {
     /** Encodes the Message frame to bytes
      *
      * The first 2 bytes represent the length of the payload
-     * In the 3rd byte, first 6 bits represent opcode values and last 2 bits capture the type
+     * 3rd byte contains the opcode
+     * 4th byte, first 4 bits represent the RequestType and last 4 bits represent the version number.
      * The next 16 bytes represent the UUID if the type is {#RequestType.REQUEST_RESPONSE}
      * Rest of the bytes capture the payload
      * @param f
@@ -57,7 +57,7 @@ public class FrameReader {
      */
     public static void writeFrame(MessageFrame f,  DataOutputStream dos) throws IOException {
         if(f == null || f.message == null){
-            throw new IllegalArgumentException("MessageFrame is null ");
+            throw new IllegalArgumentException("Message is null ");
         }
         Message m = f.message;
         int payloadLength = m.payload.length;
