@@ -2,7 +2,7 @@ package com.aws.iot.gg2k.client;
 
 import com.aws.iot.gg2k.client.common.Contants;
 import com.aws.iot.gg2k.client.common.FrameReader.*;
-import com.aws.iot.gg2k.client.config.KernellPCClientConfig;
+import com.aws.iot.gg2k.client.config.KernelIPCClientConfig;
 import com.aws.iot.gg2k.client.message.MessageHandler;
 
 import java.io.*;
@@ -18,9 +18,9 @@ public class KernelIPCClientImpl implements KernelIPCClient {
     private final MessageHandler messageHandler;
     private final ConnectionWriter writer;
     private final ConnectionReader reader;
-    private final KernellPCClientConfig config;
+    private final KernelIPCClientConfig config;
 
-    public KernelIPCClientImpl(KernellPCClientConfig config) throws IOException {
+    public KernelIPCClientImpl(KernelIPCClientConfig config) throws IOException {
         this.messageHandler = new MessageHandler();
         this.config = config;
         this.clientSocket = new Socket(config.getHostAddress(), config.getPort());

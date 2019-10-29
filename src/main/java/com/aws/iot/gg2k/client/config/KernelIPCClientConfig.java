@@ -2,13 +2,13 @@ package com.aws.iot.gg2k.client.config;
 
 import java.util.concurrent.TimeUnit;
 
-public class KernellPCClientConfig {
+public class KernelIPCClientConfig {
 
     private String hostAddress;
     private int port;
     private long requestTimeoutInMillSec;
 
-    private KernellPCClientConfig(){
+    private KernelIPCClientConfig(){
 
     }
     public String getHostAddress() {
@@ -60,8 +60,8 @@ public class KernellPCClientConfig {
             return this;
         }
 
-        public KernellPCClientConfig build() {
-            KernellPCClientConfig config = new KernellPCClientConfig();
+        public KernelIPCClientConfig build() {
+            KernelIPCClientConfig config = new KernelIPCClientConfig();
             config.setHostAddress(hostAddress);
             config.setPort(port);
             config.setRequestTimeoutInMillSec(requestTimeoutInMillSec);

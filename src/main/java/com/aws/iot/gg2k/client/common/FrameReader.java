@@ -10,7 +10,9 @@ import static com.aws.iot.gg2k.client.common.FrameReader.RequestType.fromOrdinal
 
 
 public class FrameReader {
-    private static final int TYPE_MASK = 0x03;
+
+    private static final int VERSION = 1;
+    private static final int VERSION_MASK = 0x0f;
     private static final int BYTE_MASK = 0xff;
     private static final int BYTE_SHIFT = 8;
 
@@ -27,9 +29,11 @@ public class FrameReader {
      */
     public static MessageFrame readFrame(DataInputStream dis) throws Exception {
         int totalLength = dis.readShort();
-        int b = ((int) dis.readByte()) & BYTE_MASK;
-        int opCode = b>>2;
-        RequestType type = fromOrdinal(b & TYPE_MASK);
+        int opCode = ((int) dis.readByte()) & BYTE_MASK;
+        int thirdByte = ((int) dis.readByte()) & BYTE_MASK;
+
+        RequestType type = fromOrdinal(thirdByte >> 4);
+        int version = thirdByte & VERSION_MASK;
         long mostSigBits = 0, leastSigBits = 0;
         if (type.equals(REQUEST_RESPONSE)) {
             mostSigBits = dis.readLong();
@@ -37,7 +41,7 @@ public class FrameReader {
         }
         byte[] payload = new byte[totalLength];
         dis.readFully(payload);
-        return new MessageFrame(new UUID(mostSigBits, leastSigBits), new Message(opCode, type, payload));
+        return new MessageFrame(new UUID(mostSigBits, leastSigBits),version, new Message(opCode, type, payload));
     }
 
 
@@ -52,12 +56,16 @@ public class FrameReader {
      * @throws IOException
      */
     public static void writeFrame(MessageFrame f,  DataOutputStream dos) throws IOException {
+        if(f == null || f.message == null){
+            throw new IllegalArgumentException("MessageFrame is null ");
+        }
         Message m = f.message;
         int payloadLength = m.payload.length;
         dos.write(payloadLength >> (BYTE_SHIFT) & BYTE_MASK);
         dos.write(payloadLength & BYTE_MASK);
 
-        dos.write((m.opCode << 2) | m.type.ordinal());
+        dos.write(m.opCode);
+        dos.write((m.type.ordinal() << 4) | f.version);
         if (m.type.equals(REQUEST_RESPONSE)) {
             dos.writeLong(f.uuid.getMostSignificantBits());
             dos.writeLong(f.uuid.getLeastSignificantBits());
@@ -106,11 +114,19 @@ public class FrameReader {
      */
     public static class MessageFrame {
         public UUID uuid;
+        public int version;
         public Message message;
+
+        public MessageFrame(UUID uuid, int version, Message message) {
+            this.uuid = uuid;
+            this.version = version;
+            this.message = message;
+        }
 
         public MessageFrame(UUID uuid, Message message) {
             this.uuid = uuid;
             this.message = message;
+            this.version = VERSION;
         }
 
         public MessageFrame(Message message) {

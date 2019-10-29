@@ -17,8 +17,8 @@ public class FrameReaderTest {
     @Test
     public void basicSanityCheck() throws Exception {
 
-        Message msg = new Message(60, REQUEST_RESPONSE, "Test Payload".getBytes());
-        MessageFrame inputFrame = new MessageFrame(msg);
+        Message msg = new Message(255, REQUEST_RESPONSE, "Test Payload".getBytes());
+        MessageFrame inputFrame = new MessageFrame(UUID.randomUUID(),10,msg);
         MessageFrame outputFrame = serialiseAndRead(inputFrame);
         validate(inputFrame,outputFrame);
     }
@@ -31,6 +31,7 @@ public class FrameReaderTest {
 
     private static void validate(MessageFrame inputFrame, MessageFrame outputFrame)  {
         assertEquals(inputFrame.uuid,outputFrame.uuid);
+        assertEquals(inputFrame.version,outputFrame.version);
         assertEquals(inputFrame.message.getOpCode(),outputFrame.message.getOpCode());
         assertEquals(inputFrame.message.getType(),outputFrame.message.getType());
         assertTrue(Arrays.equals(inputFrame.message.getPayload(),outputFrame.message.getPayload()));
