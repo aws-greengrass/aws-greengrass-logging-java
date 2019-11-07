@@ -1,5 +1,6 @@
-package com.aws.iot.gg2k.client.config;
+package com.aws.iot.evergreen.ipc.config;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class KernelIPCClientConfig {
@@ -7,6 +8,7 @@ public class KernelIPCClientConfig {
     private String hostAddress;
     private int port;
     private long requestTimeoutInMillSec;
+    private String token;
 
     private KernelIPCClientConfig(){
 
@@ -35,27 +37,39 @@ public class KernelIPCClientConfig {
         this.requestTimeoutInMillSec = requestTimeoutInMillSec;
     }
 
-    public static KernellPCClientConfigBuilder builder() { return new KernellPCClientConfigBuilder();}
-    public static class KernellPCClientConfigBuilder{
+    public String getToken() { return token; }
+
+    public void setToken(String token) { this.token = token; }
+
+    public static KernelIPCClientConfigBuilder builder() { return new KernelIPCClientConfigBuilder();}
+
+    public static class KernelIPCClientConfigBuilder {
         private String hostAddress;
         private int port;
         private long requestTimeoutInMillSec = TimeUnit.SECONDS.toMillis(30);
+        //TODO: read token from env variable
+        private String token = UUID.randomUUID().toString();
 
-        public KernellPCClientConfigBuilder(){
+        public KernelIPCClientConfigBuilder(){
         // get host and port information from env variables.
         }
 
-        public KernellPCClientConfigBuilder hostAddress(final String hostAddress){
+        public KernelIPCClientConfigBuilder hostAddress(final String hostAddress){
             this.hostAddress = hostAddress;
             return this;
         }
 
-        public KernellPCClientConfigBuilder port(final int port){
+        public KernelIPCClientConfigBuilder port(final int port){
             this.port = port;
             return this;
         }
 
-        public KernellPCClientConfigBuilder requestTimeoutInMillSec(final long requestTimeoutInMillSec){
+        public KernelIPCClientConfigBuilder token(final String token){
+            this.token = token;
+            return this;
+        }
+
+        public KernelIPCClientConfigBuilder requestTimeoutInMillSec(final long requestTimeoutInMillSec){
             this.requestTimeoutInMillSec = requestTimeoutInMillSec;
             return this;
         }
@@ -65,6 +79,7 @@ public class KernelIPCClientConfig {
             config.setHostAddress(hostAddress);
             config.setPort(port);
             config.setRequestTimeoutInMillSec(requestTimeoutInMillSec);
+            config.setToken(token);
             return config;
         }
     }

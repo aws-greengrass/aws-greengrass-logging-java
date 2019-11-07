@@ -1,22 +1,21 @@
-package com.aws.iot.gg2k.client.common;
+package com.aws.iot.evergreen.ipc.common;
 
-import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-
-import static com.aws.iot.gg2k.client.common.FrameReader.RequestType.REQUEST_RESPONSE;
-import static com.aws.iot.gg2k.client.common.FrameReader.RequestType.fromOrdinal;
 
 
 public class FrameReader {
 
     private static final int VERSION = 1;
-    private static final int VERSION_MASK = 0x0f;
     private static final int BYTE_MASK = 0xff;
     private static final int BYTE_SHIFT = 8;
 
-    public static MessageFrame readFrame(InputStream is, int timeoutInMilliSec) throws IOException {
+    //TODO: implement read frame with timeout
+    public static MessageFrame readFrame(InputStream is, int timeoutInMilliSec) {
         return null;
     }
 
@@ -29,20 +28,13 @@ public class FrameReader {
     public static MessageFrame readFrame(DataInputStream dis) throws Exception {
         int totalLength = dis.readShort();
         int opCode = ((int) dis.readByte()) & BYTE_MASK;
-        int fourthByte = ((int) dis.readByte()) & BYTE_MASK;
-
-        RequestType type = fromOrdinal(fourthByte >> 4);
-        int version = fourthByte & VERSION_MASK;
-        long mostSigBits = 0, leastSigBits = 0;
-        if (type.equals(REQUEST_RESPONSE)) {
-            mostSigBits = dis.readLong();
-            leastSigBits = dis.readLong();
-        }
+        int version = ((int) dis.readByte()) & BYTE_MASK;
+        long mostSigBits = dis.readLong();
+        long leastSigBits = dis.readLong();
         byte[] payload = new byte[totalLength];
         dis.readFully(payload);
-        return new MessageFrame(new UUID(mostSigBits, leastSigBits),version, new Message(opCode, type, payload));
+        return new MessageFrame(new UUID(mostSigBits, leastSigBits), version, new Message(opCode, payload));
     }
-
 
     /** Encodes the Message frame to bytes
      *
@@ -65,33 +57,21 @@ public class FrameReader {
         dos.write(payloadLength & BYTE_MASK);
 
         dos.write(m.opCode);
-        dos.write((m.type.ordinal() << 4) | f.version);
-        if (m.type.equals(REQUEST_RESPONSE)) {
-            dos.writeLong(f.uuid.getMostSignificantBits());
-            dos.writeLong(f.uuid.getLeastSignificantBits());
-        }
+        dos.write(f.version);
+
+        dos.writeLong(f.uuid.getMostSignificantBits());
+        dos.writeLong(f.uuid.getLeastSignificantBits());
+
         dos.write(m.payload);
         dos.flush();
     }
 
-    public enum RequestType {
-        FIRE_AND_FORGET,
-        REQUEST_RESPONSE;
-
-        private static RequestType[] allValues = values();
-        public static RequestType fromOrdinal(int n) {
-            return allValues[n];
-        }
-    }
-
     public static class Message {
         private int opCode;
-        private RequestType type;
         private byte[] payload;
 
-        public Message(int opCode, RequestType type, byte[] payload) {
+        public Message(int opCode,byte[] payload) {
             this.opCode = opCode;
-            this.type = type;
             this.payload = payload;
         }
 
@@ -99,13 +79,11 @@ public class FrameReader {
             return opCode;
         }
 
-        public RequestType getType() {
-            return type;
-        }
-
         public byte[] getPayload() {
             return payload;
         }
+
+        public static Message errorMessage(String errorMsg) { return new Message(Constants.ERROR_OP_CODE, errorMsg.getBytes(StandardCharsets.UTF_8));}
     }
 
     /**

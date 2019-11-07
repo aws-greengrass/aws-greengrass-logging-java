@@ -1,37 +1,44 @@
-package com.aws.iot.gg2k.client;
+package com.aws.iot.evergreen.ipc;
 
-import com.aws.iot.gg2k.client.common.Contants;
-import com.aws.iot.gg2k.client.common.FrameReader.*;
-import com.aws.iot.gg2k.client.config.KernelIPCClientConfig;
-import com.aws.iot.gg2k.client.message.MessageHandler;
+import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.message.MessageHandler;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.aws.iot.gg2k.client.common.FrameReader.*;
-import static com.aws.iot.gg2k.client.common.FrameReader.RequestType.REQUEST_RESPONSE;
+import static com.aws.iot.evergreen.ipc.common.Constants.*;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
 
-public class KernelIPCClientImpl implements KernelIPCClient {
 
-    private final Socket clientSocket;
+//TODO: implement logging
+//TODO: throw ipc client specific runtime exceptions
+public class IPCClientImpl implements IPCClient {
+
     private final MessageHandler messageHandler;
-    private final ConnectionWriter writer;
-    private final ConnectionReader reader;
     private final KernelIPCClientConfig config;
+    private Socket clientSocket;
+    private ConnectionWriter writer;
+    private ConnectionReader reader;
 
-    public KernelIPCClientImpl(KernelIPCClientConfig config) throws IOException {
+    public IPCClientImpl(KernelIPCClientConfig config) {
         this.messageHandler = new MessageHandler();
         this.config = config;
+    }
+
+    public void connect() throws IOException, InterruptedException {
         this.clientSocket = new Socket(config.getHostAddress(), config.getPort());
         this.clientSocket.setKeepAlive(true);
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
         this.writer = new ConnectionWriter(clientSocket.getOutputStream());
         new Thread(reader).start();
+        sendRequest(new Message(AUTH_OP_CODE, config.getToken().getBytes()));
     }
 
     public boolean ping() {
-        Message msg = new Message(60, REQUEST_RESPONSE, "ping".getBytes());
+        Message msg = new Message(PING_OP_CODE, "ping".getBytes());
         try {
             Message resp = sendRequest(msg);
             if (new String(resp.getPayload()).equals("pong")) {
@@ -43,20 +50,25 @@ public class KernelIPCClientImpl implements KernelIPCClient {
         return false;
     }
 
-    private Message sendRequest(Message msg) throws Exception {
+    public void disconnect() throws IOException {
+        reader.close();
+        clientSocket.close();
+    }
+
+    private Message sendRequest(Message msg) throws InterruptedException {
         MessageFrame frame = new MessageFrame(msg);
-        if (msg.getType().equals(REQUEST_RESPONSE))
-            messageHandler.registerRequestId(frame.uuid.toString());
+
+        messageHandler.registerRequestId(frame.uuid.toString());
         writer.write(frame);
 
-        Message response = null;
-        if (msg.getType().equals(REQUEST_RESPONSE)) {
-
-            response = messageHandler.waitForResponse(frame.uuid.toString(), config.getRequestTimeoutInMillSec(), TimeUnit.SECONDS);
-            if (response.getOpCode() == Contants.errOpCode) {
-                throw new Exception(new String(response.getPayload(), "UTF8"));
-            }
+        Message response = messageHandler.waitForResponse(frame.uuid.toString(), config.getRequestTimeoutInMillSec(), TimeUnit.MILLISECONDS);
+        // TODO: throw client specific exception
+        if (response == null) {
+            throw new RuntimeException("Request timed out");
+        } else if (response.getOpCode() == ERROR_OP_CODE) {
+            throw new RuntimeException(new String(response.getPayload(), StandardCharsets.UTF_8));
         }
+
         return response;
     }
 
@@ -81,7 +93,7 @@ public class KernelIPCClientImpl implements KernelIPCClient {
     public static class ConnectionReader implements Runnable {
 
         private final DataInputStream dis;
-        boolean running = true;
+        AtomicBoolean running = new AtomicBoolean(true);
         private MessageHandler messageHandler;
 
         public ConnectionReader(InputStream is, MessageHandler messageHandler) {
@@ -91,15 +103,21 @@ public class KernelIPCClientImpl implements KernelIPCClient {
 
         @Override
         public void run() {
-            while (running) {
+            while (running.get()) {
                 try {
                     MessageFrame messageFrame = readFrame(dis);
                     messageHandler.handleMessage(messageFrame);
                 } catch (Exception e) {
-                    //log
-                    running = false;
+                    if (running.get()) {
+                        e.printStackTrace();
+                        running.set(false);
+                    }
                 }
             }
+        }
+
+        public void close() {
+            running.set(false);
         }
     }
 }
