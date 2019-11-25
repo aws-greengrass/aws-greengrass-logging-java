@@ -51,7 +51,7 @@ public class KernelIPCClientConfig {
         private String token = UUID.randomUUID().toString();
 
         public KernelIPCClientConfigBuilder(){
-        // get host and port information from env variables.
+            // default host and port information should come from env variables.
         }
 
         public KernelIPCClientConfigBuilder hostAddress(final String hostAddress){

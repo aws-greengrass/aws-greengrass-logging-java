@@ -3,76 +3,129 @@ package com.aws.iot.evergreen.ipc.common;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class FrameReader {
 
     private static final int VERSION = 1;
     private static final int BYTE_MASK = 0xff;
+    private static final int IS_RESPONSE_MASK = 0x01;
     private static final int BYTE_SHIFT = 8;
 
     //TODO: implement read frame with timeout
-    public static MessageFrame readFrame(InputStream is, int timeoutInMilliSec) {
+    public static MessageFrame readFrame(DataInputStream dis, int timeoutInMilliSec) {
         return null;
     }
 
     /**
-     * Reads a MessageFrame from input steam.
+     * Constructs MessageFrame from bits reads from the input stream
+     * The first 2 bytes represent the length of the payload
+     * 3rd byte contains the opcode
+     * 4th byte, first 7 bits represent the version number and the last bit represent the type
+     * Rest of the bytes capture the payload
+     *
      * @param dis input stream
      * @return
      * @throws Exception
      */
     public static MessageFrame readFrame(DataInputStream dis) throws Exception {
-        int totalLength = dis.readShort();
-        int opCode = ((int) dis.readByte()) & BYTE_MASK;
-        int version = ((int) dis.readByte()) & BYTE_MASK;
-        long mostSigBits = dis.readLong();
-        long leastSigBits = dis.readLong();
-        byte[] payload = new byte[totalLength];
-        dis.readFully(payload);
-        return new MessageFrame(new UUID(mostSigBits, leastSigBits), version, new Message(opCode, payload));
+        synchronized (dis) {
+            int payloadLength = dis.readShort();
+            int opCode = ((int) dis.readByte()) & BYTE_MASK;
+            int thirdByte = ((int) dis.readByte()) & BYTE_MASK;
+            int version = thirdByte >> 1;
+            FrameType type = FrameType.fromOrdinal(thirdByte & IS_RESPONSE_MASK);
+            int sequenceNumber = dis.readInt();
+            byte[] payload = new byte[payloadLength];
+            dis.readFully(payload);
+            return new MessageFrame(sequenceNumber, version, new Message(opCode, payload), type);
+        }
     }
 
-    /** Encodes the Message frame to bytes
+    /**
+     * Encodes the Message frame to bytes
      *
-     * The first 2 bytes represent the length of the payload
-     * 3rd byte contains the opcode
-     * 4th byte, first 4 bits represent the RequestType and last 4 bits represent the version number.
-     * The next 16 bytes represent the UUID if the type is {#RequestType.REQUEST_RESPONSE}
-     * Rest of the bytes capture the payload
      * @param f
      * @param dos
      * @throws IOException
      */
-    public static void writeFrame(MessageFrame f,  DataOutputStream dos) throws IOException {
-        if(f == null || f.message == null){
-            throw new IllegalArgumentException("Message is null ");
+    public static void writeFrame(MessageFrame f, DataOutputStream dos) throws IOException {
+        synchronized (dos) {
+            if (f == null || f.message == null) {
+                throw new IllegalArgumentException("Message is null ");
+            }
+            //TODO: perform range checks on payload numeric fields before writing
+            Message m = f.message;
+            int payloadLength = m.payload.length;
+            dos.write(payloadLength >> (BYTE_SHIFT) & BYTE_MASK);
+            dos.write(payloadLength & BYTE_MASK);
+
+            dos.write(m.opCode);
+            dos.write((f.version << 1) | (f.type.ordinal()));
+            dos.writeInt(f.sequenceNumber);
+
+            dos.write(m.payload);
+            dos.flush();
         }
-        Message m = f.message;
-        int payloadLength = m.payload.length;
-        dos.write(payloadLength >> (BYTE_SHIFT) & BYTE_MASK);
-        dos.write(payloadLength & BYTE_MASK);
+    }
 
-        dos.write(m.opCode);
-        dos.write(f.version);
+    public enum FrameType {
+        REQUEST,
+        RESPONSE;
 
-        dos.writeLong(f.uuid.getMostSignificantBits());
-        dos.writeLong(f.uuid.getLeastSignificantBits());
+        private static FrameType[] allValues = values();
 
-        dos.write(m.payload);
-        dos.flush();
+        public static FrameType fromOrdinal(int n) {
+            return allValues[n];
+        }
+    }
+
+    /**
+     *
+     */
+    public static class MessageFrame {
+        private final static AtomicInteger sequenceNumberGenerator = new AtomicInteger();
+        public final int sequenceNumber;
+        public final int version;
+        public final FrameType type;
+        public final Message message;
+
+        public MessageFrame(int sequenceNumber, int version, Message message, FrameType type) {
+            this.sequenceNumber = sequenceNumber;
+            this.version = version;
+            this.message = message;
+            this.type = type;
+        }
+
+        public MessageFrame(int sequenceNumber, Message message, FrameType type) {
+            this.sequenceNumber = sequenceNumber;
+            this.message = message;
+            this.version = VERSION;
+            this.type = type;
+        }
+
+        public MessageFrame(Message message, FrameType type) {
+            this(sequenceNumberGenerator.incrementAndGet(), VERSION, message, type);
+        }
     }
 
     public static class Message {
-        private int opCode;
-        private byte[] payload;
+        private final int opCode;
+        private final byte[] payload;
 
-        public Message(int opCode,byte[] payload) {
+        public Message(int opCode, byte[] payload) {
             this.opCode = opCode;
             this.payload = payload;
+        }
+
+        public static Message errorMessage(String errorMsg) {
+            return new Message(Constants.ERROR_OP_CODE, errorMsg.getBytes(StandardCharsets.UTF_8));
+        }
+
+        public static Message emptyResponse(int opCode) {
+            return new Message(opCode, new byte[0]);
         }
 
         public int getOpCode() {
@@ -81,34 +134,6 @@ public class FrameReader {
 
         public byte[] getPayload() {
             return payload;
-        }
-
-        public static Message errorMessage(String errorMsg) { return new Message(Constants.ERROR_OP_CODE, errorMsg.getBytes(StandardCharsets.UTF_8));}
-    }
-
-    /**
-     * 16 byte UUID is used instead of 4 byte sequence number to avoid collisions as
-     * both the kernel and client can initiate an IPC call.
-     */
-    public static class MessageFrame {
-        public UUID uuid;
-        public int version;
-        public Message message;
-
-        public MessageFrame(UUID uuid, int version, Message message) {
-            this.uuid = uuid;
-            this.version = version;
-            this.message = message;
-        }
-
-        public MessageFrame(UUID uuid, Message message) {
-            this.uuid = uuid;
-            this.message = message;
-            this.version = VERSION;
-        }
-
-        public MessageFrame(Message message) {
-            this(UUID.randomUUID(), message);
         }
     }
 }

@@ -2,15 +2,19 @@ package com.aws.iot.evergreen.ipc;
 
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
+import com.sun.xml.internal.ws.util.CompletedFuture;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.*;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 
 
 //TODO: implement logging
@@ -28,7 +32,7 @@ public class IPCClientImpl implements IPCClient {
         this.config = config;
     }
 
-    public void connect() throws IOException, InterruptedException {
+    public void connect() throws IOException {
         this.clientSocket = new Socket(config.getHostAddress(), config.getPort());
         this.clientSocket.setKeepAlive(true);
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
@@ -40,7 +44,7 @@ public class IPCClientImpl implements IPCClient {
     public boolean ping() {
         Message msg = new Message(PING_OP_CODE, "ping".getBytes());
         try {
-            Message resp = sendRequest(msg);
+            Message resp = sendRequest(msg).get();
             if (new String(resp.getPayload()).equals("pong")) {
                 return true;
             }
@@ -55,21 +59,13 @@ public class IPCClientImpl implements IPCClient {
         clientSocket.close();
     }
 
-    private Message sendRequest(Message msg) throws InterruptedException {
-        MessageFrame frame = new MessageFrame(msg);
-
-        messageHandler.registerRequestId(frame.uuid.toString());
+    private CompletableFuture<Message> sendRequest(Message msg) {
+        //TODO: implement timeout for listening to requests
+        MessageFrame frame = new MessageFrame(msg, REQUEST);
+        CompletableFuture<Message> future = new CompletableFuture<>();
+        messageHandler.registerRequestId(frame.sequenceNumber, future);
         writer.write(frame);
-
-        Message response = messageHandler.waitForResponse(frame.uuid.toString(), config.getRequestTimeoutInMillSec(), TimeUnit.MILLISECONDS);
-        // TODO: throw client specific exception
-        if (response == null) {
-            throw new RuntimeException("Request timed out");
-        } else if (response.getOpCode() == ERROR_OP_CODE) {
-            throw new RuntimeException(new String(response.getPayload(), StandardCharsets.UTF_8));
-        }
-
-        return response;
+        return future;
     }
 
     public static class ConnectionWriter {
@@ -109,7 +105,7 @@ public class IPCClientImpl implements IPCClient {
                     messageHandler.handleMessage(messageFrame);
                 } catch (Exception e) {
                     if (running.get()) {
-                        e.printStackTrace();
+                        System.out.println("Connection error");
                         running.set(false);
                     }
                 }

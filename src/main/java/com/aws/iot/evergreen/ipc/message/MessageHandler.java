@@ -1,68 +1,60 @@
 package com.aws.iot.evergreen.ipc.message;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import com.aws.iot.evergreen.ipc.common.Constants;
+import com.aws.iot.evergreen.ipc.common.FrameReader;
+
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import static com.aws.iot.evergreen.ipc.common.Constants.ERROR_OP_CODE;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 
 public class MessageHandler {
 
-    private static final int DEFAULT_QUEUE_SIZE = 1;
 
-    private final ConcurrentHashMap<Integer, List<Consumer<MessageFrame>>> opsListeners = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, BlockingQueue<MessageFrame>> responseMap;
+    private final ConcurrentHashMap<Integer, Consumer<MessageFrame>> opsListeners = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, CompletableFuture<Message>> responseMap;
 
     public MessageHandler() {
         responseMap = new ConcurrentHashMap<>();
     }
 
-    public void registerListener(int opcode, Consumer<MessageFrame> listener) {
-
-        List<Consumer<MessageFrame>> consumers = opsListeners.computeIfAbsent(opcode, (c) -> new ArrayList<>());
-        consumers.add(listener);
-    }
-
-    public void registerRequestId(String requestId) {
-        responseMap.put(requestId, new ArrayBlockingQueue<>(DEFAULT_QUEUE_SIZE));
-    }
-
-    public Message waitForResponse(final String requestId,
-                                               final long requestTimeoutInMillSec, TimeUnit unit) throws InterruptedException {
-
-        Message response = null;
-        final BlockingQueue<MessageFrame> queue = responseMap.get(requestId);
-        if (queue == null) {
-               throw new IllegalArgumentException("requestId not found");
+    public void registerListener(int opcode, Consumer<MessageFrame> listener) throws Exception {
+       Consumer<MessageFrame> consumers = opsListeners.putIfAbsent(opcode, listener);
+        if (consumers != null) {
+            throw new Exception("blah");
         }
-
-        final MessageFrame respFrame = queue.poll(requestTimeoutInMillSec, unit);
-        if (respFrame != null) {
-            response = respFrame.message;
-        }
-        responseMap.remove(requestId);
-        return response;
     }
 
-    public void handleMessage(final MessageFrame response) {
-        final BlockingQueue<MessageFrame> queue = responseMap.get(response.uuid.toString());
-        if (queue == null || !queue.add(response)) {
-                throw new IllegalStateException("Unable to handle response with UUID " + response.uuid.toString());
+    public void registerRequestId(int requestId, CompletableFuture future) {
+        responseMap.put(requestId, future);
+    }
+
+
+    public void handleMessage(final MessageFrame incomingMessageFrame) {
+        Message msg = incomingMessageFrame.message;
+        if(FrameType.RESPONSE == incomingMessageFrame.type){
+            CompletableFuture<Message> future = responseMap.remove(incomingMessageFrame.sequenceNumber);
+            if(msg == null){
+                future.completeExceptionally(new RuntimeException("Request timed out"));
+            }else if(msg.getOpCode() == ERROR_OP_CODE){
+                future.completeExceptionally(new RuntimeException(new String(msg.getPayload(), StandardCharsets.UTF_8)));
+            }
+
+            if (future == null || !future.complete(msg)) {
+                // log "Unable to handle response with sequence number  " + incomingMessageFrame.sequenceNumber
+            }
         } else {
-            List<Consumer<MessageFrame>> consumers = opsListeners.computeIfAbsent(response.message.getOpCode(), (c) -> Collections.EMPTY_LIST);
-            consumers.forEach(c -> {
-                try {
-                    c.accept(response);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            Consumer<MessageFrame> consumer = opsListeners.computeIfAbsent(msg.getOpCode(), (opCode) -> ((m) -> System.out.println("Dropping message with sequence number" + m.sequenceNumber + "opcode " + msg.getOpCode())));
+            try {
+                consumer.accept(incomingMessageFrame);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
