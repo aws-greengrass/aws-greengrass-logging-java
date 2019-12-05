@@ -2,14 +2,11 @@ package com.aws.iot.evergreen.ipc;
 
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
-import com.sun.xml.internal.ws.util.CompletedFuture;
+
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.*;
