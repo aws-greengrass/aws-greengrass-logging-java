@@ -1,14 +1,11 @@
 package com.aws.iot.evergreen.ipc.message;
 
-import com.aws.iot.evergreen.ipc.common.Constants;
-import com.aws.iot.evergreen.ipc.common.FrameReader;
-
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.ERROR_OP_CODE;
+import static com.aws.iot.evergreen.ipc.common.Constants.ERROR;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
@@ -16,21 +13,21 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 public class MessageHandler {
 
 
-    private final ConcurrentHashMap<Integer, Consumer<MessageFrame>> opsListeners = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Consumer<MessageFrame>> destinationListener = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, CompletableFuture<Message>> responseMap;
 
     public MessageHandler() {
         responseMap = new ConcurrentHashMap<>();
     }
 
-    public void registerListener(int opcode, Consumer<MessageFrame> listener) throws Exception {
-       Consumer<MessageFrame> consumers = opsListeners.putIfAbsent(opcode, listener);
+    public void registerListener(String destination, Consumer<MessageFrame> listener) throws Exception {
+       Consumer<MessageFrame> consumers = destinationListener.putIfAbsent(destination, listener);
         if (consumers != null) {
             throw new Exception("blah");
         }
     }
 
-    public void registerRequestId(int requestId, CompletableFuture future) {
+    public void registerRequestId(int requestId, CompletableFuture<Message> future) {
         responseMap.put(requestId, future);
     }
 
@@ -41,7 +38,7 @@ public class MessageHandler {
             CompletableFuture<Message> future = responseMap.remove(incomingMessageFrame.sequenceNumber);
             if(msg == null){
                 future.completeExceptionally(new RuntimeException("Request timed out"));
-            }else if(msg.getOpCode() == ERROR_OP_CODE){
+            }else if(incomingMessageFrame.destination.equals(ERROR)){
                 future.completeExceptionally(new RuntimeException(new String(msg.getPayload(), StandardCharsets.UTF_8)));
             }
 
@@ -49,7 +46,7 @@ public class MessageHandler {
                 // log "Unable to handle response with sequence number  " + incomingMessageFrame.sequenceNumber
             }
         } else {
-            Consumer<MessageFrame> consumer = opsListeners.computeIfAbsent(msg.getOpCode(), (opCode) -> ((m) -> System.out.println("Dropping message with sequence number" + m.sequenceNumber + "opcode " + msg.getOpCode())));
+            Consumer<MessageFrame> consumer = destinationListener.computeIfAbsent(incomingMessageFrame.destination, (destination) -> ((m) -> System.out.println("Dropping message with sequence number " + m.sequenceNumber + " and destination " + incomingMessageFrame.destination)));
             try {
                 consumer.accept(incomingMessageFrame);
             } catch (Exception e) {

@@ -1,26 +1,24 @@
 package com.aws.iot.evergreen.ipc.common;
 
 import com.aws.iot.evergreen.ipc.common.FrameReader.Message;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.UUID;
 
 import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FrameReaderTest {
 
     @Test
     public void basicSanityCheck() throws Exception {
-        Message msg = new Message(255,  "Test Payload".getBytes());
-        MessageFrame inputFrame = new MessageFrame(1234,10,msg, FrameType.REQUEST);
+        Message msg = new Message( "Test Payload".getBytes());
+        MessageFrame inputFrame = new MessageFrame(1234,"10", msg, FrameType.REQUEST);
         MessageFrame outputFrame = serialiseAndRead(inputFrame);
         validate(inputFrame,outputFrame);
 
-        inputFrame = new MessageFrame(1234,10,msg, FrameType.RESPONSE);
+        inputFrame = new MessageFrame(1234,"10", msg, FrameType.RESPONSE);
         outputFrame = serialiseAndRead(inputFrame);
         validate(inputFrame,outputFrame);
     }
@@ -35,7 +33,7 @@ public class FrameReaderTest {
         assertEquals(inputFrame.sequenceNumber,outputFrame.sequenceNumber);
         assertEquals(inputFrame.type,outputFrame.type);
         assertEquals(inputFrame.version,outputFrame.version);
-        assertEquals(inputFrame.message.getOpCode(),outputFrame.message.getOpCode());
-        assertTrue(Arrays.equals(inputFrame.message.getPayload(),outputFrame.message.getPayload()));
+        assertEquals(inputFrame.destination,outputFrame.destination);
+        assertArrayEquals(inputFrame.message.getPayload(), outputFrame.message.getPayload());
     }
 }
