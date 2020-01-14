@@ -35,13 +35,13 @@ public class IPCClientImpl implements IPCClient {
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
         this.writer = new ConnectionWriter(clientSocket.getOutputStream());
         new Thread(reader).start();
-        sendRequest(new Message(AUTH_OP_CODE, config.getToken().getBytes()));
+        sendRequest(AUTH_SERVICE, new Message(config.getToken().getBytes()));
     }
 
     public boolean ping() {
-        Message msg = new Message(PING_OP_CODE, "ping".getBytes());
+        Message msg = new Message("ping".getBytes());
         try {
-            Message resp = sendRequest(msg).get();
+            Message resp = sendRequest(PING_SERVICE, msg).get();
             if (new String(resp.getPayload()).equals("pong")) {
                 return true;
             }
@@ -56,9 +56,9 @@ public class IPCClientImpl implements IPCClient {
         clientSocket.close();
     }
 
-    private CompletableFuture<Message> sendRequest(Message msg) {
+    private CompletableFuture<Message> sendRequest(String destination, Message msg) {
         //TODO: implement timeout for listening to requests
-        MessageFrame frame = new MessageFrame(msg, REQUEST);
+        MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);
         writer.write(frame);
