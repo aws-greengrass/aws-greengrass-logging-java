@@ -1,4 +1,4 @@
-package com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Exceptions;
+package com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions;
 
 public class ResourceNotOwnedException extends ServiceDiscoveryException {
     public ResourceNotOwnedException(Throwable e) {

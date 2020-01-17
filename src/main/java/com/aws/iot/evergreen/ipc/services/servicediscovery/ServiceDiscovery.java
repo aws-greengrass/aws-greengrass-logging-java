@@ -1,6 +1,6 @@
-package com.aws.iot.evergreen.ipc.services.ServiceDiscovery;
+package com.aws.iot.evergreen.ipc.services.servicediscovery;
 
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Exceptions.ServiceDiscoveryException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.ServiceDiscoveryException;
 
 import java.util.List;
 

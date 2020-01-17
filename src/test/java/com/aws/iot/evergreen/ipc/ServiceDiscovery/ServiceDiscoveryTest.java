@@ -4,14 +4,14 @@ import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Exceptions.AlreadyRegisteredException;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Exceptions.ServiceDiscoveryException;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.RegisterResourceRequest;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Resource;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.ServiceDiscovery;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.ServiceDiscoveryResponseStatus;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.ServiceDiscoveryImpl;
-import com.aws.iot.evergreen.ipc.services.ServiceDiscovery.UpdateResourceRequest;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.AlreadyRegisteredException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.ServiceDiscoveryException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscovery;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.UpdateResourceRequest;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.jr.ob.JSON;
@@ -76,7 +76,8 @@ public class ServiceDiscoveryTest {
     public void testRegister() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
         RegisterResourceRequest req = new RegisterResourceRequest();
-        req.name = "ABC";
+        req.resource = new Resource();
+        req.resource.name = "ABC";
 
         GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
         genReq.response = new Resource();
@@ -102,7 +103,8 @@ public class ServiceDiscoveryTest {
     public void testRegisterWithException() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
         RegisterResourceRequest req = new RegisterResourceRequest();
-        req.name = "ABC";
+        req.resource = new Resource();
+        req.resource.name = "ABC";
 
         GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
         genReq.error = ServiceDiscoveryResponseStatus.AlreadyRegistered;
@@ -128,11 +130,13 @@ public class ServiceDiscoveryTest {
     public void testWrongReturnType() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
         RegisterResourceRequest req = new RegisterResourceRequest();
-        req.name = "ABC";
+        req.resource = new Resource();
+        req.resource.name = "ABC";
 
         GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
         genReq.response = new UpdateResourceRequest();
-        genReq.response.name = "ABC";
+        genReq.response.resource = new Resource();
+        genReq.response.resource.name = "ABC";
         genReq.response.publishToDNSSD = true;
         genReq.error = ServiceDiscoveryResponseStatus.Success;
 
