@@ -56,7 +56,7 @@ public class IPCClientImpl implements IPCClient {
         clientSocket.close();
     }
 
-    private CompletableFuture<Message> sendRequest(String destination, Message msg) {
+    public CompletableFuture<Message> sendRequest(String destination, Message msg) {
         //TODO: implement timeout for listening to requests
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
@@ -103,6 +103,7 @@ public class IPCClientImpl implements IPCClient {
                 } catch (Exception e) {
                     if (running.get()) {
                         System.out.println("Connection error");
+                        e.printStackTrace();
                         running.set(false);
                     }
                 }
