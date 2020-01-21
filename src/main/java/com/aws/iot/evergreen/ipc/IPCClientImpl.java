@@ -24,9 +24,12 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.RESPONSE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 
@@ -107,5 +110,23 @@ public class IPCClientImpl implements IPCClient {
 
         channel.writeAndFlush(frame);
         return future;
+    }
+
+    private CompletableFuture<Void> sendResponse(String destination, int sequenceNumber, Message msg) {
+        //TODO: implement timeout for listening to requests
+        MessageFrame frame = new MessageFrame(sequenceNumber, destination, msg, RESPONSE);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        channel.writeAndFlush(frame);
+        return future;
+    }
+
+    @Override
+    public void registerDestination(String destination, Function<Message, Message> callback) {
+        Consumer<MessageFrame> cb = (MessageFrame mf) -> {
+            Message toSend = callback.apply(mf.message);
+            sendResponse(destination, mf.sequenceNumber, toSend);
+        };
+        messageHandler.registerListener(destination, cb);
     }
 }
