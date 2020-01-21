@@ -20,11 +20,9 @@ public class MessageHandler {
         responseMap = new ConcurrentHashMap<>();
     }
 
-    public void registerListener(String destination, Consumer<MessageFrame> listener) throws Exception {
+    public boolean registerListener(String destination, Consumer<MessageFrame> listener) {
        Consumer<MessageFrame> consumers = destinationListener.putIfAbsent(destination, listener);
-        if (consumers != null) {
-            throw new Exception("blah");
-        }
+       return consumers == null;
     }
 
     public void registerRequestId(int requestId, CompletableFuture<Message> future) {

@@ -13,10 +13,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.Constants.PING_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.RESPONSE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
@@ -85,6 +88,27 @@ public class IPCClientImpl implements IPCClient {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+    private CompletableFuture<Void> sendResponse(String destination, int sequenceNumber, Message msg) {
+        //TODO: implement timeout for listening to requests
+        MessageFrame frame = new MessageFrame(sequenceNumber, destination, msg, RESPONSE);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            writer.write(frame);
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    @Override
+    public void registerDestination(String destination, Function<Message, Message> callback) {
+        Consumer<MessageFrame> cb = (MessageFrame mf) -> {
+            Message toSend = callback.apply(mf.message);
+            sendResponse(destination, mf.sequenceNumber, toSend);
+        };
+        messageHandler.registerListener(destination, cb);
     }
 
     public static class ConnectionWriter {
