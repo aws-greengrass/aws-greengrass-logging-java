@@ -1,10 +1,10 @@
 package com.aws.iot.evergreen.ipc.services.servicediscovery;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.AlreadyRegisteredException;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.ResourceNotFoundException;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.ResourceNotOwnedException;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.Exceptions.ServiceDiscoveryException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ResourceNotFoundException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ResourceNotOwnedException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
 import com.aws.iot.evergreen.ipc.services.common.SendAndReceiveIPCUtil;
