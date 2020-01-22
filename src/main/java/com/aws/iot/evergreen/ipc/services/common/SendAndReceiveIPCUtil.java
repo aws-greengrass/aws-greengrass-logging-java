@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public class SendAndReceiveIPCUtil {
-    private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(JSON.Feature.USE_FIELDS).with(new CBORFactory());
+    private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectCodec mapper = new CBORMapper();
 
     public static <T, E extends Enum<?>> CompletableFuture<GeneralResponse<T, E>> sendAndReceive(IPCClient ipc, String destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {

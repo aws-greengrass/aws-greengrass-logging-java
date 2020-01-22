@@ -16,8 +16,7 @@ import java.util.concurrent.ExecutionException;
 public class ServiceDiscoveryImpl implements ServiceDiscovery {
     private final IPCClient ipc;
 
-    public ServiceDiscoveryImpl(IPCClient ipc) throws Exception {
-//        handler.registerListener(SERVICE_DISCOVERY_NAME, listener); -- Register if we need to receive push from server
+    public ServiceDiscoveryImpl(IPCClient ipc) {
         this.ipc = ipc;
     }
 
@@ -25,59 +24,55 @@ public class ServiceDiscoveryImpl implements ServiceDiscovery {
 
     @Override
     public Resource registerResource(RegisterResourceRequest request) throws ServiceDiscoveryException {
-        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = new GeneralRequest<>();
-        req.request = request;
-        req.type = ServiceDiscoveryRequestTypes.register;
+        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = GeneralRequest.<Object, ServiceDiscoveryRequestTypes>builder()
+                .request(request).type(ServiceDiscoveryRequestTypes.register).build();
         return sendAndReceive(req, new TypeReference<GeneralResponse<Resource, ServiceDiscoveryResponseStatus>>() {});
     }
 
     @Override
     public void updateResource(UpdateResourceRequest request) throws ServiceDiscoveryException {
-        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = new GeneralRequest<>();
-        req.request = request;
-        req.type = ServiceDiscoveryRequestTypes.update;
+        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = GeneralRequest.<Object, ServiceDiscoveryRequestTypes>builder()
+                .request(request).type(ServiceDiscoveryRequestTypes.update).build();
         sendAndReceive(req, new TypeReference<GeneralResponse<Void, ServiceDiscoveryResponseStatus>>() {});
     }
 
     @Override
     public void removeResource(RemoveResourceRequest request) throws ServiceDiscoveryException {
-        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = new GeneralRequest<>();
-        req.request = request;
-        req.type = ServiceDiscoveryRequestTypes.remove;
+        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = GeneralRequest.<Object, ServiceDiscoveryRequestTypes>builder()
+                .request(request).type(ServiceDiscoveryRequestTypes.remove).build();
         sendAndReceive(req, new TypeReference<GeneralResponse<Void, ServiceDiscoveryResponseStatus>>() {});
     }
 
     @Override
     public List<Resource> lookupResources(LookupResourceRequest request) throws ServiceDiscoveryException {
-        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = new GeneralRequest<>();
-        req.request = request;
-        req.type = ServiceDiscoveryRequestTypes.lookup;
+        GeneralRequest<Object, ServiceDiscoveryRequestTypes> req = GeneralRequest.<Object, ServiceDiscoveryRequestTypes>builder()
+                .request(request).type(ServiceDiscoveryRequestTypes.lookup).build();
         return sendAndReceive(req, new TypeReference<GeneralResponse<List<Resource>, ServiceDiscoveryResponseStatus>>() {});
     }
 
     private <T> T sendAndReceive(GeneralRequest<Object, ServiceDiscoveryRequestTypes> data, TypeReference<GeneralResponse<T, ServiceDiscoveryResponseStatus>> clazz) throws ServiceDiscoveryException {
         try {
             GeneralResponse<T, ServiceDiscoveryResponseStatus> req = SendAndReceiveIPCUtil.sendAndReceive(ipc, SERVICE_DISCOVERY_NAME, data, clazz).get();
-            if (!ServiceDiscoveryResponseStatus.Success.equals(req.error)) {
+            if (!ServiceDiscoveryResponseStatus.Success.equals(req.getError())) {
                 throwOnError(req);
             }
 
-            return req.response;
+            return req.getResponse();
         } catch (InterruptedException | ExecutionException e) {
             throw new ServiceDiscoveryException(e);
         }
     }
 
     private void throwOnError(GeneralResponse<?, ServiceDiscoveryResponseStatus> req) throws ServiceDiscoveryException {
-        switch (req.error)  {
+        switch (req.getError())  {
             case ResourceNotFound:
-                throw new ResourceNotFoundException(req.errorMessage);
+                throw new ResourceNotFoundException(req.getErrorMessage());
             case ResourceNotOwned:
-                throw new ResourceNotOwnedException(req.errorMessage);
+                throw new ResourceNotOwnedException(req.getErrorMessage());
             case AlreadyRegistered:
-                throw new AlreadyRegisteredException(req.errorMessage);
+                throw new AlreadyRegisteredException(req.getErrorMessage());
             default:
-                throw new ServiceDiscoveryException(req.errorMessage);
+                throw new ServiceDiscoveryException(req.getErrorMessage());
         }
     }
 }

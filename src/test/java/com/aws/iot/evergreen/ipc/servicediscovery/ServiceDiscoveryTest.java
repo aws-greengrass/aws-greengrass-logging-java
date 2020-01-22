@@ -1,4 +1,4 @@
-package com.aws.iot.evergreen.ipc.ServiceDiscovery;
+package com.aws.iot.evergreen.ipc.servicediscovery;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class ServiceDiscoveryTest {
-    private JSON encoder = JSON.std.with(JSON.Feature.USE_FIELDS).with(new CBORFactory());
+    private JSON encoder = JSON.std.with(new CBORFactory());
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     private IPCClient ipc;
@@ -75,14 +75,12 @@ public class ServiceDiscoveryTest {
     @Test
     public void testRegister() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = new RegisterResourceRequest();
-        req.resource = new Resource();
-        req.resource.name = "ABC";
+        RegisterResourceRequest req = RegisterResourceRequest.builder()
+                .resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
-        genReq.response = new Resource();
-        genReq.response.name = "ABC";
-        genReq.error = ServiceDiscoveryResponseStatus.Success;
+        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder().
+                response(Resource.builder().name("ABC").build())
+                .error(ServiceDiscoveryResponseStatus.Success).build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
@@ -96,19 +94,18 @@ public class ServiceDiscoveryTest {
 
         fut.get();
 
-        assertEquals("ABC", res.name);
+        assertEquals("ABC", res.getName());
     }
 
     @Test
     public void testRegisterWithException() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = new RegisterResourceRequest();
-        req.resource = new Resource();
-        req.resource.name = "ABC";
+        RegisterResourceRequest req = RegisterResourceRequest.builder()
+                .resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
-        genReq.error = ServiceDiscoveryResponseStatus.AlreadyRegistered;
-        genReq.errorMessage = "Service 'ABC' is already registered";
+        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder()
+                .error(ServiceDiscoveryResponseStatus.AlreadyRegistered)
+                .errorMessage("Service 'ABC' is already registered").build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
@@ -123,22 +120,21 @@ public class ServiceDiscoveryTest {
 
         fut.get();
 
-        assertEquals(genReq.errorMessage, ex.getMessage());
+        assertEquals(genReq.getErrorMessage(), ex.getMessage());
     }
 
     @Test
     public void testWrongReturnType() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = new RegisterResourceRequest();
-        req.resource = new Resource();
-        req.resource.name = "ABC";
+        RegisterResourceRequest req = RegisterResourceRequest.builder()
+                .resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq = new GeneralResponse<>();
-        genReq.response = new UpdateResourceRequest();
-        genReq.response.resource = new Resource();
-        genReq.response.resource.name = "ABC";
-        genReq.response.publishToDNSSD = true;
-        genReq.error = ServiceDiscoveryResponseStatus.Success;
+        GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<UpdateResourceRequest, ServiceDiscoveryResponseStatus>builder()
+                .response(UpdateResourceRequest.builder()
+                        .resource(Resource.builder()
+                                .name("ABC").build())
+                        .publishToDNSSD(true).build())
+                .error(ServiceDiscoveryResponseStatus.Success).build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
