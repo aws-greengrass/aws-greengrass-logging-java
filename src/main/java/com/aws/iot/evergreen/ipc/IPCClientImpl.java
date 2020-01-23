@@ -6,6 +6,7 @@ import com.aws.iot.evergreen.ipc.message.MessageHandler;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -35,7 +36,7 @@ public class IPCClientImpl implements IPCClient {
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
         this.writer = new ConnectionWriter(clientSocket.getOutputStream());
         new Thread(reader).start();
-        sendRequest(AUTH_SERVICE, new Message(config.getToken().getBytes()));
+        sendRequest(AUTH_SERVICE, new Message(config.getToken() == null ? new byte[0] : config.getToken().getBytes(StandardCharsets.UTF_8)));
     }
 
     public boolean ping() {
@@ -61,7 +62,11 @@ public class IPCClientImpl implements IPCClient {
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);
-        writer.write(frame);
+        try {
+            writer.write(frame);
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        }
         return future;
     }
 
@@ -72,13 +77,9 @@ public class IPCClientImpl implements IPCClient {
             this.dos = new DataOutputStream(os);
         }
 
-        public void write(MessageFrame f) {
+        public void write(MessageFrame f) throws IOException {
             synchronized (dos) {
-                try {
-                    writeFrame(f, dos);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                writeFrame(f, dos);
             }
         }
     }

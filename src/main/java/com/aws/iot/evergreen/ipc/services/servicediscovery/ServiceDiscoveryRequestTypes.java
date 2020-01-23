@@ -1,4 +1,4 @@
-package com.aws.iot.evergreen.ipc.services.ServiceDiscovery;
+package com.aws.iot.evergreen.ipc.services.servicediscovery;
 
 public enum ServiceDiscoveryRequestTypes {
     register,

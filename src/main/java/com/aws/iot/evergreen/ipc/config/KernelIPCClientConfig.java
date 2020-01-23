@@ -8,7 +8,7 @@ public class KernelIPCClientConfig {
     private String hostAddress;
     private int port;
     private long requestTimeoutInMillSec;
-    private String token;
+    private String token = System.getenv("SVCUID");
 
     private KernelIPCClientConfig(){
 

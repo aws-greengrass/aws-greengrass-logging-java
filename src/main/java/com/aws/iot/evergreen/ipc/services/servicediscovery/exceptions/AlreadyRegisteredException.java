@@ -1,4 +1,4 @@
-package com.aws.iot.evergreen.ipc.services.ServiceDiscovery.Exceptions;
+package com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions;
 
 public class AlreadyRegisteredException extends ServiceDiscoveryException {
     public AlreadyRegisteredException(Throwable e) {
