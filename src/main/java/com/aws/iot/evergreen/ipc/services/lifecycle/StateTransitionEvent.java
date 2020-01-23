@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StateTransitionEvent {
-    public String oldState;
-    public String newState;
+    private String oldState;
+    private String newState;
+    private String service;
 }

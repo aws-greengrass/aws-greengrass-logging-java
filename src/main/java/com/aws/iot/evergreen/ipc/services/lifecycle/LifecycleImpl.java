@@ -12,6 +12,8 @@ import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
@@ -19,8 +21,7 @@ import java.util.function.BiConsumer;
 public class LifecycleImpl implements Lifecycle {
     private static ObjectMapper mapper = new CBORMapper();
     private final IPCClient ipc;
-    private final static List<BiConsumer<String, String>> stateTransitionCallbacks = new CopyOnWriteArrayList<>();
-    private boolean registeredWithServer = false;
+    private final static Map<String, List<BiConsumer<String, String>>> stateTransitionCallbacks = new ConcurrentHashMap<>();
 
     public LifecycleImpl(IPCClient ipc) {
         this.ipc = ipc;
@@ -34,15 +35,20 @@ public class LifecycleImpl implements Lifecycle {
             GeneralResponse<Void, LifecycleResponseStatus> response = GeneralResponse.<Void, LifecycleResponseStatus>builder().build();
             if (LifecycleRequestTypes.transition.equals(obj.getType())) {
                 StateTransitionEvent transitionRequest = mapper.convertValue(obj.getRequest(), StateTransitionEvent.class);
-                stateTransitionCallbacks.forEach(f -> {
-                    try {
-                        f.accept(transitionRequest.oldState, transitionRequest.newState);
-                    } catch (Throwable ignored) {}
-                });
+                List<BiConsumer<String, String>> callbacks = stateTransitionCallbacks.get(transitionRequest.getService());
+                if (callbacks != null) {
+                    callbacks.forEach(f -> {
+                        try {
+                            f.accept(transitionRequest.getOldState(), transitionRequest.getNewState());
+                        } catch (Throwable ignored) {
+                        }
+                    });
 
-                response.setError(LifecycleResponseStatus.Success);
+                    response.setError(LifecycleResponseStatus.Success);
+                } else {
+                    response.setError(LifecycleResponseStatus.Unknown);
+                }
             } else {
-                // Something has gone wrong
                 response.setError(LifecycleResponseStatus.Unknown);
             }
             return new FrameReader.Message(SendAndReceiveIPCUtil.encode(response));
@@ -72,7 +78,13 @@ public class LifecycleImpl implements Lifecycle {
                 .build();
         sendAndReceive(request, new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
         });
-        stateTransitionCallbacks.add(onTransition);
+        stateTransitionCallbacks.compute(serviceName, (key, old) -> {
+            if (old == null) {
+                old = new CopyOnWriteArrayList<>();
+            }
+            old.add(onTransition);
+            return old;
+        });
     }
 
     private <T> T sendAndReceive(GeneralRequest<Object, LifecycleRequestTypes> data, TypeReference<GeneralResponse<T, LifecycleResponseStatus>> clazz) throws LifecycleIPCException {

@@ -43,6 +43,7 @@ public class IPCClientImpl implements IPCClient {
 
     public void connect() throws IOException {
         this.clientSocket = new Socket(config.getHostAddress(), config.getPort());
+        this.clientSocket.setTcpNoDelay(true);
         this.clientSocket.setKeepAlive(true);
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
         this.writer = new ConnectionWriter(clientSocket.getOutputStream());
