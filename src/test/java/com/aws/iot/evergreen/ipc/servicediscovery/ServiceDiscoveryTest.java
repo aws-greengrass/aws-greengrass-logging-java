@@ -50,7 +50,7 @@ public class ServiceDiscoveryTest {
 
     @BeforeEach
     public void before() throws IOException, InterruptedException, ExecutionException {
-        server = new ServerSocket(9000);
+        server = new ServerSocket(0);
         Future<Object> fut = executor.submit(() -> {
             sock = server.accept();
             in = new DataInputStream(sock.getInputStream());
@@ -64,7 +64,7 @@ public class ServiceDiscoveryTest {
             return null;
         });
 
-        ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(9000).build());
+        ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(server.getLocalPort()).build());
         fut.get();
     }
 
