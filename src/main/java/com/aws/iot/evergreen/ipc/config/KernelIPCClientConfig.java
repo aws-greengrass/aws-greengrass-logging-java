@@ -1,6 +1,7 @@
 package com.aws.iot.evergreen.ipc.config;
 
-import java.util.UUID;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
 public class KernelIPCClientConfig {
@@ -8,7 +9,7 @@ public class KernelIPCClientConfig {
     private String hostAddress;
     private int port;
     private long requestTimeoutInMillSec;
-    private String token = System.getenv("SVCUID");
+    private String token;
 
     private KernelIPCClientConfig(){
 
@@ -47,11 +48,20 @@ public class KernelIPCClientConfig {
         private String hostAddress;
         private int port;
         private long requestTimeoutInMillSec = TimeUnit.SECONDS.toMillis(30);
-        //TODO: read token from env variable
-        private String token = UUID.randomUUID().toString();
+        private String token = System.getenv("SVCUID");
 
         public KernelIPCClientConfigBuilder(){
             // default host and port information should come from env variables.
+            String kernelStuff = System.getenv("AWS_GG_KERNEL_URI");
+            if (kernelStuff == null || kernelStuff.isEmpty()) {
+                return;
+            }
+            try {
+                URI uri = new URI(kernelStuff);
+                this.hostAddress = uri.getHost();
+                this.port = uri.getPort();
+            } catch (URISyntaxException ignored) {
+            }
         }
 
         public KernelIPCClientConfigBuilder hostAddress(final String hostAddress){

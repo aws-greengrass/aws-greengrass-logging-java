@@ -1,5 +1,7 @@
 package com.aws.iot.evergreen.ipc.common;
 
+import lombok.ToString;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -36,15 +38,15 @@ public class FrameReader {
             int version = firstByte >> 1;
             FrameType type = FrameType.fromOrdinal(firstByte & IS_RESPONSE_MASK);
 
-            int destinationNameLength = dis.readUnsignedShort();
+            int destinationNameLength = dis.readShort();
             byte[] destinationNameByte = new byte[destinationNameLength];
-            assert dis.read(destinationNameByte) == destinationNameLength;
+            dis.read(destinationNameByte);
 
             int sequenceNumber = dis.readInt();
 
-            int payloadLength = dis.readUnsignedShort();
+            int payloadLength = dis.readShort();
             byte[] payload = new byte[payloadLength];
-            assert dis.read(payload) == payloadLength;
+            dis.read(payload);
 
             return new MessageFrame(sequenceNumber, version, new String(destinationNameByte, StandardCharsets.UTF_8),
                     new Message(payload), type);
@@ -66,10 +68,11 @@ public class FrameReader {
             //TODO: perform range checks on payload numeric fields before writing
             Message m = f.message;
 
-            dos.write((f.version << 1) | (f.type.ordinal()));
+            dos.writeByte((f.version << 1) | (f.type.ordinal()));
 
-            dos.writeShort(f.destination.length());
-            dos.write(f.destination.getBytes(StandardCharsets.UTF_8));
+            byte[] destination = f.destination.getBytes(StandardCharsets.UTF_8);
+            dos.writeShort(destination.length);
+            dos.write(destination);
 
             dos.writeInt(f.sequenceNumber);
 
@@ -95,6 +98,7 @@ public class FrameReader {
     /**
      *
      */
+    @ToString
     public static class MessageFrame {
         private final static AtomicInteger sequenceNumberGenerator = new AtomicInteger();
         public final int sequenceNumber;

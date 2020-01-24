@@ -3,16 +3,24 @@ package com.aws.iot.evergreen.ipc;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
 
-
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.*;
-import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
+import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
+import static com.aws.iot.evergreen.ipc.common.Constants.PING_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 
 
 //TODO: implement logging
@@ -36,7 +44,16 @@ public class IPCClientImpl implements IPCClient {
         this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
         this.writer = new ConnectionWriter(clientSocket.getOutputStream());
         new Thread(reader).start();
-        sendRequest(AUTH_SERVICE, new Message(config.getToken() == null ? new byte[0] : config.getToken().getBytes(StandardCharsets.UTF_8)));
+        try {
+            // Send Auth request and wait for response.
+            Message m = sendRequest(AUTH_SERVICE, new Message(config.getToken() == null ? new byte[0] : config.getToken().getBytes(StandardCharsets.UTF_8))).get();
+            // If the response is empty, then we are authenticated successfully
+            if (m.getPayload().length > 0) {
+                throw new IOException(new String(m.getPayload(), StandardCharsets.UTF_8));
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IOException(e);
+        }
     }
 
     public boolean ping() {
