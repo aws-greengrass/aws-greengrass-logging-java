@@ -1,0 +1,65 @@
+syntax = "proto3";
+option java_package = "com.aws.iot.evergreen.ipc";
+
+service ServiceDiscovery {
+    rpc RegisterResource(RegisterResourceRequest) returns (Resource) {}
+    rpc LookupResources(LookupResourcesRequest) returns (stream Resource) {}
+    rpc RemoveResource(RemoveResourceRequest) returns (Resource) {}
+    rpc UpdateResource(UpdateResourceRequest) returns (Resource) {}
+}
+
+service Lifecycle {
+    rpc RequestStateChange(StateChangeRequest) returns (StateChangeResponse) {}
+    rpc ListenToStateChanges(StateChangeListenRequest) returns (stream StateTransition) {}
+}
+
+message StateChangeRequest {
+    string newState = 1;
+}
+
+message StateChangeListenRequest {
+    string service = 1;
+}
+
+message StateChangeResponse {
+
+}
+
+message StateTransition {
+    string oldState = 1;
+    string newState = 2;
+    string service = 3;
+}
+
+message RegisterResourceRequest {
+    Resource resource = 1;
+    bool publishToDNSSD = 2;
+}
+
+message LookupResourcesRequest {
+    Resource resource = 1;
+}
+
+message RemoveResourceRequest {
+    Resource resource = 1;
+}
+
+message UpdateResourceRequest {
+    Resource resource = 1;
+    bool publishToDNSSD = 2;
+}
+
+message Resource {
+    string name = 1;
+    string serviceSubtype = 2;
+    string serviceType = 3;
+    string domain = 4;
+    Protocol serviceProtocol = 5;
+    string uri = 6;
+    map<string, string> txtRecords = 7;
+}
+
+enum Protocol {
+    TCP = 0;
+    UDP = 1;
+}
