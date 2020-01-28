@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
-import static com.aws.iot.evergreen.ipc.common.Constants.PING_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
@@ -56,19 +55,6 @@ public class IPCClientImpl implements IPCClient {
         }
     }
 
-    public boolean ping() {
-        Message msg = new Message("ping".getBytes());
-        try {
-            Message resp = sendRequest(PING_SERVICE, msg).get();
-            if (new String(resp.getPayload()).equals("pong")) {
-                return true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     public void disconnect() throws IOException {
         reader.close();
         clientSocket.close();
@@ -88,48 +74,46 @@ public class IPCClientImpl implements IPCClient {
     }
 
     public static class ConnectionWriter {
-        private final DataOutputStream dos;
+        private final DataOutputStream dataOutputStream;
 
         public ConnectionWriter(OutputStream os) {
-            this.dos = new DataOutputStream(os);
+            this.dataOutputStream = new DataOutputStream(os);
         }
 
         public void write(MessageFrame f) throws IOException {
-            synchronized (dos) {
-                writeFrame(f, dos);
-            }
+            writeFrame(f, dataOutputStream);
         }
     }
 
     public static class ConnectionReader implements Runnable {
 
-        private final DataInputStream dis;
-        AtomicBoolean running = new AtomicBoolean(true);
+        private final DataInputStream dataInputStream;
+        AtomicBoolean isShutdown = new AtomicBoolean(false);
         private MessageHandler messageHandler;
 
         public ConnectionReader(InputStream is, MessageHandler messageHandler) {
-            this.dis = new DataInputStream(is);
+            this.dataInputStream = new DataInputStream(is);
             this.messageHandler = messageHandler;
         }
 
         @Override
         public void run() {
-            while (running.get()) {
+            while (!isShutdown.get()) {
                 try {
-                    MessageFrame messageFrame = readFrame(dis);
+                    MessageFrame messageFrame = readFrame(dataInputStream);
                     messageHandler.handleMessage(messageFrame);
                 } catch (Exception e) {
-                    if (running.get()) {
+                    if (!isShutdown.get()) {
                         System.out.println("Connection error");
                         e.printStackTrace();
-                        running.set(false);
+                        break;
                     }
                 }
             }
         }
 
         public void close() {
-            running.set(false);
+            isShutdown.set(true);
         }
     }
 }

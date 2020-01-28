@@ -5,6 +5,7 @@ import lombok.ToString;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,6 +15,14 @@ public class FrameReader {
     private static final int VERSION = 1;
     private static final int BYTE_MASK = 0xff;
     private static final int IS_RESPONSE_MASK = 0x01;
+    /**
+     * version and request type : 1 byte
+     * destination name length  : 1 byte
+     * sequence number          : 4 bytes
+     * payload length           : 2 bytes
+     *                 Total    : 8 bytes
+     */
+    private static final int HEADER_SIZE_IN_BYTES = 8;
 
     //TODO: implement read frame with timeout
     public static MessageFrame readFrame(DataInputStream dis, int timeoutInMilliSec) {
@@ -28,25 +37,22 @@ public class FrameReader {
      * next 2 bytes, length of payload as a short
      * Rest of the bytes capture the payload
      *
-     * @param dis input stream
+     * @param dataInputStream input stream
      * @return
      * @throws Exception
      */
-    public static MessageFrame readFrame(DataInputStream dis) throws Exception {
-        synchronized (dis) {
-            int firstByte = ((int) dis.readByte()) & BYTE_MASK;
+    public static MessageFrame readFrame(DataInputStream dataInputStream) throws Exception {
+        synchronized (dataInputStream) {
+            int firstByte =  dataInputStream.readByte() & BYTE_MASK;
             int version = firstByte >> 1;
             FrameType type = FrameType.fromOrdinal(firstByte & IS_RESPONSE_MASK);
-
-            int destinationNameLength = dis.readShort();
+            int destinationNameLength = dataInputStream.readByte();
             byte[] destinationNameByte = new byte[destinationNameLength];
-            dis.read(destinationNameByte);
-
-            int sequenceNumber = dis.readInt();
-
-            int payloadLength = dis.readShort();
+            dataInputStream.read(destinationNameByte);
+            int sequenceNumber = dataInputStream.readInt();
+            int payloadLength = dataInputStream.readShort();
             byte[] payload = new byte[payloadLength];
-            dis.read(payload);
+            dataInputStream.read(payload);
 
             return new MessageFrame(sequenceNumber, version, new String(destinationNameByte, StandardCharsets.UTF_8),
                     new Message(payload), type);
@@ -57,39 +63,33 @@ public class FrameReader {
      * Encodes the Message frame to bytes
      *
      * @param f
-     * @param dos
+     * @param dataOutputStream
      * @throws IOException
      */
-    public static void writeFrame(MessageFrame f, DataOutputStream dos) throws IOException {
-        synchronized (dos) {
+    public static void writeFrame(MessageFrame f, DataOutputStream dataOutputStream) throws IOException {
+        synchronized (dataOutputStream) {
             if (f == null || f.message == null) {
                 throw new IllegalArgumentException("Message is null ");
             }
             //TODO: perform range checks on payload numeric fields before writing
             Message m = f.message;
-
-            dos.writeByte((f.version << 1) | (f.type.ordinal()));
-
             byte[] destination = f.destination.getBytes(StandardCharsets.UTF_8);
-            dos.writeShort(destination.length);
-            dos.write(destination);
-
-            dos.writeInt(f.sequenceNumber);
-
-            int payloadLength = m.payload.length;
-            dos.writeShort(payloadLength);
-
-            dos.write(m.payload);
-            dos.flush();
+            ByteBuffer buffer =  ByteBuffer.allocate(HEADER_SIZE_IN_BYTES + destination.length + m.payload.length);
+            buffer.put((byte) ((f.version << 1) | (f.type.ordinal())));
+            buffer.put((byte) destination.length);
+            buffer.put(destination);
+            buffer.putInt(f.sequenceNumber);
+            buffer.putShort((short) m.payload.length);
+            buffer.put(m.payload);
+            dataOutputStream.write(buffer.array());
+            dataOutputStream.flush();
         }
     }
 
     public enum FrameType {
         REQUEST,
         RESPONSE;
-
         private static FrameType[] allValues = values();
-
         public static FrameType fromOrdinal(int n) {
             return allValues[n];
         }

@@ -13,6 +13,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus.*;
+
 public class ServiceDiscoveryImpl implements ServiceDiscovery {
     private final IPCClient ipc;
 

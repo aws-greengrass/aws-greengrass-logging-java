@@ -7,8 +7,9 @@ import java.util.concurrent.CompletableFuture;
 
 public interface IPCClient {
 
-    boolean ping();
-    void disconnect() throws IOException;
     void connect() throws IOException, InterruptedException;
+
+    void disconnect() throws IOException;
+
     CompletableFuture<FrameReader.Message> sendRequest(String destination, FrameReader.Message msg);
 }
