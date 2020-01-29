@@ -12,6 +12,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 
+import java.util.concurrent.TimeUnit;
+
 
 //TODO: implement logging
 //TODO: throw ipc client specific runtime exceptions
@@ -35,7 +37,10 @@ public class IPCClientImpl {
                         };
                     }
                 })
-                .usePlaintext().build();
+                .usePlaintext()
+                .keepAliveWithoutCalls(true)
+                .keepAliveTimeout(300, TimeUnit.DAYS)
+                .build();
     }
 
     public ManagedChannel getChannel() {
