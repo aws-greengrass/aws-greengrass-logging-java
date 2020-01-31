@@ -7,18 +7,19 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.fasterxml.jackson.jr.ob.JSON;
 import com.fasterxml.jackson.jr.stree.JacksonJrsTreeCodec;
-import com.sun.tools.javac.util.List;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.appender.OutputStreamAppender;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 public class CBORLayoutTest {
 
@@ -26,10 +27,10 @@ public class CBORLayoutTest {
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectMapper mapper = new CBORMapper();
     private static OutputStreamAppender outputStreamAppender;
-    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    private static final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
-    @Before
-    public void setupAppender() {
+    @BeforeAll
+    public static void setupAppender() {
         outputStreamAppender = OutputStreamAppender.createAppender(layout, null, outContent, "outputStreamAppender", true, false);
         outputStreamAppender.start();
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -43,7 +44,8 @@ public class CBORLayoutTest {
     @Test
     public void logRandomThings() throws IOException {
 
-        List<SimpleMessage> messages = List.of(new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
+        List<SimpleMessage> messages = Arrays.asList(
+                new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
         messages.forEach((m) -> {
             Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
             outputStreamAppender.append(log4jLogEvent);

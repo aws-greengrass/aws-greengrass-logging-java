@@ -1,3 +1,7 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ */
+
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.MetricsFactory;
@@ -28,6 +32,10 @@ public class Log4jLogManager implements com.aws.iot.evergreen.logging.api.LogMan
     private LoggerContext context;
     private LoggerConfig loggerConfig;
 
+    /**
+     * The constructor.
+     * TODO: pass in default configuration https://issues.amazon.com/issues/P31935972
+     */
     public Log4jLogManager() {
         loggerMap = new ConcurrentHashMap<>();
         // metricsFactoryMap = new ConcurrentHashMap<>();
@@ -49,27 +57,17 @@ public class Log4jLogManager implements com.aws.iot.evergreen.logging.api.LogMan
         loggerConfig.addAppender(appender, null, null);
 
         configuration.addAppender(appender);
-
-        LogManager.getRootLogger();
     }
 
     @Override
     public com.aws.iot.evergreen.logging.api.Logger getLogger(String name) {
-        com.aws.iot.evergreen.logging.api.Logger evgLogger = loggerMap.get(name);
-        if (evgLogger != null) {
-            return evgLogger;
-        } else {
-            Logger log4jLogger;
-
+        return loggerMap.computeIfAbsent(name, n -> {
             configuration.addLogger(name, loggerConfig);
             context.updateLoggers(configuration);
+            Logger log4jLogger = LogManager.getLogger(name);
 
-            log4jLogger = LogManager.getLogger(name);
-
-            com.aws.iot.evergreen.logging.api.Logger newInstance = new Log4jLoggerAdapter(log4jLogger);
-            com.aws.iot.evergreen.logging.api.Logger oldInstance = loggerMap.putIfAbsent(name, newInstance);
-            return oldInstance == null ? newInstance : oldInstance;
-        }
+            return new Log4jLoggerAdapter(log4jLogger);
+        });
     }
 
     @Override

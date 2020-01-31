@@ -1,9 +1,13 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ */
+
 package com.aws.iot.evergreen.logging.api;
 
 public interface Logger {
     String getName();
 
-    void addDefaultKeyValue(String key, Object value);
+    Logger addDefaultKeyValue(String key, Object value);
 
     LogEventBuilder atTrace();
 

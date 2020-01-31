@@ -1,3 +1,7 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ */
+
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
@@ -10,10 +14,16 @@ import java.util.concurrent.ConcurrentMap;
 public class Log4jLogEventBuilder implements LogEventBuilder {
     final Level level;
     Throwable cause;
-    String eventType = "DEFAULT";
+    String eventType;
     ConcurrentMap<String, String> eventContextData = new ConcurrentHashMap<>();
     Log4jLoggerAdapter logger;
 
+    /**
+     * Log Event Builder constructor.
+     * @param logger the Greengrass logger
+     * @param level the log level setting on the logger
+     * @param loggerContextData a map of key value pairs with contextual information for the logger
+     */
     public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level, Map<String, String> loggerContextData) {
         this.logger = logger;
         this.level = level;
@@ -40,17 +50,22 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public void log() {
-        this.logger.logMessage(this.level, this.eventType, "", this.cause, this.eventContextData);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
+                this.logger.getName(), this.level, this.eventType, "", this.eventContextData);
+        this.logger.logMessage(this.level, message, this.cause);
     }
 
     @Override
     public void log(Object arg) {
-        this.logger.logMessage(this.level, this.eventType, arg.toString(), this.cause, this.eventContextData);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
+                this.logger.getName(), this.level, this.eventType, arg.toString(), this.eventContextData);
+        this.logger.logMessage(this.level, message, this.cause);
     }
 
     @Override
-    public void log(String message, Object... args) {
-        String msg = String.format(message, args);
-        this.logger.logMessage(this.level, this.eventType, msg, this.cause, this.eventContextData);
+    public void log(String fmt, Object... args) {
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
+                this.logger.getName(), this.level, this.eventType, String.format(fmt, args), this.eventContextData);
+        this.logger.logMessage(this.level, message, this.cause);
     }
 }

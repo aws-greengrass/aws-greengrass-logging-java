@@ -1,14 +1,21 @@
+/*
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ */
+
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import com.aws.iot.evergreen.logging.api.Logger;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.message.Message;
 import org.apache.logging.log4j.message.ObjectMessage;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
 
 public class Log4jLoggerAdapter implements Logger {
     final transient org.apache.logging.log4j.Logger logger;
@@ -26,8 +33,9 @@ public class Log4jLoggerAdapter implements Logger {
     }
 
     @Override
-    public void addDefaultKeyValue(String key, Object value) {
+    public Logger addDefaultKeyValue(String key, Object value) {
         loggerContextData.put(key, value.toString());
+        return this;
     }
 
     @Override
@@ -157,14 +165,12 @@ public class Log4jLoggerAdapter implements Logger {
     }
 
     private void log(Level level, String msg, Object... args) {
-        ObjectMessage message = new ObjectMessage(new LogEvent(name, level, "DEFAULT", String
-                .format(msg, args), loggerContextData));
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(name, level, null, String
+                .format(msg, args), loggerContextData);
         this.logger.logMessage(level, null, null, null, message, null);
     }
 
-    public void logMessage(Level level, String eventType, String msg, Throwable throwable,
-                           Map<String, String> contextData) {
-        ObjectMessage message = new ObjectMessage(new LogEvent(name, level, eventType, msg, contextData));
+    public void logMessage(Level level, Message message, Throwable throwable) {
         this.logger.logMessage(level, null, null, null, message, throwable);
     }
 
