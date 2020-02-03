@@ -1,7 +1,13 @@
 package com.aws.iot.evergreen.ipc;
 
+import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
+import com.aws.iot.evergreen.ipc.services.common.AuthRequestTypes;
+import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
+import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
+import com.aws.iot.evergreen.ipc.services.common.SendAndReceiveIPCUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -9,7 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,10 +50,16 @@ public class IPCClientImpl implements IPCClient {
         new Thread(reader).start();
         try {
             // Send Auth request and wait for response.
-            Message m = sendRequest(AUTH_SERVICE, new Message(config.getToken() == null ? new byte[0] : config.getToken().getBytes(StandardCharsets.UTF_8))).get();
-            // If the response is empty, then we are authenticated successfully
-            if (m.getPayload().length > 0) {
-                throw new IOException(new String(m.getPayload(), StandardCharsets.UTF_8));
+            GeneralResponse<Void, GenericErrorCodes> resp = SendAndReceiveIPCUtil.sendAndReceive(this,
+                    AUTH_SERVICE,
+                    GeneralRequest.builder()
+                            .request(config.getToken() == null ? "" : config.getToken())
+                            .type(AuthRequestTypes.Auth)
+                            .build(),
+                    new TypeReference<GeneralResponse<Void, GenericErrorCodes>>() {
+                    }).get(); // TODO: Add timeout?
+            if (!resp.getError().equals(GenericErrorCodes.Success)) {
+                throw new IOException(resp.getErrorMessage());
             }
         } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
@@ -61,7 +72,7 @@ public class IPCClientImpl implements IPCClient {
     }
 
     public CompletableFuture<Message> sendRequest(String destination, Message msg) {
-        //TODO: implement timeout for listening to requests
+        //TODO: implement timeout for listening to requests https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);

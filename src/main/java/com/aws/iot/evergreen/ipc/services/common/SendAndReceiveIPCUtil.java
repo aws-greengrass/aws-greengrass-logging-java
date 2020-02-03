@@ -2,6 +2,7 @@ package com.aws.iot.evergreen.ipc.services.common;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
+import com.aws.iot.evergreen.ipc.common.GenericErrors;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,7 +19,7 @@ public class SendAndReceiveIPCUtil {
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectCodec mapper = new CBORMapper();
 
-    public static <T, E extends Enum<?>> CompletableFuture<GeneralResponse<T, E>> sendAndReceive(IPCClient ipc, String destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {
+    public static <T, E extends Enum<?> & GenericErrors> CompletableFuture<GeneralResponse<T, E>> sendAndReceive(IPCClient ipc, String destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {
         byte[] payload;
         try {
             payload = encode(data);
