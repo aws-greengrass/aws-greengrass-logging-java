@@ -11,9 +11,10 @@ import org.apache.logging.log4j.core.layout.AbstractLayout;
 import org.apache.logging.log4j.message.Message;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
-/** Serialises the {@link Message} in {@link LogEvent} to CBOR format
+/** Serialises the {@link Message} in {@link LogEvent} to CBOR format.
  *
  *  For each {@link Message} the layout reserves the initial four bytes to store the length of the serialized message.
  */
@@ -36,8 +37,6 @@ public class CBORLayout extends AbstractLayout<LogEvent> {
 
     /**
      * Encodes the message in the log event using cbor data format
-     *
-     * @param event
      * @return First 4 bytes represent the size of the serialized message followed
      * by message itself.
      */
@@ -54,7 +53,7 @@ public class CBORLayout extends AbstractLayout<LogEvent> {
             ByteBuffer buffer = ByteBuffer.wrap(eventInBytes);
             buffer.putInt(0, eventInBytes.length - NUM_OF_BYTES_REPRESENTING_MESSAGE_LENGTH);
             return buffer.array();
-        } catch (Exception e) {
+        } catch (IOException e) {
             LOGGER.error("Serialization of LogEvent failed.", e);
         }
         return EMPTY_BYTE_ARRAY;
