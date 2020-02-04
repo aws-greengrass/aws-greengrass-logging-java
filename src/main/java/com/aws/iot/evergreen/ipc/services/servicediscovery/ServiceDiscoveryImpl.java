@@ -7,13 +7,11 @@ import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ResourceNo
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
-import com.aws.iot.evergreen.ipc.services.common.SendAndReceiveIPCUtil;
+import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
-import static com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus.*;
 
 public class ServiceDiscoveryImpl implements ServiceDiscovery {
     private final IPCClient ipc;
@@ -54,7 +52,7 @@ public class ServiceDiscoveryImpl implements ServiceDiscovery {
 
     private <T> T sendAndReceive(GeneralRequest<Object, ServiceDiscoveryRequestTypes> data, TypeReference<GeneralResponse<T, ServiceDiscoveryResponseStatus>> clazz) throws ServiceDiscoveryException {
         try {
-            GeneralResponse<T, ServiceDiscoveryResponseStatus> req = SendAndReceiveIPCUtil.sendAndReceive(ipc, SERVICE_DISCOVERY_NAME, data, clazz).get();
+            GeneralResponse<T, ServiceDiscoveryResponseStatus> req = IPCUtil.sendAndReceive(ipc, SERVICE_DISCOVERY_NAME, data, clazz).get();
             if (!ServiceDiscoveryResponseStatus.Success.equals(req.getError())) {
                 throwOnError(req);
             }

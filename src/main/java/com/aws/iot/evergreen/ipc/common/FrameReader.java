@@ -24,11 +24,6 @@ public class FrameReader {
      */
     private static final int HEADER_SIZE_IN_BYTES = 8;
 
-    //TODO: implement read frame with timeout
-    public static MessageFrame readFrame(DataInputStream dis, int timeoutInMilliSec) {
-        return null;
-    }
-
     /**
      * Constructs MessageFrame from bits reads from the input stream
      * 1st byte, first 7 bits represent the version number and the last bit represent the type
@@ -133,10 +128,6 @@ public class FrameReader {
 
         public Message(byte[] payload) {
             this.payload = payload;
-        }
-
-        public static Message errorMessage(String errorMsg) {
-            return new Message(errorMsg.getBytes(StandardCharsets.UTF_8));
         }
 
         public byte[] getPayload() {

@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-public class SendAndReceiveIPCUtil {
+public class IPCUtil {
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectCodec mapper = new CBORMapper();
 

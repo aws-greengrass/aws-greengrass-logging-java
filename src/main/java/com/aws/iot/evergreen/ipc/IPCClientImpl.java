@@ -1,30 +1,34 @@
 package com.aws.iot.evergreen.ipc;
 
+import com.aws.iot.evergreen.ipc.codec.MessageFrameDecoder;
+import com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.handler.InboundMessageHandler;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
 import com.aws.iot.evergreen.ipc.services.common.AuthRequestTypes;
 import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
-import com.aws.iot.evergreen.ipc.services.common.SendAndReceiveIPCUtil;
+import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
-import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
-import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 
 
 //TODO: implement logging
@@ -33,31 +37,46 @@ public class IPCClientImpl implements IPCClient {
 
     private final MessageHandler messageHandler;
     private final KernelIPCClientConfig config;
-    private Socket clientSocket;
-    private ConnectionWriter writer;
-    private ConnectionReader reader;
+    private Channel channel;
+    private final EventLoopGroup eventLoopGroup;
 
-    public IPCClientImpl(KernelIPCClientConfig config) {
+    public IPCClientImpl(KernelIPCClientConfig config) throws IOException, InterruptedException {
         this.messageHandler = new MessageHandler();
         this.config = config;
-    }
 
-    public void connect() throws IOException {
-        this.clientSocket = new Socket(config.getHostAddress(), config.getPort());
-        this.clientSocket.setKeepAlive(true);
-        this.reader = new ConnectionReader(clientSocket.getInputStream(), messageHandler);
-        this.writer = new ConnectionWriter(clientSocket.getOutputStream());
-        new Thread(reader).start();
+        eventLoopGroup = new NioEventLoopGroup();
+
+        // Help boot strapping a channel
+        Bootstrap clientBootstrap = new Bootstrap();
+        clientBootstrap.group(eventLoopGroup) // associate event loop to channel
+                .channel(NioSocketChannel.class) // create a NIO socket channel
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new MessageFrameDecoder());
+                        ch.pipeline().addLast(new MessageFrameEncoder());
+                        ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
+                    }
+                })
+                .option(ChannelOption.SO_KEEPALIVE, true)
+                .option(ChannelOption.TCP_NODELAY, true);
+
+        // Connect to listening server
+        ChannelFuture channelFuture = clientBootstrap.connect(config.getHostAddress(), config.getPort()).sync();
+        if (!channelFuture.isSuccess()) {
+            throw new IOException("Unable to connect");
+        }
+
+        this.channel = channelFuture.channel();
+
         try {
             // Send Auth request and wait for response.
-            GeneralResponse<Void, GenericErrorCodes> resp = SendAndReceiveIPCUtil.sendAndReceive(this,
-                    AUTH_SERVICE,
-                    GeneralRequest.builder()
-                            .request(config.getToken() == null ? "" : config.getToken())
-                            .type(AuthRequestTypes.Auth)
-                            .build(),
-                    new TypeReference<GeneralResponse<Void, GenericErrorCodes>>() {
-                    }).get(); // TODO: Add timeout?
+            GeneralResponse<Void, GenericErrorCodes> resp = IPCUtil
+                    .sendAndReceive(this, AUTH_SERVICE, GeneralRequest.builder()
+                            .request(config.getToken() == null ? "" : config.getToken()).type(AuthRequestTypes.Auth)
+                            .build(), new TypeReference<GeneralResponse<Void, GenericErrorCodes>>() {
+                    }).get(); // TODO: Add timeout waiting for auth to come back?
+            // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
             if (!resp.getError().equals(GenericErrorCodes.Success)) {
                 throw new IOException(resp.getErrorMessage());
             }
@@ -66,9 +85,8 @@ public class IPCClientImpl implements IPCClient {
         }
     }
 
-    public void disconnect() throws IOException {
-        reader.close();
-        clientSocket.close();
+    public void disconnect() {
+        eventLoopGroup.shutdownGracefully();
     }
 
     public CompletableFuture<Message> sendRequest(String destination, Message msg) {
@@ -76,55 +94,8 @@ public class IPCClientImpl implements IPCClient {
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);
-        try {
-            writer.write(frame);
-        } catch (IOException e) {
-            future.completeExceptionally(e);
-        }
+
+        channel.writeAndFlush(frame);
         return future;
-    }
-
-    public static class ConnectionWriter {
-        private final DataOutputStream dataOutputStream;
-
-        public ConnectionWriter(OutputStream os) {
-            this.dataOutputStream = new DataOutputStream(os);
-        }
-
-        public void write(MessageFrame f) throws IOException {
-            writeFrame(f, dataOutputStream);
-        }
-    }
-
-    public static class ConnectionReader implements Runnable {
-
-        private final DataInputStream dataInputStream;
-        AtomicBoolean isShutdown = new AtomicBoolean(false);
-        private MessageHandler messageHandler;
-
-        public ConnectionReader(InputStream is, MessageHandler messageHandler) {
-            this.dataInputStream = new DataInputStream(is);
-            this.messageHandler = messageHandler;
-        }
-
-        @Override
-        public void run() {
-            while (!isShutdown.get()) {
-                try {
-                    MessageFrame messageFrame = readFrame(dataInputStream);
-                    messageHandler.handleMessage(messageFrame);
-                } catch (Exception e) {
-                    if (!isShutdown.get()) {
-                        System.out.println("Connection error");
-                        e.printStackTrace();
-                        break;
-                    }
-                }
-            }
-        }
-
-        public void close() {
-            isShutdown.set(true);
-        }
     }
 }

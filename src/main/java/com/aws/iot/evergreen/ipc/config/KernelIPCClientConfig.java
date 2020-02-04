@@ -45,7 +45,7 @@ public class KernelIPCClientConfig {
     public static KernelIPCClientConfigBuilder builder() { return new KernelIPCClientConfigBuilder();}
 
     public static class KernelIPCClientConfigBuilder {
-        private String hostAddress;
+        private String hostAddress = "127.0.0.1";
         private int port;
         private long requestTimeoutInMillSec = TimeUnit.SECONDS.toMillis(30);
         private String token = System.getenv("SVCUID");

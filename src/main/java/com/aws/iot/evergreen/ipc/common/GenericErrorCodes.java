@@ -5,5 +5,5 @@
 package com.aws.iot.evergreen.ipc.common;
 
 public enum GenericErrorCodes implements GenericErrors {
-    Success, Unknown, Unauthorized
+    Success, InternalError, InvalidRequest, Unauthorized
 }

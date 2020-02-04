@@ -4,8 +4,8 @@ import com.aws.iot.evergreen.ipc.common.GenericErrors;
 
 public enum ServiceDiscoveryResponseStatus implements GenericErrors {
     Success,
-    Unknown,
-    Unauthorized,
+    InternalError,
+    InvalidRequest,
     AlreadyRegistered,
     ResourceNotFound,
     ResourceNotOwned;

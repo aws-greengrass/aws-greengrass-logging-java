@@ -5,7 +5,7 @@ import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.services.common.SendAndReceiveIPCUtil;
+import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
@@ -59,13 +59,12 @@ public class ServiceDiscoveryTest {
             // Read and write auth
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                    new FrameReader.Message(SendAndReceiveIPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
+                    new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
                             FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
         ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(9000).build());
-        ipc.connect();
         fut.get();
     }
 
