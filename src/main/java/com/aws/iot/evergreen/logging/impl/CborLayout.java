@@ -14,31 +14,32 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-/** Serialises the {@link Message} in {@link LogEvent} to CBOR format.
+/**
+ * Serialises the {@link Message} in {@link LogEvent} to CBOR format.
  *
- *  For each {@link Message} the layout reserves the initial four bytes to store the length of the serialized message.
+ * <p>For each {@link Message} the layout reserves the initial four bytes to store the length of the serialized message.
  */
-@Plugin(name = "CBORLayout", category = Node.CATEGORY, elementType = Layout.ELEMENT_TYPE, printObject = false)
-public class CBORLayout extends AbstractLayout<LogEvent> {
+@Plugin(name = "CborLayout", category = Node.CATEGORY, elementType = Layout.ELEMENT_TYPE, printObject = false)
+public class CborLayout extends AbstractLayout<LogEvent> {
 
     private static final JSON encoder = JSON.std.with(new CBORFactory());
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     private static final int NUM_OF_BYTES_REPRESENTING_MESSAGE_LENGTH = 4;
     private static final byte[] ARRAY_REPRESENTING_MESSAGE_LENGTH = new byte[NUM_OF_BYTES_REPRESENTING_MESSAGE_LENGTH];
 
-    private CBORLayout() {
+    private CborLayout() {
         super(null, null, null);
     }
 
     @PluginFactory
-    public static CBORLayout createLayout() {
-        return new CBORLayout();
+    public static CborLayout createLayout() {
+        return new CborLayout();
     }
 
     /**
-     * Encodes the message in the log event using cbor data format
+     * Encodes the message in the log event using cbor data format.
      * @return First 4 bytes represent the size of the serialized message followed
-     * by message itself.
+     *         by message itself.
      */
     @Override
     public byte[] toByteArray(LogEvent event) {

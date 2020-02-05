@@ -18,12 +18,15 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class CBORLayoutTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    private static final Layout layout = CBORLayout.createLayout();
+public class CborLayoutTest {
+
+    private static final Layout layout = CborLayout.createLayout();
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectMapper mapper = new CBORMapper();
     private static OutputStreamAppender outputStreamAppender;
@@ -43,7 +46,6 @@ public class CBORLayoutTest {
 
     @Test
     public void logRandomThings() throws IOException {
-
         List<SimpleMessage> messages = Arrays.asList(
                 new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
         messages.forEach((m) -> {
@@ -59,7 +61,7 @@ public class CBORLayoutTest {
             TreeNode tree = encoder.treeFrom(arr);
             SimpleMessage deserializedMessage = tree.traverse(mapper).readValueAs(SimpleMessage.class);
             //comparing the original message with the de-serialized message
-            assert deserializedMessage.equals(message);
+            assertEquals(message, deserializedMessage);
         }
     }
 }

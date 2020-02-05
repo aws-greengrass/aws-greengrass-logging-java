@@ -8,20 +8,25 @@ import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import com.aws.iot.evergreen.logging.api.Logger;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.Message;
-import org.apache.logging.log4j.message.ObjectMessage;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import javax.annotation.Nullable;
-import javax.validation.constraints.NotNull;
 
+/**
+ * A wrapper over {@link org.apache.logging.log4j.Logger} in conforming to the
+ * {@link com.aws.iot.evergreen.logging.api.Logger} interface.
+ */
 public class Log4jLoggerAdapter implements Logger {
     final transient org.apache.logging.log4j.Logger logger;
     final String name;
     ConcurrentMap<String, String> loggerContextData = new ConcurrentHashMap<>();
 
+    /**
+     * Create a {@link Logger} instance based on the given {@link org.apache.logging.log4j.Logger} instance.
+     *
+     * @param logger a {@link org.apache.logging.log4j.Logger} instance
+     */
     public Log4jLoggerAdapter(org.apache.logging.log4j.Logger logger) {
         this.logger = logger;
         this.name = logger.getName();
@@ -166,12 +171,18 @@ public class Log4jLoggerAdapter implements Logger {
 
     private void log(Level level, String msg, Object... args) {
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(name, level, null, String
-                .format(msg, args), loggerContextData);
-        this.logger.logMessage(level, null, null, null, message, null);
+                .format(msg, args), loggerContextData, null);
+        logMessage(level, message);
     }
 
-    public void logMessage(Level level, Message message, Throwable throwable) {
-        this.logger.logMessage(level, null, null, null, message, throwable);
+    /**
+     * Log a {@link Message} at the given log level.
+     *
+     * @param level   the log level
+     * @param message the {@link Message} to be logged
+     */
+    public void logMessage(Level level, Message message) {
+        this.logger.logMessage(level, null, null, null, message, null);
     }
 
 }

@@ -22,6 +22,10 @@ import org.apache.logging.log4j.core.layout.JsonLayout;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * An implementation of {@link com.aws.iot.evergreen.logging.api.LogManager} returning
+ * a {@link Log4jLoggerAdapter} instance.
+ */
 public class Log4jLogManager implements com.aws.iot.evergreen.logging.api.LogManager {
 
     // key: name (String), value: a Log4jLoggerAdapter;

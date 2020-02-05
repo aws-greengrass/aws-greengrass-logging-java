@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
+ */
 public class Log4jLogEventBuilder implements LogEventBuilder {
     final Level level;
     Throwable cause;
@@ -50,22 +53,22 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public void log() {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
-                this.logger.getName(), this.level, this.eventType, "", this.eventContextData);
-        this.logger.logMessage(this.level, message, this.cause);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
+                .getName(), this.level, this.eventType, "", this.eventContextData, this.cause);
+        this.logger.logMessage(this.level, message);
     }
 
     @Override
     public void log(Object arg) {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
-                this.logger.getName(), this.level, this.eventType, arg.toString(), this.eventContextData);
-        this.logger.logMessage(this.level, message, this.cause);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
+                .getName(), this.level, this.eventType, arg.toString(), this.eventContextData, this.cause);
+        this.logger.logMessage(this.level, message);
     }
 
     @Override
     public void log(String fmt, Object... args) {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(
-                this.logger.getName(), this.level, this.eventType, String.format(fmt, args), this.eventContextData);
-        this.logger.logMessage(this.level, message, this.cause);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
+                .getName(), this.level, this.eventType, String.format(fmt, args), this.eventContextData, this.cause);
+        this.logger.logMessage(this.level, message);
     }
 }
