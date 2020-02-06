@@ -88,6 +88,11 @@
             <version>3.0.1u2</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>4.1.44.Final</version>
+        </dependency>
     </dependencies>
     <pluginRepositories>
         <pluginRepository>
