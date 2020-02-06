@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Remove a resource
+ * Remove a resource.
  */
 @Data
 @Builder
@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RemoveResourceRequest {
     /**
-     * Definition of the resource to remove
+     * Definition of the resource to remove.
      */
     private Resource resource;
 }

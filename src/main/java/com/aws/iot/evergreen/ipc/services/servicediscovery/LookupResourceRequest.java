@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Request to lookup a resource
+ * Request to lookup a resource.
  */
 @Data
 @Builder

@@ -34,15 +34,19 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 //TODO: implement logging
 //TODO: throw ipc client specific runtime exceptions
 public class IPCClientImpl implements IPCClient {
-
     private final MessageHandler messageHandler;
-    private final KernelIPCClientConfig config;
-    private Channel channel;
     private final EventLoopGroup eventLoopGroup;
+    private Channel channel;
 
+    /**
+     * Construct a client and immediately connect to the server.
+     *
+     * @param config configuration used to connect to the server
+     * @throws IOException if connection fails
+     * @throws InterruptedException if connection times out
+     */
     public IPCClientImpl(KernelIPCClientConfig config) throws IOException, InterruptedException {
         this.messageHandler = new MessageHandler();
-        this.config = config;
 
         eventLoopGroup = new NioEventLoopGroup();
 
@@ -57,9 +61,7 @@ public class IPCClientImpl implements IPCClient {
                         ch.pipeline().addLast(new MessageFrameEncoder());
                         ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
                     }
-                })
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .option(ChannelOption.TCP_NODELAY, true);
+                }).option(ChannelOption.SO_KEEPALIVE, true).option(ChannelOption.TCP_NODELAY, true);
 
         // Connect to listening server
         ChannelFuture channelFuture = clientBootstrap.connect(config.getHostAddress(), config.getPort()).sync();
@@ -71,10 +73,10 @@ public class IPCClientImpl implements IPCClient {
 
         try {
             // Send Auth request and wait for response.
-            GeneralResponse<Void, GenericErrorCodes> resp = IPCUtil
-                    .sendAndReceive(this, AUTH_SERVICE, GeneralRequest.builder()
-                            .request(config.getToken() == null ? "" : config.getToken()).type(AuthRequestTypes.Auth)
-                            .build(), new TypeReference<GeneralResponse<Void, GenericErrorCodes>>() {
+            GeneralResponse<Void, GenericErrorCodes> resp = IPCUtil.sendAndReceive(this, AUTH_SERVICE,
+                    GeneralRequest.builder().request(config.getToken() == null ? "" : config.getToken())
+                            .type(AuthRequestTypes.Auth).build(),
+                    new TypeReference<GeneralResponse<Void, GenericErrorCodes>>() {
                     }).get(); // TODO: Add timeout waiting for auth to come back?
             // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
             if (!resp.getError().equals(GenericErrorCodes.Success)) {
@@ -89,8 +91,16 @@ public class IPCClientImpl implements IPCClient {
         eventLoopGroup.shutdownGracefully();
     }
 
+    /**
+     * Send a request to the server to the given destination.
+     *
+     * @param destination what service should receive the message
+     * @param msg message to send
+     * @return future containing the response (if any)
+     */
     public CompletableFuture<Message> sendRequest(String destination, Message msg) {
-        //TODO: implement timeout for listening to requests https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
+        //TODO: implement timeout for listening to requests
+        // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
         CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);

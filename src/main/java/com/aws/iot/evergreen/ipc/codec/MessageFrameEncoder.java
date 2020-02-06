@@ -14,7 +14,8 @@ import java.io.DataOutputStream;
 
 public class MessageFrameEncoder extends MessageToByteEncoder<FrameReader.MessageFrame> {
     @Override
-    protected void encode(ChannelHandlerContext channelHandlerContext, FrameReader.MessageFrame messageFrame, ByteBuf byteBuf) throws Exception {
+    protected void encode(ChannelHandlerContext channelHandlerContext, FrameReader.MessageFrame messageFrame,
+                          ByteBuf byteBuf) throws Exception {
         FrameReader.writeFrame(messageFrame, new DataOutputStream(new ByteBufOutputStream(byteBuf)));
     }
 }

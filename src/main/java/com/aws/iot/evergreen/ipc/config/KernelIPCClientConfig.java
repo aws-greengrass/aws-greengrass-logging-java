@@ -11,9 +11,14 @@ public class KernelIPCClientConfig {
     private long requestTimeoutInMillSec;
     private String token;
 
-    private KernelIPCClientConfig(){
+    private KernelIPCClientConfig() {
 
     }
+
+    public static KernelIPCClientConfigBuilder builder() {
+        return new KernelIPCClientConfigBuilder();
+    }
+
     public String getHostAddress() {
         return hostAddress;
     }
@@ -38,11 +43,13 @@ public class KernelIPCClientConfig {
         this.requestTimeoutInMillSec = requestTimeoutInMillSec;
     }
 
-    public String getToken() { return token; }
+    public String getToken() {
+        return token;
+    }
 
-    public void setToken(String token) { this.token = token; }
-
-    public static KernelIPCClientConfigBuilder builder() { return new KernelIPCClientConfigBuilder();}
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public static class KernelIPCClientConfigBuilder {
         private String hostAddress = "127.0.0.1";
@@ -50,7 +57,11 @@ public class KernelIPCClientConfig {
         private long requestTimeoutInMillSec = TimeUnit.SECONDS.toMillis(30);
         private String token = System.getenv("SVCUID");
 
-        public KernelIPCClientConfigBuilder(){
+        /**
+         * Create a config builder.
+         */
+        @SuppressWarnings({"checkstyle:emptycatchblock"})
+        public KernelIPCClientConfigBuilder() {
             // default host and port information should come from env variables.
             String kernelStuff = System.getenv("AWS_GG_KERNEL_URI");
             if (kernelStuff == null || kernelStuff.isEmpty()) {
@@ -64,26 +75,30 @@ public class KernelIPCClientConfig {
             }
         }
 
-        public KernelIPCClientConfigBuilder hostAddress(final String hostAddress){
+        public KernelIPCClientConfigBuilder hostAddress(final String hostAddress) {
             this.hostAddress = hostAddress;
             return this;
         }
 
-        public KernelIPCClientConfigBuilder port(final int port){
+        public KernelIPCClientConfigBuilder port(final int port) {
             this.port = port;
             return this;
         }
 
-        public KernelIPCClientConfigBuilder token(final String token){
+        public KernelIPCClientConfigBuilder token(final String token) {
             this.token = token;
             return this;
         }
 
-        public KernelIPCClientConfigBuilder requestTimeoutInMillSec(final long requestTimeoutInMillSec){
+        public KernelIPCClientConfigBuilder requestTimeoutInMillSec(final long requestTimeoutInMillSec) {
             this.requestTimeoutInMillSec = requestTimeoutInMillSec;
             return this;
         }
 
+        /**
+         * Build config from builder.
+         * @return built config
+         */
         public KernelIPCClientConfig build() {
             KernelIPCClientConfig config = new KernelIPCClientConfig();
             config.setHostAddress(hostAddress);

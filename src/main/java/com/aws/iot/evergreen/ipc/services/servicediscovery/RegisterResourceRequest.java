@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Request to register a resource with Service Discovery
+ * Request to register a resource with Service Discovery.
  */
 @Data
 @Builder
@@ -14,12 +14,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterResourceRequest {
     /**
-     * Resource to be registered
+     * Resource to be registered.
      */
     private Resource resource;
 
     /**
-     * When true, our service discovery service will publish this record over DNS-SD using avahi or similar
+     * When true, our service discovery service will publish this record over DNS-SD using avahi or similar.
      */
+    @SuppressWarnings({"checkstyle:abbreviationaswordinname"})
     private boolean publishToDNSSD;
 }

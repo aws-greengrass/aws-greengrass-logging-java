@@ -13,9 +13,9 @@ public interface ServiceDiscovery {
     /**
      * Register a resource. Previously registered resources cannot be updated: use updateResource instead.
      *
-     * @param request
+     * @param request request
      * @return The registered Resource if successful
-     * @throws ServiceDiscoveryException
+     * @throws ServiceDiscoveryException for any errors
      */
     Resource registerResource(RegisterResourceRequest request) throws ServiceDiscoveryException;
 
@@ -23,8 +23,8 @@ public interface ServiceDiscovery {
      * Update a resource which is already registered. Only the service that originally registered
      * a resource is allowed to update it.
      *
-     * @param request
-     * @throws ServiceDiscoveryException
+     * @param request request
+     * @throws ServiceDiscoveryException for any errors
      */
     void updateResource(UpdateResourceRequest request) throws ServiceDiscoveryException;
 
@@ -32,8 +32,8 @@ public interface ServiceDiscovery {
      * Remove a resource from the registry. Only the service that originally registered the resource
      * is allowed to remove it.
      *
-     * @param request
-     * @throws ServiceDiscoveryException
+     * @param request request
+     * @throws ServiceDiscoveryException for any errors
      */
     void removeResource(RemoveResourceRequest request) throws ServiceDiscoveryException;
 
@@ -42,9 +42,9 @@ public interface ServiceDiscovery {
      * match. ie. If you provide only the name, then you may get results with that name with any other
      * service type and subtype.
      *
-     * @param request
-     * @return
-     * @throws ServiceDiscoveryException
+     * @param request request
+     * @return list of resource which matched. May be empty.
+     * @throws ServiceDiscoveryException for any errors
      */
     List<Resource> lookupResources(LookupResourceRequest request) throws ServiceDiscoveryException;
 }
