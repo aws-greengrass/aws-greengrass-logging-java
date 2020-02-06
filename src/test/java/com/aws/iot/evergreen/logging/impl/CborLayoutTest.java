@@ -7,7 +7,6 @@ import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 import com.fasterxml.jackson.jr.ob.JSON;
 import com.fasterxml.jackson.jr.stree.JacksonJrsTreeCodec;
-import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.appender.OutputStreamAppender;
 import org.apache.logging.log4j.core.impl.Log4jLogEvent;
 import org.apache.logging.log4j.message.SimpleMessage;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CborLayoutTest {
 
-    private static final Layout layout = CborLayout.createLayout();
+    private static final CborLayout layout = CborLayout.createLayout();
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectMapper mapper = new CBORMapper();
     private static OutputStreamAppender outputStreamAppender;

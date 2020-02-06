@@ -4,10 +4,9 @@
 
 package com.aws.iot.evergreen.logging.impl;
 
-import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.api.LogManager;
-import com.aws.iot.evergreen.logging.impl.Log4jLogManager;
-
+import com.aws.iot.evergreen.logging.api.Logger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -23,15 +22,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @Tag("Integration")
 public class LoggerTest {
+
+    public static final String LOG_FILE_NAME = "demo.log";
+
     @Test
-    public void testLoggerLevel() {
+    public void testLoggerLevel() throws IOException {
         // TODO: write proper unit tests https://issues.amazon.com/issues/P31936029
-        String logFileName = "demo.log";
-        try {
-            Files.deleteIfExists(Paths.get(logFileName));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Files.deleteIfExists(Paths.get(LOG_FILE_NAME));
 
         LogManager logManager = new Log4jLogManager();
         Logger logger = logManager.getLogger("test");
@@ -40,7 +37,7 @@ public class LoggerTest {
 
         FileReader input = null;
         try {
-            input = new FileReader(logFileName);
+            input = new FileReader(LOG_FILE_NAME);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             fail("Failed to open log file");
@@ -55,5 +52,10 @@ public class LoggerTest {
             fail("Failed to read line from log file");
         }
         assertEquals(1, count, "Log level filter is not working as expected");
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        Files.deleteIfExists(Paths.get(LOG_FILE_NAME));
     }
 }
