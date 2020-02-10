@@ -51,26 +51,31 @@ public class LifecycleIPCTest {
     private ServerSocket server;
     private DataInputStream in;
     private DataOutputStream out;
+    private int connectionCount = 0;
 
     @BeforeEach
     public void before() throws IOException, InterruptedException, ExecutionException {
         server = new ServerSocket(0);
-        Future<Object> fut = executor.submit(() -> {
-            sock = server.accept();
-            in = new DataInputStream(sock.getInputStream());
-            out = new DataOutputStream(sock.getOutputStream());
+        connectionCount = 0;
+        executor.submit(() -> {
+            while (true) {
+                sock = server.accept();
+                in = new DataInputStream(sock.getInputStream());
+                out = new DataOutputStream(sock.getOutputStream());
 
-            // Read and write auth
-            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                    new FrameReader.Message(
-                            IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
-                    FrameReader.FrameType.RESPONSE), out);
-            return null;
+                // Read and write auth
+                FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
+                FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
+                        new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
+                        FrameReader.FrameType.RESPONSE), out);
+                connectionCount++;
+            }
         });
 
         ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(server.getLocalPort()).build());
-        fut.get();
+        while (connectionCount == 0) {
+            Thread.sleep(10);
+        }
     }
 
     @AfterEach
@@ -81,7 +86,7 @@ public class LifecycleIPCTest {
     }
 
     @Test
-    public void testRequestState() throws Exception {
+    public void GIVEN_lifecycle_client_WHEN_requestStateChange_THEN_server_gets_request() throws Exception {
         Lifecycle lf = new LifecycleImpl(ipc);
 
         GeneralResponse<Void, LifecycleResponseStatus> genReq =
@@ -104,13 +109,13 @@ public class LifecycleIPCTest {
             return null;
         });
 
-        lf.requestStateChange("Errored");
+        lf.reportState("Errored");
 
         fut.get();
     }
 
     @Test
-    public void testListenToStateChanges() throws Exception {
+    public void GIVEN_lifecycle_client_WHEN_listenToStateChange_THEN_called_for_each_state_change() throws Exception {
         Lifecycle lf = new LifecycleImpl(ipc);
 
         GeneralResponse<Void, LifecycleResponseStatus> genReq =
@@ -163,6 +168,111 @@ public class LifecycleIPCTest {
         });
         fut.get();
 
+        assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void GIVEN_lifecycle_client_WHEN_listenToStateChange_and_disconnect_THEN_reconnect_and_called_for_each_state_change() throws Exception {
+        Lifecycle lf = new LifecycleImpl(ipc);
+
+        GeneralResponse<Void, LifecycleResponseStatus> genReq =
+                GeneralResponse.<Void, LifecycleResponseStatus>builder().error(LifecycleResponseStatus.Success).build();
+
+        FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
+
+        // Setup listen request's response
+        Future<?> fut = executor.submit(() -> {
+            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
+
+            GeneralRequest<LifecycleListenRequest, LifecycleRequestTypes> req = IPCUtil.decode(inFrame.message,
+                    new TypeReference<GeneralRequest<LifecycleListenRequest, LifecycleRequestTypes>>() {
+                    });
+
+            assertEquals(LifecycleRequestTypes.listen, req.getType());
+            assertEquals("me", req.getRequest().getServiceName());
+
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
+                    FrameReader.FrameType.RESPONSE), out);
+            return null;
+        });
+
+        CountDownLatch cdl = new CountDownLatch(2);
+        lf.listenToStateChanges("me", (oldState, newState) -> {
+            assertEquals("New", newState);
+            assertEquals("Old", oldState);
+            cdl.countDown();
+        });
+        fut.get();
+
+        // Send a state transition
+        fut = executor.submit(() -> {
+            GeneralRequest<StateTransitionEvent, LifecycleRequestTypes> genReq2 =
+                    GeneralRequest.<StateTransitionEvent, LifecycleRequestTypes>builder()
+                            .type(LifecycleRequestTypes.transition).request(
+                            StateTransitionEvent.builder().service("me").newState("New").oldState("Old").build())
+                            .build();
+
+            FrameReader.Message message2 = new FrameReader.Message(encoder.asBytes(genReq2));
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(LIFECYCLE_SERVICE_NAME, message2, FrameReader.FrameType.REQUEST), out);
+
+            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
+            GeneralResponse<Void, LifecycleResponseStatus> ret = IPCUtil.decode(inFrame.message,
+                    new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
+                    });
+
+            assertEquals(LifecycleResponseStatus.Success, ret.getError());
+
+            return null;
+        });
+        fut.get();
+
+        // Kill the connection to force a reconnect
+        sock.close();
+        // Wait for the client to reconnect
+        while(connectionCount == 1) {
+            Thread.sleep(10);
+        }
+
+        // Since the client reconnected we expect a call to listen again.
+        // Setup the response to the listen request
+        // then send another state transition
+        fut = executor.submit(() -> {
+            // Respond to listen request
+            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
+            GeneralRequest<LifecycleListenRequest, LifecycleRequestTypes> req = IPCUtil.decode(inFrame.message,
+                    new TypeReference<GeneralRequest<LifecycleListenRequest, LifecycleRequestTypes>>() {
+                    });
+
+            assertEquals(LifecycleRequestTypes.listen, req.getType());
+            assertEquals("me", req.getRequest().getServiceName());
+
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
+                    FrameReader.FrameType.RESPONSE), out);
+
+            // Make a state transition request and send it
+            GeneralRequest<StateTransitionEvent, LifecycleRequestTypes> genReq2 =
+                    GeneralRequest.<StateTransitionEvent, LifecycleRequestTypes>builder()
+                            .type(LifecycleRequestTypes.transition).request(
+                            StateTransitionEvent.builder().service("me").newState("New").oldState("Old").build())
+                            .build();
+
+            FrameReader.Message message2 = new FrameReader.Message(encoder.asBytes(genReq2));
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(LIFECYCLE_SERVICE_NAME, message2, FrameReader.FrameType.REQUEST), out);
+
+            inFrame = FrameReader.readFrame(in);
+            GeneralResponse<Void, LifecycleResponseStatus> ret = IPCUtil.decode(inFrame.message,
+                    new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
+                    });
+
+            assertEquals(LifecycleResponseStatus.Success, ret.getError());
+
+            return null;
+        });
+        fut.get();
+
+        // Make sure the state transition handler got called twice despite the disconnection in between
         assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
     }
 }

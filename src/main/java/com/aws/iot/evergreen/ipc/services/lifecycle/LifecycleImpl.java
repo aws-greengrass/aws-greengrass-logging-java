@@ -61,7 +61,21 @@ public class LifecycleImpl implements Lifecycle {
     }
 
     @Override
-    public void requestStateChange(String newState) throws LifecycleIPCException {
+    public void onStopping(Runnable handler) throws LifecycleIPCException {
+        String serviceName = ipc.getServiceName();
+        if (serviceName == null) {
+            throw new LifecycleIPCException("This service name is unknown. Try re-connecting.");
+        }
+
+        listenToStateChanges(serviceName, (oldState, newState) -> {
+            if (newState.equals("Shutdown")) {
+                handler.run();
+            }
+        });
+    }
+
+    @Override
+    public void reportState(String newState) throws LifecycleIPCException {
         GeneralRequest<Object, LifecycleRequestTypes> request =
                 GeneralRequest.<Object, LifecycleRequestTypes>builder().type(LifecycleRequestTypes.setState)
                         .request(StateChangeRequest.builder().state(newState).build()).build();
@@ -73,17 +87,31 @@ public class LifecycleImpl implements Lifecycle {
     @Override
     public synchronized void listenToStateChanges(String serviceName, BiConsumer<String, String> onTransition)
             throws LifecycleIPCException {
-        GeneralRequest<Object, LifecycleRequestTypes> request =
-                GeneralRequest.<Object, LifecycleRequestTypes>builder().type(LifecycleRequestTypes.listen)
-                        .request(LifecycleListenRequest.builder().serviceName(serviceName).build()).build();
-        sendAndReceive(request, new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
+        registerStateListener(serviceName);
+
+        // Register with IPC to re-register the listener when the client reconnects
+        ipc.onReconnect(() -> {
+            try {
+                registerStateListener(serviceName);
+            } catch (LifecycleIPCException e) {
+                // TODO: Log exception / retry
+            }
         });
+
         stateTransitionCallbacks.compute(serviceName, (key, old) -> {
             if (old == null) {
                 old = new CopyOnWriteArrayList<>();
             }
             old.add(onTransition);
             return old;
+        });
+    }
+
+    private void registerStateListener(String serviceName) throws LifecycleIPCException {
+        GeneralRequest<Object, LifecycleRequestTypes> request =
+                GeneralRequest.<Object, LifecycleRequestTypes>builder().type(LifecycleRequestTypes.listen)
+                        .request(LifecycleListenRequest.builder().serviceName(serviceName).build()).build();
+        sendAndReceive(request, new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
         });
     }
 

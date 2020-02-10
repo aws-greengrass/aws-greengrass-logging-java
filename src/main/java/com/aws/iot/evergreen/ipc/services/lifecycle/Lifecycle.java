@@ -11,12 +11,20 @@ public interface Lifecycle {
     String LIFECYCLE_SERVICE_NAME = "LIFECYCLE";
 
     /**
-     * Request to transition the current service into a new state.
+     * Register a handler function to run upon the service moving to "shutdown" state.
+     *
+     * @param handler handler to call
+     * @throws LifecycleIPCException if any error occurs while registering the handler
+     */
+    void onStopping(Runnable handler) throws LifecycleIPCException;
+
+    /**
+     * Report that the service is in some state.
      *
      * @param newState the state to transition into
      * @throws LifecycleIPCException for any error
      */
-    void requestStateChange(String newState) throws LifecycleIPCException;
+    void reportState(String newState) throws LifecycleIPCException;
 
     /**
      * Receive all state updates about a given service with a callback function.
