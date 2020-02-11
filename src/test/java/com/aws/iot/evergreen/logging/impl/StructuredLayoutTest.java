@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.logging.impl;
 
+import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,9 +23,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CborLayoutTest {
+public class StructuredLayoutTest {
 
-    private static final CborLayout layout = CborLayout.createLayout();
+    private static final StructuredLayout layout = StructuredLayout.createLayout(null, null);
     private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
     private static final ObjectMapper mapper = new CBORMapper();
     private static OutputStreamAppender outputStreamAppender;
@@ -32,7 +33,8 @@ public class CborLayoutTest {
 
     @BeforeAll
     public static void setupAppender() {
-        outputStreamAppender = OutputStreamAppender.createAppender(layout, null, outContent, "outputStreamAppender", true, false);
+        outputStreamAppender = OutputStreamAppender.createAppender(layout, null, outContent, "outputStreamAppender",
+                true, false);
         outputStreamAppender.start();
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }

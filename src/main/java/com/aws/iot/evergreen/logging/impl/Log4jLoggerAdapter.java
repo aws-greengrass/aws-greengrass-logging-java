@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentMap;
  * {@link com.aws.iot.evergreen.logging.api.Logger} interface.
  */
 public class Log4jLoggerAdapter implements Logger {
-    final transient org.apache.logging.log4j.Logger logger;
+    transient org.apache.logging.log4j.Logger logger;
     final String name;
     ConcurrentMap<String, String> loggerContextData = new ConcurrentHashMap<>();
 
@@ -46,8 +46,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atTrace() {
         if (isTraceEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.TRACE, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.TRACE,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -55,8 +55,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atDebug() {
         if (isDebugEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.DEBUG, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.DEBUG,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -64,8 +64,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atInfo() {
         if (isInfoEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.INFO, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.INFO,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -73,8 +73,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atWarn() {
         if (isWarnEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.WARN, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.WARN,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -82,8 +82,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atError() {
         if (isErrorEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.ERROR, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.ERROR,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -91,8 +91,8 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public LogEventBuilder atFatal() {
         if (isFatalEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.FATAL, Collections
-                    .unmodifiableMap(loggerContextData));
+            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.FATAL,
+                    Collections.unmodifiableMap(loggerContextData));
         }
         return LogEventBuilder.NOOP;
     }
@@ -170,9 +170,7 @@ public class Log4jLoggerAdapter implements Logger {
     }
 
     private void log(Level level, String msg, Object... args) {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(name, level, null, String
-                .format(msg, args), loggerContextData, null);
-        logMessage(level, message);
+        new Log4jLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
     }
 
     /**
@@ -182,7 +180,15 @@ public class Log4jLoggerAdapter implements Logger {
      * @param message the {@link Message} to be logged
      */
     public void logMessage(Level level, Message message) {
-        this.logger.logMessage(level, null, null, null, message, null);
+        this.logger.logMessage(level, null, null, null, message, message.getThrowable());
+    }
+
+    public org.apache.logging.log4j.Logger getLogger() {
+        return this.logger;
+    }
+
+    public void setLogger(org.apache.logging.log4j.Logger logger) {
+        this.logger = logger;
     }
 
 }

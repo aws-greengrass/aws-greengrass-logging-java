@@ -6,6 +6,7 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.message.StringFormattedMessage;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,8 +68,9 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public void log(String fmt, Object... args) {
+        String msgStr = new StringFormattedMessage(fmt, args).getFormattedMessage();
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
-                .getName(), this.level, this.eventType, String.format(fmt, args), this.eventContextData, this.cause);
+                .getName(), this.level, this.eventType, msgStr, this.eventContextData, this.cause);
         this.logger.logMessage(this.level, message);
     }
 }
