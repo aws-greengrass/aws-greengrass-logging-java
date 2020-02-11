@@ -20,15 +20,15 @@ public interface IPCClient {
      * @param msg         message to send
      * @return future containing the response (if any)
      */
-    CompletableFuture<FrameReader.Message> sendRequest(String destination, FrameReader.Message msg);
+    CompletableFuture<FrameReader.Message> sendRequest(int destination, FrameReader.Message msg);
 
     /**
      * Register a destination to receive incoming requests for a given destination.
      *
      * @param destination destination to register
-     * @param handler what to call when a message comes in
+     * @param handler     what to call when a message comes in
      */
-    void registerMessageHandler(String destination, Function<FrameReader.Message, FrameReader.Message> handler);
+    void registerMessageHandler(int destination, Function<FrameReader.Message, FrameReader.Message> handler);
 
     /**
      * Get this service's name.

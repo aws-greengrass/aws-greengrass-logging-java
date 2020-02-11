@@ -22,14 +22,14 @@ public class IPCUtil {
     /**
      * Send a request to the server and then get the response as a future.
      *
-     * @param ipc IPC client used for sending the request
+     * @param ipc         IPC client used for sending the request
      * @param destination destination service to receive the request
-     * @param data the message to be sent
-     * @param clazz the type of the response which is expected
+     * @param data        the message to be sent
+     * @param clazz       the type of the response which is expected
      * @return future containing the deserialized response class
      */
     public static <T, E extends Enum<?> & GenericErrors> CompletableFuture<GeneralResponse<T, E>> sendAndReceive(
-            IPCClient ipc, String destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {
+            IPCClient ipc, int destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {
         byte[] payload;
         try {
             payload = encode(data);

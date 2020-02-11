@@ -8,8 +8,6 @@ import java.util.List;
  * Service Discovery client interface. Used to register and query resources registered by other services.
  */
 public interface ServiceDiscovery {
-    String SERVICE_DISCOVERY_NAME = "SERV_DISCO";
-
     /**
      * Register a resource. Previously registered resources cannot be updated: use updateResource instead.
      *

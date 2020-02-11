@@ -8,8 +8,6 @@ import java.util.function.BiConsumer;
  * Interface for Lifecycle operations.
  */
 public interface Lifecycle {
-    String LIFECYCLE_SERVICE_NAME = "LIFECYCLE";
-
     /**
      * Register a handler function to run upon the service moving to "shutdown" state.
      *

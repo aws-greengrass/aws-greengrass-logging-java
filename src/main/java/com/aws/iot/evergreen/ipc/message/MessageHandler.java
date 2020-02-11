@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.ipc.message;
 
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.nio.charset.StandardCharsets;
@@ -7,24 +8,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.ERROR;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 
 public class MessageHandler {
-
-
-    private final ConcurrentHashMap<String, Consumer<MessageFrame>> destinationListener = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, Consumer<MessageFrame>> destinationListener = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, CompletableFuture<Message>> responseMap;
 
     public MessageHandler() {
         responseMap = new ConcurrentHashMap<>();
     }
 
-    public boolean registerListener(String destination, Consumer<MessageFrame> listener) {
-       Consumer<MessageFrame> consumers = destinationListener.putIfAbsent(destination, listener);
-       return consumers == null;
+    public boolean registerListener(int destination, Consumer<MessageFrame> listener) {
+        Consumer<MessageFrame> consumers = destinationListener.putIfAbsent(destination, listener);
+        return consumers == null;
     }
 
     public void registerRequestId(int requestId, CompletableFuture<Message> future) {
@@ -40,10 +38,10 @@ public class MessageHandler {
     public void handleMessage(final MessageFrame incomingMessageFrame) {
         Message msg = incomingMessageFrame.message;
         if (FrameType.RESPONSE == incomingMessageFrame.type) {
-            CompletableFuture<Message> future = responseMap.remove(incomingMessageFrame.sequenceNumber);
+            CompletableFuture<Message> future = responseMap.remove(incomingMessageFrame.requestId);
             if (msg == null) {
                 future.completeExceptionally(new RuntimeException("Request timed out"));
-            } else if (incomingMessageFrame.destination.equals(ERROR)) {
+            } else if (incomingMessageFrame.destination == BuiltInServiceDestinationCode.ERROR.getValue()) {
                 future.completeExceptionally(
                         new RuntimeException(new String(msg.getPayload(), StandardCharsets.UTF_8)));
             }
@@ -56,7 +54,7 @@ public class MessageHandler {
         } else {
             Consumer<MessageFrame> consumer = destinationListener.computeIfAbsent(incomingMessageFrame.destination,
                     (destination) -> ((m) -> System.out.println(
-                            "Dropping message with sequence number " + m.sequenceNumber + " and destination "
+                            "Dropping message with request id " + m.requestId + " and destination "
                                     + incomingMessageFrame.destination)));
             try {
                 consumer.accept(incomingMessageFrame);

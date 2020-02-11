@@ -2,19 +2,20 @@ package com.aws.iot.evergreen.ipc.servicediscovery;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscovery;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.UpdateResourceRequest;
-import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
 import com.fasterxml.jackson.jr.ob.JSON;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -58,7 +58,8 @@ public class ServiceDiscoveryTest {
 
             // Read and write auth
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
+                    BuiltInServiceDestinationCode.AUTH.getValue(),
                     new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
                             FrameReader.FrameType.RESPONSE), out);
             return null;
@@ -78,18 +79,21 @@ public class ServiceDiscoveryTest {
     @Test
     public void testRegister() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = RegisterResourceRequest.builder()
-                .resource(Resource.builder().name("ABC").build()).build();
+        RegisterResourceRequest req =
+                RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder().
-                response(Resource.builder().name("ABC").build())
-                .error(ServiceDiscoveryResponseStatus.Success).build();
+        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq =
+                GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder().
+                        response(Resource.builder().name("ABC").build()).error(ServiceDiscoveryResponseStatus.Success)
+                        .build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, ServiceDiscoveryImpl.SERVICE_DISCOVERY_NAME, message, FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
+                    FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
@@ -103,23 +107,25 @@ public class ServiceDiscoveryTest {
     @Test
     public void testRegisterWithException() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = RegisterResourceRequest.builder()
-                .resource(Resource.builder().name("ABC").build()).build();
+        RegisterResourceRequest req =
+                RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder()
-                .error(ServiceDiscoveryResponseStatus.AlreadyRegistered)
-                .errorMessage("Service 'ABC' is already registered").build();
+        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq =
+                GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder()
+                        .error(ServiceDiscoveryResponseStatus.AlreadyRegistered)
+                        .errorMessage("Service 'ABC' is already registered").build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, ServiceDiscoveryImpl.SERVICE_DISCOVERY_NAME, message, FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
+                    FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
-        AlreadyRegisteredException ex =
-                assertThrows(AlreadyRegisteredException.class, () -> sd.registerResource(req));
+        AlreadyRegisteredException ex = assertThrows(AlreadyRegisteredException.class, () -> sd.registerResource(req));
 
         fut.get();
 
@@ -129,21 +135,21 @@ public class ServiceDiscoveryTest {
     @Test
     public void testWrongReturnType() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req = RegisterResourceRequest.builder()
-                .resource(Resource.builder().name("ABC").build()).build();
+        RegisterResourceRequest req =
+                RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq = GeneralResponse.<UpdateResourceRequest, ServiceDiscoveryResponseStatus>builder()
-                .response(UpdateResourceRequest.builder()
-                        .resource(Resource.builder()
-                                .name("ABC").build())
-                        .publishToDNSSD(true).build())
-                .error(ServiceDiscoveryResponseStatus.Success).build();
+        GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq =
+                GeneralResponse.<UpdateResourceRequest, ServiceDiscoveryResponseStatus>builder().response(
+                        UpdateResourceRequest.builder().resource(Resource.builder().name("ABC").build())
+                                .publishToDNSSD(true).build()).error(ServiceDiscoveryResponseStatus.Success).build();
 
         FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, ServiceDiscoveryImpl.SERVICE_DISCOVERY_NAME, message, FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
+                    FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
