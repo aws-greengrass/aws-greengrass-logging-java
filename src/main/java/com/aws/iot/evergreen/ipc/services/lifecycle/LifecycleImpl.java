@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 public class LifecycleImpl implements Lifecycle {
+    // Service Name ==> list of [function (oldState, newState)]
     private static final Map<String, List<BiConsumer<String, String>>> stateTransitionCallbacks =
             new ConcurrentHashMap<>();
     private static ObjectMapper mapper = new CBORMapper();
@@ -26,7 +27,7 @@ public class LifecycleImpl implements Lifecycle {
 
     public LifecycleImpl(IPCClient ipc) {
         this.ipc = ipc;
-        ipc.registerDestination(LIFECYCLE_SERVICE_NAME, LifecycleImpl::onStateTransition);
+        ipc.registerMessageHandler(LIFECYCLE_SERVICE_NAME, LifecycleImpl::onStateTransition);
     }
 
     private static FrameReader.Message onStateTransition(FrameReader.Message message) {
@@ -63,9 +64,6 @@ public class LifecycleImpl implements Lifecycle {
     @Override
     public void onStopping(Runnable handler) throws LifecycleIPCException {
         String serviceName = ipc.getServiceName();
-        if (serviceName == null) {
-            throw new LifecycleIPCException("This service name is unknown. Try re-connecting.");
-        }
 
         listenToStateChanges(serviceName, (oldState, newState) -> {
             if (newState.equals("Shutdown")) {

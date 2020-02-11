@@ -4,6 +4,7 @@ import com.aws.iot.evergreen.ipc.codec.MessageFrameDecoder;
 import com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.handler.InboundMessageHandler;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
 import com.aws.iot.evergreen.ipc.services.common.AuthRequestTypes;
@@ -13,7 +14,6 @@ import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.Log4jLogManager;
 import com.fasterxml.jackson.core.type.TypeReference;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -48,11 +49,13 @@ public class IPCClientImpl implements IPCClient {
     private final Bootstrap clientBootstrap;
     private Channel channel;
     private volatile boolean shutdownRequested;
-    private final Object connectionLock = new Object();
+    // Lock used so that only 1 thread is performing the connection
+    private final ReentrantLock connectionLock = new ReentrantLock(true);
     private String serviceName = null;
-    private Set<Runnable> registeredListeners = new CopyOnWriteArraySet<>();
+    private Set<Runnable> onConnectTasks = new CopyOnWriteArraySet<>();
 
     private Logger log = new Log4jLogManager().getLogger(IPCClient.class);
+    private volatile boolean authenticated;
 
     /**
      * Construct a client and immediately connect to the server.
@@ -81,11 +84,14 @@ public class IPCClientImpl implements IPCClient {
     }
 
     private void connect(KernelIPCClientConfig config) throws InterruptedException, IOException {
-        synchronized (connectionLock) {
-            if (isConnected()) {
+        try {
+            connectionLock.lock();
+
+            if (isConnectedAndAuthenticated()) {
                 // Already connected, so don't connect again
                 return;
             }
+            authenticated = false;
 
             // Connect to listening server
             ChannelFuture channelFuture = clientBootstrap.connect(config.getHostAddress(), config.getPort()).sync();
@@ -117,21 +123,26 @@ public class IPCClientImpl implements IPCClient {
                     throw new IOException(resp.getErrorMessage());
                 }
                 serviceName = resp.getResponse();
+                if (serviceName == null) {
+                    throw new IOException("Service name was null");
+                }
+                authenticated = true;
             } catch (InterruptedException | ExecutionException e) {
                 throw new IOException(e);
             }
 
-            // Re-run our listeners before acknowledging that we're connected
-            registeredListeners.forEach(Runnable::run);
-
-            // Unlock anyone waiting for an active connection
-            connectionLock.notifyAll();
             log.debug("Successfully connected to {}:{}", config.getHostAddress(), config.getPort());
+        } finally {
+            connectionLock.unlock();
         }
+
+        log.debug("Running reconnection tasks");
+        onConnectTasks.forEach(Runnable::run);
+        log.debug("Done running reconnection tasks");
     }
 
-    private boolean isConnected() {
-        return channel != null && channel.isActive() || shutdownRequested;
+    public boolean isConnectedAndAuthenticated() {
+        return shutdownRequested || channel != null && channel.isActive() && authenticated;
     }
 
     @Override
@@ -143,50 +154,41 @@ public class IPCClientImpl implements IPCClient {
 
     @Override
     public CompletableFuture<Message> sendRequest(String destination, Message msg) {
-        waitForConnected();
+        CompletableFuture<Message> future = new CompletableFuture<>();
+
+        // Check if we're connected and authenticated
+        // if not, but we're running in the thread which is performing the connection, then we should continue
+        // with the request.
+        if (!isConnectedAndAuthenticated() && (!connectionLock.isHeldByCurrentThread() && connectionLock.isLocked())) {
+            future.completeExceptionally(new IPCClientException("Client is not connected"));
+        }
 
         log.debug("Sending message to destination {} on server", destination);
         //TODO: implement timeout for listening to requests
         // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
-        CompletableFuture<Message> future = new CompletableFuture<>();
         messageHandler.registerRequestId(frame.sequenceNumber, future);
 
-        channel.writeAndFlush(frame);
+        // Try writing to the channel, but add a listener for if it fails
+        channel.writeAndFlush(frame).addListener(channelFut -> {
+            if (!channelFut.isSuccess()) {
+                future.completeExceptionally(channelFut.cause());
+            }
+        });
         return future;
     }
 
-    @SuppressWarnings({"checkstyle:emptycatchblock"})
-    @SuppressFBWarnings(value = {"UW_UNCOND_WAIT"})
-    private void waitForConnected() {
-        while (!isConnected()) {
-            synchronized (connectionLock) {
-                try {
-                    log.trace("Waiting to be connected to server");
-                    connectionLock.wait();
-                    log.trace("Connection done, unlocking");
-                } catch (InterruptedException ignored) {
-                }
-            }
-        }
-    }
-
-    private CompletableFuture<Void> sendResponse(String destination, int sequenceNumber, Message msg) {
+    private void sendResponse(String destination, int sequenceNumber, Message msg) {
         log.debug("Sending response message to destination {} with request id {} on server", destination,
                 sequenceNumber);
-
-        //TODO: implement timeout for listening to requests
         MessageFrame frame = new MessageFrame(sequenceNumber, destination, msg, RESPONSE);
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
         channel.writeAndFlush(frame);
-        return future;
     }
 
     @Override
-    public void registerDestination(String destination, Function<Message, Message> callback) {
+    public void registerMessageHandler(String destination, Function<Message, Message> handler) {
         Consumer<MessageFrame> cb = (MessageFrame mf) -> {
-            Message toSend = callback.apply(mf.message);
+            Message toSend = handler.apply(mf.message);
             sendResponse(destination, mf.sequenceNumber, toSend);
         };
         messageHandler.registerListener(destination, cb);
@@ -199,6 +201,6 @@ public class IPCClientImpl implements IPCClient {
 
     @Override
     public void onReconnect(Runnable r) {
-        registeredListeners.add(r);
+        onConnectTasks.add(r);
     }
 }

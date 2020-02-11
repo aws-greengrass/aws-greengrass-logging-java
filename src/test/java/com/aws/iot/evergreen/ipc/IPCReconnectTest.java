@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class IPCReconnectTest {
     private ExecutorService executor = Executors.newCachedThreadPool();
 
-    private IPCClient ipc;
+    private IPCClientImpl ipc;
     private Socket sock;
     private ServerSocket server;
     private DataInputStream in;
@@ -46,7 +46,7 @@ public class IPCReconnectTest {
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
                 FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
                         new FrameReader.Message(
-                                IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
+                                IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
                         FrameReader.FrameType.RESPONSE), out);
                 connectCount.getAndIncrement();
             }
@@ -85,6 +85,11 @@ public class IPCReconnectTest {
                             FrameReader.FrameType.RESPONSE), out);
             return null;
         });
+
+        // Wait for the client to re-auth
+        while (!ipc.isConnectedAndAuthenticated()) {
+            Thread.sleep(2);
+        }
 
         ipc.sendRequest("D", new FrameReader.Message(new byte[0])).get(100, TimeUnit.MILLISECONDS);
 

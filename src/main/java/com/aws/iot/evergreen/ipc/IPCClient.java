@@ -26,9 +26,9 @@ public interface IPCClient {
      * Register a destination to receive incoming requests for a given destination.
      *
      * @param destination destination to register
-     * @param callback what to call when a message comes in
+     * @param handler what to call when a message comes in
      */
-    void registerDestination(String destination, Function<FrameReader.Message, FrameReader.Message> callback);
+    void registerMessageHandler(String destination, Function<FrameReader.Message, FrameReader.Message> handler);
 
     /**
      * Get this service's name.

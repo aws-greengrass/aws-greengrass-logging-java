@@ -66,7 +66,7 @@ public class LifecycleIPCTest {
                 // Read and write auth
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
                 FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                        new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
+                        new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
                         FrameReader.FrameType.RESPONSE), out);
                 connectionCount++;
             }
