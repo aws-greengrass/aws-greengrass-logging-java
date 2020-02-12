@@ -50,7 +50,7 @@ public class ServiceDiscoveryTest {
 
     @BeforeEach
     public void before() throws IOException, InterruptedException, ExecutionException {
-        server = new ServerSocket(9000);
+        server = new ServerSocket(0);
         Future<Object> fut = executor.submit(() -> {
             sock = server.accept();
             in = new DataInputStream(sock.getInputStream());
@@ -59,12 +59,12 @@ public class ServiceDiscoveryTest {
             // Read and write auth
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                    new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().error(GenericErrorCodes.Success).build())),
+                    new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
                             FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
-        ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(9000).build());
+        ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(server.getLocalPort()).build());
         fut.get();
     }
 

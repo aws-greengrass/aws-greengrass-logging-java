@@ -13,11 +13,18 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 
 public class MessageHandler {
+
+
     private final ConcurrentHashMap<String, Consumer<MessageFrame>> destinationListener = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, CompletableFuture<Message>> responseMap;
 
     public MessageHandler() {
         responseMap = new ConcurrentHashMap<>();
+    }
+
+    public boolean registerListener(String destination, Consumer<MessageFrame> listener) {
+       Consumer<MessageFrame> consumers = destinationListener.putIfAbsent(destination, listener);
+       return consumers == null;
     }
 
     public void registerRequestId(int requestId, CompletableFuture<Message> future) {
