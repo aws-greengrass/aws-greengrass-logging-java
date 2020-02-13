@@ -12,7 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,6 +66,94 @@ public class LoggerTest {
 
         logger.atInfo().log("HI@Info");
         verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_logger_has_default_context_THEN_logline_contains_default_context() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.addDefaultKeyValue("Key", "Data");
+
+        logger.atInfo().addKeyValue("Key2", "Data2").log("HI@Info");
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), message.capture(), any());
+        Map<String, String> context = ((EvergreenStructuredLogMessage) message.getValue()).getContexts();
+
+        assertEquals(2, context.size());
+        assertEquals("Data", context.get("Key"));
+        assertEquals("Data2", context.get("Key2"));
+    }
+
+    @Test
+    public void GIVEN_logger_at_trace_WHEN_log_at_each_level_THEN_logs_at_each_level() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        Runnable reset = () -> {
+            Mockito.reset(loggerSpy);
+            lenient().when(loggerSpy.isTraceEnabled()).thenReturn(true);
+            lenient().when(loggerSpy.isDebugEnabled()).thenReturn(true);
+        };
+        reset.run();
+
+        logger.atTrace().log();
+        verify(loggerSpy).logMessage(eq(Level.TRACE), any(), any(), any(), any(), any());
+        reset.run();
+        logger.trace("");
+        verify(loggerSpy).logMessage(eq(Level.TRACE), any(), any(), any(), any(), any());
+        reset.run();
+
+        logger.atDebug().log();
+        verify(loggerSpy).logMessage(eq(Level.DEBUG), any(), any(), any(), any(), any());
+        reset.run();
+        logger.debug("");
+        verify(loggerSpy).logMessage(eq(Level.DEBUG), any(), any(), any(), any(), any());
+        reset.run();
+
+        logger.atInfo().log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        reset.run();
+        logger.info("");
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        reset.run();
+
+        logger.atWarn().log();
+        verify(loggerSpy).logMessage(eq(Level.WARN), any(), any(), any(), any(), any());
+        reset.run();
+        logger.warn("");
+        verify(loggerSpy).logMessage(eq(Level.WARN), any(), any(), any(), any(), any());
+        reset.run();
+
+        logger.atError().log();
+        verify(loggerSpy).logMessage(eq(Level.ERROR), any(), any(), any(), any(), any());
+        reset.run();
+        logger.error("");
+        verify(loggerSpy).logMessage(eq(Level.ERROR), any(), any(), any(), any(), any());
+        reset.run();
+
+        logger.atFatal().log();
+        verify(loggerSpy).logMessage(eq(Level.FATAL), any(), any(), any(), any(), any());
+        reset.run();
+        logger.fatal("");
+        verify(loggerSpy).logMessage(eq(Level.FATAL), any(), any(), any(), any(), any());
+        reset.run();
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_log_with_cause_and_event_type_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atInfo().setCause(new IOException("hi")).setEventType("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), message.capture(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
     }
 
     private org.apache.logging.log4j.Logger setupLoggerSpy(Log4jLoggerAdapter logger) {

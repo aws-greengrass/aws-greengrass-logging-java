@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.logging.impl;
 
+import com.aws.iot.evergreen.logging.impl.config.LogFormat;
 import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,18 +27,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StructuredLayoutTest {
 
-    private static final StructuredLayout layout = StructuredLayout.createLayout(null, null);
-    private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
-    private static final ObjectMapper mapper = new CBORMapper();
-    private static OutputStreamAppender outputStreamAppender;
+    private static final StructuredLayout CBOR_LAYOUT = StructuredLayout.createLayout(LogFormat.CBOR, null);
+    private static final StructuredLayout JSON_LAYOUT = StructuredLayout.createLayout(LogFormat.JSON,
+            StandardCharsets.UTF_8);
+    private static final JSON CBOR_ENCODER = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
+    private static final JSON JSON_ENCODER = JSON.std.with(new JacksonJrsTreeCodec());
+    private static final ObjectMapper CBOR_MAPPER = new CBORMapper();
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static OutputStreamAppender cborOutputStreamAppender;
+    private static OutputStreamAppender jsonOutputStreamAppender;
     private static final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
     @BeforeAll
     public static void setupAppender() {
-        outputStreamAppender = OutputStreamAppender.createAppender(layout, null, outContent, "outputStreamAppender",
+        cborOutputStreamAppender = OutputStreamAppender.createAppender(CBOR_LAYOUT, null, outContent, "outputStreamAppender",
                 true, false);
-        outputStreamAppender.start();
-        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        cborOutputStreamAppender.start();
+        jsonOutputStreamAppender = OutputStreamAppender.createAppender(JSON_LAYOUT, null, outContent, "outputStreamAppender",
+                true, false);
+        jsonOutputStreamAppender.start();
+        CBOR_MAPPER.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
     @BeforeEach
@@ -45,12 +55,12 @@ public class StructuredLayoutTest {
     }
 
     @Test
-    public void logRandomThings() throws IOException {
+    public void GIVEN_cbor_appender_WHEN_write_log_events_THEN_events_are_cbor_encoded() throws IOException {
         List<SimpleMessage> messages = Arrays.asList(
                 new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
         messages.forEach((m) -> {
             Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
-            outputStreamAppender.append(log4jLogEvent);
+            cborOutputStreamAppender.append(log4jLogEvent);
         });
 
         ByteBuffer buf = ByteBuffer.wrap(outContent.toByteArray());
@@ -58,8 +68,29 @@ public class StructuredLayoutTest {
             int length = buf.getInt();
             byte[] arr = new byte[length];
             buf.get(arr);
-            TreeNode tree = encoder.treeFrom(arr);
-            SimpleMessage deserializedMessage = tree.traverse(mapper).readValueAs(SimpleMessage.class);
+            TreeNode tree = CBOR_ENCODER.treeFrom(arr);
+            SimpleMessage deserializedMessage = tree.traverse(CBOR_MAPPER).readValueAs(SimpleMessage.class);
+            //comparing the original message with the de-serialized message
+            assertEquals(message, deserializedMessage);
+        }
+    }
+
+    @Test
+    public void GIVEN_json_appender_WHEN_write_log_events_THEN_events_are_json_encoded() throws IOException {
+        List<SimpleMessage> messages = Arrays.asList(
+                new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
+        messages.forEach((m) -> {
+            Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
+            jsonOutputStreamAppender.append(log4jLogEvent);
+        });
+
+        byte[] data = outContent.toByteArray();
+        String dataStr = new String(data, StandardCharsets.UTF_8);
+        String[] appendedMessages = dataStr.split(System.lineSeparator());
+        for (int i = 0; i < messages.size(); i++) {
+            SimpleMessage message = messages.get(i);
+            TreeNode tree = JSON_ENCODER.treeFrom(appendedMessages[i]);
+            SimpleMessage deserializedMessage = tree.traverse(JSON_MAPPER).readValueAs(SimpleMessage.class);
             //comparing the original message with the de-serialized message
             assertEquals(message, deserializedMessage);
         }
