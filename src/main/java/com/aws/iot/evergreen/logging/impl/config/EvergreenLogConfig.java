@@ -4,9 +4,12 @@
 
 package com.aws.iot.evergreen.logging.impl.config;
 
+import lombok.Getter;
 import org.apache.logging.log4j.Level;
 
+@Getter
 public class EvergreenLogConfig {
+    // TODO: Replace reading from system properties with reading from Kernel Configuration.
     private static final long DEFAULT_MAX_SIZE = 1024 * 1024 * 10; // set 10 MB to be the default max size
     public static final String STORAGE_TYPE_KEY = "log.store";
     private static final String DEFAULT_STORAGE_TYPE = LogStore.FILE.name();
@@ -20,12 +23,12 @@ public class EvergreenLogConfig {
     public static final String NUM_ROLLING_FILES_KEY = "log.store.numRollingFiles";
     private static final int DEFAULT_NUM_ROLLING_FILES = 5;
 
-    Level level;
-    LogStore store;
-    String storeName;
-    LogFormat format;
-    String maxSize;
-    int numRollingFiles;
+    private Level level;
+    private LogStore store;
+    private String storeName;
+    private LogFormat format;
+    private String fileSize;
+    private int numRollingFiles;
 
     /**
      * Create EvergreenLogConfig instance.
@@ -42,7 +45,7 @@ public class EvergreenLogConfig {
         this.store = store;
         this.storeName = storeName;
         this.format = format;
-        this.maxSize = fileSize;
+        this.fileSize = fileSize;
         this.numRollingFiles = numRollingFiles;
     }
 
@@ -85,29 +88,5 @@ public class EvergreenLogConfig {
         String storeName = System.getProperty(LOG_STORE_NAME_KEY, DEFAULT_LOG_STORE_NAME);
 
         return new EvergreenLogConfig(level, store, storeName, format, fileSize, numRollingFiles);
-    }
-
-    public Level getLevel() {
-        return level;
-    }
-
-    public LogFormat getFormat() {
-        return format;
-    }
-
-    public LogStore getStore() {
-        return store;
-    }
-
-    public String getStoreName() {
-        return storeName;
-    }
-
-    public String getFileSize() {
-        return maxSize;
-    }
-
-    public int getNumRollingFiles() {
-        return numRollingFiles;
     }
 }

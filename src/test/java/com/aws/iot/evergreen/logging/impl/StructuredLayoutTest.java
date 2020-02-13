@@ -89,8 +89,7 @@ public class StructuredLayoutTest {
         String[] appendedMessages = dataStr.split(System.lineSeparator());
         for (int i = 0; i < messages.size(); i++) {
             SimpleMessage message = messages.get(i);
-            TreeNode tree = JSON_ENCODER.treeFrom(appendedMessages[i]);
-            SimpleMessage deserializedMessage = tree.traverse(JSON_MAPPER).readValueAs(SimpleMessage.class);
+            SimpleMessage deserializedMessage = JSON_MAPPER.readValue(appendedMessages[i], SimpleMessage.class);
             //comparing the original message with the de-serialized message
             assertEquals(message, deserializedMessage);
         }
