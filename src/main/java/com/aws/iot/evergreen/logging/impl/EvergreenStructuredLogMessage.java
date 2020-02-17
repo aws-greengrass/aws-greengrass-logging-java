@@ -4,6 +4,7 @@
 
 package com.aws.iot.evergreen.logging.impl;
 
+import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import org.apache.logging.log4j.Level;
@@ -13,7 +14,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * An implementation of {@link Message} interface to work with Evergreen {@link CborLayout}.
+ * An implementation of {@link Message} interface to work with Evergreen {@link StructuredLayout}.
  */
 @Data
 public class EvergreenStructuredLogMessage implements Message {

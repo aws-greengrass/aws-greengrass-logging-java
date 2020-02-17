@@ -12,7 +12,7 @@ import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.logging.api.Logger;
-import com.aws.iot.evergreen.logging.impl.Log4jLogManager;
+import com.aws.iot.evergreen.logging.impl.LogManager;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -54,7 +54,7 @@ public class IPCClientImpl implements IPCClient {
     private String serviceName = null;
     private Set<Runnable> onConnectTasks = new CopyOnWriteArraySet<>();
 
-    private Logger log = new Log4jLogManager().getLogger(IPCClient.class);
+    private Logger log = LogManager.getLogger(IPCClient.class);
     private volatile boolean authenticated;
 
     /**
