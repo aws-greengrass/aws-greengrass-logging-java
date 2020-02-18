@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.ipc;
 
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
@@ -18,7 +19,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -44,10 +44,11 @@ public class IPCReconnectTest {
 
                 // Read and write auth
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-                FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                        new FrameReader.Message(
-                                IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
-                        FrameReader.FrameType.RESPONSE), out);
+                FrameReader.writeFrame(
+                        new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
+                                new FrameReader.Message(IPCUtil.encode(
+                                        GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success)
+                                                .build())), FrameReader.FrameType.RESPONSE), out);
                 connectCount.getAndIncrement();
             }
         });
@@ -61,12 +62,12 @@ public class IPCReconnectTest {
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             FrameReader.writeFrame(
-                    new FrameReader.MessageFrame(inFrame.sequenceNumber, "D", new FrameReader.Message(new byte[0]),
+                    new FrameReader.MessageFrame(inFrame.requestId, 254, new FrameReader.Message(new byte[0]),
                             FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
-        ipc.sendRequest("D", new FrameReader.Message(new byte[0])).get(100, TimeUnit.MILLISECONDS);
+        ipc.sendRequest(254, new FrameReader.Message(new byte[0])).get(100, TimeUnit.MILLISECONDS);
 
         fut.get();
 
@@ -81,7 +82,7 @@ public class IPCReconnectTest {
         fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             FrameReader.writeFrame(
-                    new FrameReader.MessageFrame(inFrame.sequenceNumber, "D", new FrameReader.Message(new byte[0]),
+                    new FrameReader.MessageFrame(inFrame.requestId, 254, new FrameReader.Message(new byte[0]),
                             FrameReader.FrameType.RESPONSE), out);
             return null;
         });
@@ -91,7 +92,7 @@ public class IPCReconnectTest {
             Thread.sleep(2);
         }
 
-        ipc.sendRequest("D", new FrameReader.Message(new byte[0])).get(100, TimeUnit.MILLISECONDS);
+        ipc.sendRequest(254, new FrameReader.Message(new byte[0])).get(100, TimeUnit.MILLISECONDS);
 
         fut.get();
 

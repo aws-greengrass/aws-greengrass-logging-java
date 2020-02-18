@@ -1,6 +1,7 @@
 package com.aws.iot.evergreen.ipc.services.servicediscovery;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
@@ -64,7 +65,8 @@ public class ServiceDiscoveryImpl implements ServiceDiscovery {
             throws ServiceDiscoveryException {
         try {
             GeneralResponse<T, ServiceDiscoveryResponseStatus> req =
-                    IPCUtil.sendAndReceive(ipc, SERVICE_DISCOVERY_NAME, data, clazz).get();
+                    IPCUtil.sendAndReceive(ipc, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), data, clazz)
+                            .get();
             if (!ServiceDiscoveryResponseStatus.Success.equals(req.getError())) {
                 throwOnError(req);
             }

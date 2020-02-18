@@ -1,6 +1,7 @@
 package com.aws.iot.evergreen.ipc.services.lifecycle;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
 import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
@@ -11,26 +12,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 public class LifecycleImpl implements Lifecycle {
     // Service Name ==> list of [function (oldState, newState)]
-    private static final Map<String, List<BiConsumer<String, String>>> stateTransitionCallbacks =
-            new ConcurrentHashMap<>();
+    private final Map<String, Set<BiConsumer<String, String>>> stateTransitionCallbacks = new ConcurrentHashMap<>();
     private static ObjectMapper mapper = new CBORMapper();
     private final IPCClient ipc;
 
+    /**
+     * Make the implementation of the Lifecycle client.
+     *
+     * @param ipc IPCClient used to talk to the server
+     */
     public LifecycleImpl(IPCClient ipc) {
         this.ipc = ipc;
-        ipc.registerMessageHandler(LIFECYCLE_SERVICE_NAME, LifecycleImpl::onStateTransition);
+        ipc.registerMessageHandler(BuiltInServiceDestinationCode.LIFECYCLE.getValue(), this::onStateTransition);
     }
 
-    private static FrameReader.Message onStateTransition(FrameReader.Message message) {
+    private FrameReader.Message onStateTransition(FrameReader.Message message) {
         try {
             GeneralRequest<Object, LifecycleRequestTypes> obj =
                     IPCUtil.decode(message, new TypeReference<GeneralRequest<Object, LifecycleRequestTypes>>() {
@@ -41,7 +46,7 @@ public class LifecycleImpl implements Lifecycle {
             if (LifecycleRequestTypes.transition.equals(obj.getType())) {
                 StateTransitionEvent transitionRequest =
                         mapper.convertValue(obj.getRequest(), StateTransitionEvent.class);
-                List<BiConsumer<String, String>> callbacks =
+                Set<BiConsumer<String, String>> callbacks =
                         stateTransitionCallbacks.get(transitionRequest.getService());
                 if (callbacks != null) {
                     callbacks.forEach(f -> f.accept(transitionRequest.getOldState(), transitionRequest.getNewState()));
@@ -85,20 +90,22 @@ public class LifecycleImpl implements Lifecycle {
     @Override
     public synchronized void listenToStateChanges(String serviceName, BiConsumer<String, String> onTransition)
             throws LifecycleIPCException {
-        registerStateListener(serviceName);
-
-        // Register with IPC to re-register the listener when the client reconnects
-        ipc.onReconnect(() -> {
-            try {
-                registerStateListener(serviceName);
-            } catch (LifecycleIPCException e) {
-                // TODO: Log exception / retry
-            }
-        });
+        // Only register with the server if we haven't yet requested updates for a given service name
+        if (!stateTransitionCallbacks.containsKey(serviceName)) {
+            registerStateListener(serviceName);
+            // Register with IPC to re-register the listener when the client reconnects
+            ipc.onReconnect(() -> {
+                try {
+                    registerStateListener(serviceName);
+                } catch (LifecycleIPCException e) {
+                    // TODO: Log exception / retry
+                }
+            });
+        }
 
         stateTransitionCallbacks.compute(serviceName, (key, old) -> {
             if (old == null) {
-                old = new CopyOnWriteArrayList<>();
+                old = new CopyOnWriteArraySet<>();
             }
             old.add(onTransition);
             return old;
@@ -118,7 +125,7 @@ public class LifecycleImpl implements Lifecycle {
             throws LifecycleIPCException {
         try {
             GeneralResponse<T, LifecycleResponseStatus> req =
-                    IPCUtil.sendAndReceive(ipc, LIFECYCLE_SERVICE_NAME, data, clazz).get();
+                    IPCUtil.sendAndReceive(ipc, BuiltInServiceDestinationCode.LIFECYCLE.getValue(), data, clazz).get();
             if (!LifecycleResponseStatus.Success.equals(req.getError())) {
                 throwOnError(req);
             }

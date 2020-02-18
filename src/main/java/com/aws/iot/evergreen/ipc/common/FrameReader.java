@@ -7,34 +7,32 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class FrameReader {
-
-    private static final int VERSION = 1;
+    public static final int VERSION = 1;
     private static final int BYTE_MASK = 0xff;
     private static final int IS_RESPONSE_MASK = 0x01;
+
     /**
      * Header size in bytes.
      *
      * <p>version and request type : 1 byte
-     * destination name length  : 1 byte
-     * sequence number          : 4 bytes
-     * payload length           : 2 bytes
-     * Total    : 8 bytes
+     * destination                 : 1 byte
+     * request id                  : 4 bytes
+     * payload length              : 4 bytes
+     * Total                       : 10 bytes
      */
-    private static final int HEADER_SIZE_IN_BYTES = 8;
+    private static final int HEADER_SIZE_IN_BYTES = 10;
 
     /**
      * Constructs MessageFrame from bits reads from the input stream.
      *
-     * <p>1st byte, first 7 bits represent the version number and the last bit represent the type
-     * 2-3 byte, length of destination UTF-8 string as a short
-     * 4+ byte, destination string
-     * next 2 bytes, length of payload as a short
-     * Rest of the bytes capture the payload
+     * <p>+------------------+---------------+---------------+------------------+----------+
+     *    | Version + Type   |  Destination  |  Request Id   |  Payload Length  |  Payload |
+     *    |     1 byte       |    1 byte     |    4 bytes    |      4 bytes     |  x bytes |
+     *    +------------------+---------------+---------------+------------------+----------+
      *
      * @param dataInputStream input stream
      * @return frame from the stream
@@ -46,23 +44,20 @@ public class FrameReader {
             int firstByte = dataInputStream.readByte() & BYTE_MASK;
             int version = firstByte >> 1;
             FrameType type = FrameType.fromOrdinal(firstByte & IS_RESPONSE_MASK);
-            int destinationNameLength = dataInputStream.readByte();
-            byte[] destinationNameByte = new byte[destinationNameLength];
-            dataInputStream.read(destinationNameByte);
-            int sequenceNumber = dataInputStream.readInt();
-            int payloadLength = dataInputStream.readShort();
+            int destination = dataInputStream.readByte() & BYTE_MASK;
+            int requestId = dataInputStream.readInt();
+            int payloadLength = dataInputStream.readInt();
             byte[] payload = new byte[payloadLength];
             dataInputStream.read(payload);
 
-            return new MessageFrame(sequenceNumber, version, new String(destinationNameByte, StandardCharsets.UTF_8),
-                    new Message(payload), type);
+            return new MessageFrame(requestId, version, destination, new Message(payload), type);
         }
     }
 
     /**
      * Encodes the Message frame to bytes.
      *
-     * @param f frame to write into the stream
+     * @param f                frame to write into the stream
      * @param dataOutputStream stream to write into
      * @throws IOException if writing goes wrong
      */
@@ -71,15 +66,19 @@ public class FrameReader {
             if (f == null || f.message == null) {
                 throw new IllegalArgumentException("Message is null ");
             }
-            //TODO: perform range checks on payload numeric fields before writing
+            if (f.version > 127) {
+                throw new IllegalArgumentException("Frame version is too high. Must be less than 128");
+            }
+            if (f.destination > 255) {
+                throw new IllegalArgumentException("Frame destination is too high. Must be less than 255");
+            }
+
             Message m = f.message;
-            byte[] destination = f.destination.getBytes(StandardCharsets.UTF_8);
-            ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE_IN_BYTES + destination.length + m.payload.length);
+            ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE_IN_BYTES + m.payload.length);
             buffer.put((byte) ((f.version << 1) | (f.type.ordinal())));
-            buffer.put((byte) destination.length);
-            buffer.put(destination);
-            buffer.putInt(f.sequenceNumber);
-            buffer.putShort((short) m.payload.length);
+            buffer.put((byte) f.destination);
+            buffer.putInt(f.requestId);
+            buffer.putInt(m.payload.length);
             buffer.put(m.payload);
             dataOutputStream.write(buffer.array());
             dataOutputStream.flush();
@@ -100,18 +99,18 @@ public class FrameReader {
      */
     @ToString
     public static class MessageFrame {
-        private static final AtomicInteger sequenceNumberGenerator = new AtomicInteger();
-        public final int sequenceNumber;
+        private static final AtomicInteger requestIdGenerator = new AtomicInteger();
+        public final int requestId;
         public final int version;
         public final FrameType type;
         public final Message message;
-        public final String destination;
+        public final int destination;
 
         /**
          * Construct a frame.
          */
-        public MessageFrame(int sequenceNumber, int version, String destination, Message message, FrameType type) {
-            this.sequenceNumber = sequenceNumber;
+        public MessageFrame(int requestId, int version, int destination, Message message, FrameType type) {
+            this.requestId = requestId;
             this.version = version;
             this.message = message;
             this.type = type;
@@ -121,16 +120,16 @@ public class FrameReader {
         /**
          * Construct a frame.
          */
-        public MessageFrame(int sequenceNumber, String destination, Message message, FrameType type) {
-            this.sequenceNumber = sequenceNumber;
+        public MessageFrame(int requestId, int destination, Message message, FrameType type) {
+            this.requestId = requestId;
             this.message = message;
             this.version = VERSION;
             this.type = type;
             this.destination = destination;
         }
 
-        public MessageFrame(String destination, Message message, FrameType type) {
-            this(sequenceNumberGenerator.incrementAndGet(), VERSION, destination, message, type);
+        public MessageFrame(int destination, Message message, FrameType type) {
+            this(requestIdGenerator.incrementAndGet(), VERSION, destination, message, type);
         }
     }
 

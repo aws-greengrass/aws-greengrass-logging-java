@@ -2,6 +2,7 @@ package com.aws.iot.evergreen.ipc;
 
 import com.aws.iot.evergreen.ipc.codec.MessageFrameDecoder;
 import com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
@@ -24,6 +25,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 import java.io.IOException;
 import java.util.Set;
@@ -34,7 +36,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
+import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_LENGTH;
+import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_OFFSET;
+import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.MAX_PAYLOAD_SIZE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.RESPONSE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
@@ -74,6 +78,8 @@ public class IPCClientImpl implements IPCClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(MAX_PAYLOAD_SIZE, LENGTH_FIELD_OFFSET,
+                                LENGTH_FIELD_LENGTH));
                         ch.pipeline().addLast(new MessageFrameDecoder());
                         ch.pipeline().addLast(new MessageFrameEncoder());
                         ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
@@ -113,11 +119,12 @@ public class IPCClientImpl implements IPCClient {
 
             try {
                 // Send Auth request and wait for response.
-                GeneralResponse<String, GenericErrorCodes> resp = IPCUtil.sendAndReceive(this, AUTH_SERVICE,
-                        GeneralRequest.builder().request(config.getToken() == null ? "" : config.getToken())
-                                .type(AuthRequestTypes.Auth).build(),
-                        new TypeReference<GeneralResponse<String, GenericErrorCodes>>() {
-                        }).get(); // TODO: Add timeout waiting for auth to come back?
+                GeneralResponse<String, GenericErrorCodes> resp =
+                        IPCUtil.sendAndReceive(this, BuiltInServiceDestinationCode.AUTH.getValue(),
+                                GeneralRequest.builder().request(config.getToken() == null ? "" : config.getToken())
+                                        .type(AuthRequestTypes.Auth).build(),
+                                new TypeReference<GeneralResponse<String, GenericErrorCodes>>() {
+                                }).get(); // TODO: Add timeout waiting for auth to come back?
                 // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
                 if (!resp.getError().equals(GenericErrorCodes.Success)) {
                     throw new IOException(resp.getErrorMessage());
@@ -153,7 +160,7 @@ public class IPCClientImpl implements IPCClient {
     }
 
     @Override
-    public CompletableFuture<Message> sendRequest(String destination, Message msg) {
+    public CompletableFuture<Message> sendRequest(int destination, Message msg) {
         CompletableFuture<Message> future = new CompletableFuture<>();
 
         // Check if we're connected and authenticated
@@ -167,7 +174,7 @@ public class IPCClientImpl implements IPCClient {
         //TODO: implement timeout for listening to requests
         // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         MessageFrame frame = new MessageFrame(destination, msg, REQUEST);
-        messageHandler.registerRequestId(frame.sequenceNumber, future);
+        messageHandler.registerRequestId(frame.requestId, future);
 
         // Try writing to the channel, but add a listener for if it fails
         channel.writeAndFlush(frame).addListener(channelFut -> {
@@ -178,7 +185,7 @@ public class IPCClientImpl implements IPCClient {
         return future;
     }
 
-    private void sendResponse(String destination, int sequenceNumber, Message msg) {
+    private void sendResponse(int destination, int sequenceNumber, Message msg) {
         log.debug("Sending response message to destination {} with request id {} on server", destination,
                 sequenceNumber);
         MessageFrame frame = new MessageFrame(sequenceNumber, destination, msg, RESPONSE);
@@ -186,10 +193,10 @@ public class IPCClientImpl implements IPCClient {
     }
 
     @Override
-    public void registerMessageHandler(String destination, Function<Message, Message> handler) {
+    public void registerMessageHandler(int destination, Function<Message, Message> handler) {
         Consumer<MessageFrame> cb = (MessageFrame mf) -> {
             Message toSend = handler.apply(mf.message);
-            sendResponse(destination, mf.sequenceNumber, toSend);
+            sendResponse(destination, mf.requestId, toSend);
         };
         messageHandler.registerListener(destination, cb);
     }

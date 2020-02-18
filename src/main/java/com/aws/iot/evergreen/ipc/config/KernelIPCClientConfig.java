@@ -97,6 +97,7 @@ public class KernelIPCClientConfig {
 
         /**
          * Build config from builder.
+         *
          * @return built config
          */
         public KernelIPCClientConfig build() {

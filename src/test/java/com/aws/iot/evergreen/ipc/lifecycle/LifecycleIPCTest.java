@@ -2,6 +2,7 @@ package com.aws.iot.evergreen.ipc.lifecycle;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
@@ -36,8 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static com.aws.iot.evergreen.ipc.common.Constants.AUTH_SERVICE;
-import static com.aws.iot.evergreen.ipc.services.lifecycle.Lifecycle.LIFECYCLE_SERVICE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,9 +64,11 @@ public class LifecycleIPCTest {
 
                 // Read and write auth
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-                FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, AUTH_SERVICE,
-                        new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
-                        FrameReader.FrameType.RESPONSE), out);
+                FrameReader.writeFrame(
+                        new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
+                                new FrameReader.Message(IPCUtil.encode(
+                                        GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success)
+                                                .build())), FrameReader.FrameType.RESPONSE), out);
                 connectionCount++;
             }
         });
@@ -104,8 +105,9 @@ public class LifecycleIPCTest {
             assertEquals(LifecycleRequestTypes.setState, req.getType());
             assertEquals("Errored", req.getRequest().getState());
 
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
-                    FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.LIFECYCLE.getValue(),
+                            message, FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
@@ -133,8 +135,9 @@ public class LifecycleIPCTest {
             assertEquals(LifecycleRequestTypes.listen, req.getType());
             assertEquals("me", req.getRequest().getServiceName());
 
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
-                    FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.LIFECYCLE.getValue(),
+                            message, FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
@@ -155,7 +158,8 @@ public class LifecycleIPCTest {
 
             FrameReader.Message message2 = new FrameReader.Message(encoder.asBytes(genReq2));
             FrameReader.writeFrame(
-                    new FrameReader.MessageFrame(LIFECYCLE_SERVICE_NAME, message2, FrameReader.FrameType.REQUEST), out);
+                    new FrameReader.MessageFrame(BuiltInServiceDestinationCode.LIFECYCLE.getValue(), message2,
+                            FrameReader.FrameType.REQUEST), out);
 
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             GeneralResponse<Void, LifecycleResponseStatus> ret = IPCUtil.decode(inFrame.message,
@@ -172,7 +176,8 @@ public class LifecycleIPCTest {
     }
 
     @Test
-    public void GIVEN_lifecycle_client_WHEN_listenToStateChange_and_disconnect_THEN_reconnect_and_called_for_each_state_change() throws Exception {
+    public void GIVEN_lifecycle_client_WHEN_listenToStateChange_and_disconnect_THEN_reconnect_and_called_for_each_state_change()
+            throws Exception {
         Lifecycle lf = new LifecycleImpl(ipc);
 
         GeneralResponse<Void, LifecycleResponseStatus> genReq =
@@ -191,8 +196,9 @@ public class LifecycleIPCTest {
             assertEquals(LifecycleRequestTypes.listen, req.getType());
             assertEquals("me", req.getRequest().getServiceName());
 
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
-                    FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.LIFECYCLE.getValue(),
+                            message, FrameReader.FrameType.RESPONSE), out);
             return null;
         });
 
@@ -214,7 +220,8 @@ public class LifecycleIPCTest {
 
             FrameReader.Message message2 = new FrameReader.Message(encoder.asBytes(genReq2));
             FrameReader.writeFrame(
-                    new FrameReader.MessageFrame(LIFECYCLE_SERVICE_NAME, message2, FrameReader.FrameType.REQUEST), out);
+                    new FrameReader.MessageFrame(BuiltInServiceDestinationCode.LIFECYCLE.getValue(), message2,
+                            FrameReader.FrameType.REQUEST), out);
 
             FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
             GeneralResponse<Void, LifecycleResponseStatus> ret = IPCUtil.decode(inFrame.message,
@@ -230,7 +237,7 @@ public class LifecycleIPCTest {
         // Kill the connection to force a reconnect
         sock.close();
         // Wait for the client to reconnect
-        while(connectionCount == 1) {
+        while (connectionCount == 1) {
             Thread.sleep(10);
         }
 
@@ -247,8 +254,9 @@ public class LifecycleIPCTest {
             assertEquals(LifecycleRequestTypes.listen, req.getType());
             assertEquals("me", req.getRequest().getServiceName());
 
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.sequenceNumber, LIFECYCLE_SERVICE_NAME, message,
-                    FrameReader.FrameType.RESPONSE), out);
+            FrameReader.writeFrame(
+                    new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.LIFECYCLE.getValue(),
+                            message, FrameReader.FrameType.RESPONSE), out);
 
             // Make a state transition request and send it
             GeneralRequest<StateTransitionEvent, LifecycleRequestTypes> genReq2 =
@@ -259,7 +267,8 @@ public class LifecycleIPCTest {
 
             FrameReader.Message message2 = new FrameReader.Message(encoder.asBytes(genReq2));
             FrameReader.writeFrame(
-                    new FrameReader.MessageFrame(LIFECYCLE_SERVICE_NAME, message2, FrameReader.FrameType.REQUEST), out);
+                    new FrameReader.MessageFrame(BuiltInServiceDestinationCode.LIFECYCLE.getValue(), message2,
+                            FrameReader.FrameType.REQUEST), out);
 
             inFrame = FrameReader.readFrame(in);
             GeneralResponse<Void, LifecycleResponseStatus> ret = IPCUtil.decode(inFrame.message,
