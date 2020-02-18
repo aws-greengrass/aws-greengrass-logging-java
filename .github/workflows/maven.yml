@@ -55,3 +55,10 @@ jobs:
         with:
           name: Coverage Report
           path: target/jacoco-report
+      - name: GitHub Actions Artifact Cleaner
+        uses: glassechidna/artifact-cleaner@v2
+        with:
+          # Specify a minimum size of artifacts to delete in bytes. Artifacts smaller than this won't be deleted.
+          minimumDeletionSize: 0 # optional, default is 0
+          # Only delete artifacts older than this, measured in seconds.
+          minimumAge: 5184000 # optional, default is 0. Set to 5.184e+6 (60 days)
