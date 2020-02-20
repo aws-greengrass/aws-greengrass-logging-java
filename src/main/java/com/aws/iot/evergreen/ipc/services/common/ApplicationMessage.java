@@ -24,6 +24,11 @@ public class ApplicationMessage {
     /**
      * Constructs application message from bytes.
      *
+     *      +------------------+---------------+
+     *      | Version    |  OpCode   | Payload |
+     *      | 1 byte     |  1 byte   | x bytes |
+     *      +------------------+---------------+
+     *
      * @param bytes encoded application message object
      */
     public ApplicationMessage(byte[] bytes) {
