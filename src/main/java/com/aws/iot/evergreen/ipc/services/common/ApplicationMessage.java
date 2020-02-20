@@ -24,7 +24,7 @@ public class ApplicationMessage {
     /**
      * Constructs application message from bytes.
      *
-     *      +------------------+---------------+
+     *   <p>+------------------+---------------+
      *      | Version    |  OpCode   | Payload |
      *      | 1 byte     |  1 byte   | x bytes |
      *      +------------------+---------------+
