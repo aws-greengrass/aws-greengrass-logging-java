@@ -19,7 +19,7 @@ public interface Lifecycle {
     /**
      * Report that the service is in some state.
      *
-     * @param newState the state to transition into
+     * @param newState the state to STATE_TRANSITION into
      * @throws LifecycleIPCException for any error
      */
     void reportState(String newState) throws LifecycleIPCException;

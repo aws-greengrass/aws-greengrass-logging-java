@@ -1,28 +1,26 @@
 package com.aws.iot.evergreen.ipc.services.lifecycle;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
-import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
-import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
-import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
+import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.lifecycle.exceptions.LifecycleIPCException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
+import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.LIFECYCLE;
+
 public class LifecycleImpl implements Lifecycle {
+    public static final int API_VERSION = 1;
     // Service Name ==> list of [function (oldState, newState)]
     private final Map<String, Set<BiConsumer<String, String>>> stateTransitionCallbacks = new ConcurrentHashMap<>();
-    private static ObjectMapper mapper = new CBORMapper();
     private final IPCClient ipc;
 
     /**
@@ -32,33 +30,30 @@ public class LifecycleImpl implements Lifecycle {
      */
     public LifecycleImpl(IPCClient ipc) {
         this.ipc = ipc;
-        ipc.registerMessageHandler(BuiltInServiceDestinationCode.LIFECYCLE.getValue(), this::onStateTransition);
+        ipc.registerMessageHandler(LIFECYCLE.getValue(), this::onStateTransition);
     }
 
     private FrameReader.Message onStateTransition(FrameReader.Message message) {
         try {
-            GeneralRequest<Object, LifecycleRequestTypes> obj =
-                    IPCUtil.decode(message, new TypeReference<GeneralRequest<Object, LifecycleRequestTypes>>() {
-                    });
-
-            GeneralResponse<Void, LifecycleResponseStatus> response =
-                    GeneralResponse.<Void, LifecycleResponseStatus>builder().build();
-            if (LifecycleRequestTypes.transition.equals(obj.getType())) {
+            ApplicationMessage request = new ApplicationMessage(message.getPayload());
+            LifecycleResponseStatus resp = LifecycleResponseStatus.Success;
+            if (LifecycleClientOpCodes.STATE_TRANSITION.equals(LifecycleClientOpCodes.values()[request.getOpCode()])) {
                 StateTransitionEvent transitionRequest =
-                        mapper.convertValue(obj.getRequest(), StateTransitionEvent.class);
+                        IPCUtil.decode(request.getPayload(), StateTransitionEvent.class);
                 Set<BiConsumer<String, String>> callbacks =
                         stateTransitionCallbacks.get(transitionRequest.getService());
                 if (callbacks != null) {
                     callbacks.forEach(f -> f.accept(transitionRequest.getOldState(), transitionRequest.getNewState()));
-
-                    response.setError(LifecycleResponseStatus.Success);
                 } else {
-                    response.setError(LifecycleResponseStatus.StateTransitionCallbackNotFound);
+                    resp = LifecycleResponseStatus.StateTransitionCallbackNotFound;
                 }
             } else {
-                response.setError(LifecycleResponseStatus.InvalidRequest);
+                resp = LifecycleResponseStatus.InvalidRequest;
             }
-            return new FrameReader.Message(IPCUtil.encode(response));
+            ApplicationMessage responseMessage = ApplicationMessage.builder()
+                    .version(request.getVersion()).payload(IPCUtil.encode(resp)).build();
+
+            return new FrameReader.Message(responseMessage.toByteArray());
         } catch (IOException ex) {
             // TODO: Log exception or something else.
             //  https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
@@ -79,12 +74,8 @@ public class LifecycleImpl implements Lifecycle {
 
     @Override
     public void reportState(String newState) throws LifecycleIPCException {
-        GeneralRequest<Object, LifecycleRequestTypes> request =
-                GeneralRequest.<Object, LifecycleRequestTypes>builder().type(LifecycleRequestTypes.setState)
-                        .request(StateChangeRequest.builder().state(newState).build()).build();
-
-        sendAndReceive(request, new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
-        });
+        StateChangeRequest stateChangeRequest = StateChangeRequest.builder().state(newState).build();
+        sendAndReceive(LifecycleServiceOpCodes.REPORT_STATE, stateChangeRequest, LifecycleGenericResponse.class);
     }
 
     @Override
@@ -113,33 +104,29 @@ public class LifecycleImpl implements Lifecycle {
     }
 
     private void registerStateListener(String serviceName) throws LifecycleIPCException {
-        GeneralRequest<Object, LifecycleRequestTypes> request =
-                GeneralRequest.<Object, LifecycleRequestTypes>builder().type(LifecycleRequestTypes.listen)
-                        .request(LifecycleListenRequest.builder().serviceName(serviceName).build()).build();
-        sendAndReceive(request, new TypeReference<GeneralResponse<Void, LifecycleResponseStatus>>() {
-        });
+        LifecycleListenRequest listenRequest = LifecycleListenRequest.builder().serviceName(serviceName).build();
+        sendAndReceive(LifecycleServiceOpCodes.REGISTER_LISTENER, listenRequest, LifecycleGenericResponse.class);
     }
 
-    private <T> T sendAndReceive(GeneralRequest<Object, LifecycleRequestTypes> data,
-                                 TypeReference<GeneralResponse<T, LifecycleResponseStatus>> clazz)
+    private <T> T sendAndReceive(LifecycleServiceOpCodes opCode, Object request, final Class<T> returnTypeClass)
             throws LifecycleIPCException {
         try {
-            GeneralResponse<T, LifecycleResponseStatus> req =
-                    IPCUtil.sendAndReceive(ipc, BuiltInServiceDestinationCode.LIFECYCLE.getValue(), data, clazz).get();
-            if (!LifecycleResponseStatus.Success.equals(req.getError())) {
-                throwOnError(req);
+            CompletableFuture<T> responseFuture = IPCUtil.sendAndReceive(
+                    ipc, LIFECYCLE.getValue(), opCode.ordinal(), request, API_VERSION, returnTypeClass);
+            LifecycleGenericResponse response = (LifecycleGenericResponse) responseFuture.get();
+            if (!LifecycleResponseStatus.Success.equals(response.getStatus())) {
+                throwOnError(response);
             }
-
-            return req.getResponse();
+            return responseFuture.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new LifecycleIPCException(e);
         }
     }
 
-    private void throwOnError(GeneralResponse<?, LifecycleResponseStatus> req) throws LifecycleIPCException {
-        switch (req.getError()) {
+    private void throwOnError(LifecycleGenericResponse response) throws LifecycleIPCException {
+        switch (response.getStatus()) {
             default:
-                throw new LifecycleIPCException(req.getErrorMessage());
+                throw new LifecycleIPCException(response.getErrorMessage());
         }
     }
 }

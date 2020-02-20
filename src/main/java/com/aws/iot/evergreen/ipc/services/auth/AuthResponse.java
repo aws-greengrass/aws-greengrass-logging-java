@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthR {
+public class AuthResponse {
     private String serviceName;
-    private String client;
+    private String clientId;
     private String errorMessage;
 }

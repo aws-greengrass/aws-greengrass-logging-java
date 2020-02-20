@@ -1,6 +1,6 @@
 package com.aws.iot.evergreen.ipc.services.lifecycle;
 
-public enum LifeCycleOperationCodes {
+public enum LifecycleServiceOpCodes {
 
-    ReportState , RegisterListener;
+    REPORT_STATE, REGISTER_LISTENER
 }

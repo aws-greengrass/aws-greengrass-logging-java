@@ -7,18 +7,26 @@ import lombok.NoArgsConstructor;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Represents application layer packet.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApplicationMessageFrame {
+public class ApplicationMessage {
 
     private static final int BYTE_MASK = 0xff;
     private int version;
     private int opCode;
     private byte[] payload;
 
-    public  ApplicationMessageFrame(byte[] bytes) {
+    /**
+     * Constructs application message from bytes.
+     *
+     * @param bytes encoded application message object
+     */
+    public ApplicationMessage(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         this.version = buffer.get() & BYTE_MASK;
         this.opCode = buffer.get() & BYTE_MASK;
@@ -26,6 +34,10 @@ public class ApplicationMessageFrame {
         buffer.get(payload);
     }
 
+
+    /**
+     * Encodes  ApplicationMessage to bytes.
+     */
     public byte[] toByteArray() {
         ByteBuffer buffer = ByteBuffer.allocate(payload.length + 2);
         buffer.put((byte) this.version);

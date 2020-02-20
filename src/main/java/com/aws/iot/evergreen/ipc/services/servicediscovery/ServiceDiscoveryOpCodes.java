@@ -1,5 +1,5 @@
 package com.aws.iot.evergreen.ipc.services.servicediscovery;
 
-public enum ServiceDiscoveryOperationCodes {
-    RegisterResource , UpdateResource, RemoveResource, LookupResources;
+public enum ServiceDiscoveryOpCodes {
+    RegisterResource, UpdateResource, RemoveResource, LookupResources
 }
