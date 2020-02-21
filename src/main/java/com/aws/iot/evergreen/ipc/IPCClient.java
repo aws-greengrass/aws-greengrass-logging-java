@@ -41,7 +41,7 @@ public interface IPCClient {
     /**
      * Get this clients's unique id .
      *
-     * @return client is
+     * @return client id
      */
     String getClientId();
 

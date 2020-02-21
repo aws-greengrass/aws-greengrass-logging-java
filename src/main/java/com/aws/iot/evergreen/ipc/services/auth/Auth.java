@@ -7,6 +7,7 @@ import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.AUTH;
 
@@ -39,15 +40,15 @@ public class Auth {
                     AUTH_API_VERSION, AUTH_OP_CODE, request, AuthResponse.class).get();
 
             if (authResponse.getErrorMessage() != null) {
-                throw new IOException(authResponse.getErrorMessage());
+                throw new IPCClientException(authResponse.getErrorMessage());
             }
             if (authResponse.getServiceName() == null) {
-                throw new IOException("Service name was null");
+                throw new IPCClientException("Service name was null");
             }
             log.info("Connected as serviceName %s , clientId %s", authResponse.getServiceName(),
                     authResponse.getClientId());
             return authResponse;
-        } catch (Exception e) {
+        } catch (ExecutionException | InterruptedException e) {
             throw new IPCClientException("Unable to authenticate ", e);
         }
     }
