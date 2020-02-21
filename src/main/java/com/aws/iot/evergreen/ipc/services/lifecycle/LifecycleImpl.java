@@ -7,6 +7,7 @@ import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.lifecycle.exceptions.LifecycleIPCException;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -112,7 +113,7 @@ public class LifecycleImpl implements Lifecycle {
             throws LifecycleIPCException {
         try {
             CompletableFuture<T> responseFuture = IPCUtil.sendAndReceive(
-                    ipc, LIFECYCLE.getValue(), opCode.ordinal(), request, API_VERSION, returnTypeClass);
+                    ipc, LIFECYCLE.getValue(), API_VERSION, opCode.ordinal(), request, returnTypeClass);
             LifecycleGenericResponse response = (LifecycleGenericResponse) responseFuture.get();
             if (!LifecycleResponseStatus.Success.equals(response.getStatus())) {
                 throwOnError(response);

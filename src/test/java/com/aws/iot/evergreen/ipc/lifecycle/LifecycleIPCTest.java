@@ -6,6 +6,7 @@ import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
@@ -50,7 +51,8 @@ public class LifecycleIPCTest {
 
     public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type) throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
-                .version(LifecycleImpl.API_VERSION).opCode(opCode).payload(IPCUtil.encode(data)).build();
+                .version(LifecycleImpl.API_VERSION).opCode(opCode)
+                .payload(IPCUtil.encode(data)).build();
 
         int destination = BuiltInServiceDestinationCode.LIFECYCLE.getValue();
         FrameReader.Message message = new FrameReader.Message(transitionEventAppFrame.toByteArray());
@@ -66,7 +68,7 @@ public class LifecycleIPCTest {
 
 
     @BeforeEach
-    public void before() throws IOException, InterruptedException, ExecutionException {
+    public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
         server = new ServerSocket(0);
         connectionCount = 0;
         executor.submit(() -> {
@@ -80,7 +82,8 @@ public class LifecycleIPCTest {
                 ApplicationMessage requestApplicationFrame = new ApplicationMessage(inFrame.message.getPayload());
                 AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
                 ApplicationMessage responsesAppFrame = ApplicationMessage.builder()
-                        .version(requestApplicationFrame.getVersion()).payload(IPCUtil.encode(authResponse)).build();
+                        .version(requestApplicationFrame.getVersion())
+                        .payload(IPCUtil.encode(authResponse)).build();
 
                 writeFrame(new MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
                         new FrameReader.Message(responsesAppFrame.toByteArray()), FrameReader.FrameType.RESPONSE), out);

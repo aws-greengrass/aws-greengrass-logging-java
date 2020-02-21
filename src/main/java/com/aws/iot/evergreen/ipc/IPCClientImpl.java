@@ -6,9 +6,9 @@ import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.handler.InboundMessageHandler;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
+import com.aws.iot.evergreen.ipc.services.auth.Auth;
 import com.aws.iot.evergreen.ipc.services.auth.AuthRequest;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
-import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
 import io.netty.bootstrap.Bootstrap;
@@ -45,8 +45,7 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 //TODO: implement logging
 //TODO: throw ipc client specific runtime exceptions
 public class IPCClientImpl implements IPCClient {
-    private static final int AUTH_API_VERSION = 1;
-    private static final int AUTH_OP_CODE = 1;
+
     private final MessageHandler messageHandler;
     private final EventLoopGroup eventLoopGroup;
     private final Bootstrap clientBootstrap;
@@ -59,6 +58,7 @@ public class IPCClientImpl implements IPCClient {
     private String serviceName = null;
     private String clientId = null;
     private volatile boolean authenticated;
+    private final Auth auth;
 
     /**
      * Construct a client and immediately connect to the server.
@@ -67,7 +67,7 @@ public class IPCClientImpl implements IPCClient {
      * @throws IOException          if connection fails
      * @throws InterruptedException if connection times out
      */
-    public IPCClientImpl(KernelIPCClientConfig config) throws IOException, InterruptedException {
+    public IPCClientImpl(KernelIPCClientConfig config) throws IPCClientException, InterruptedException {
         this.messageHandler = new MessageHandler();
         eventLoopGroup = new NioEventLoopGroup();
         // Help bootstrapping a channel
@@ -84,11 +84,11 @@ public class IPCClientImpl implements IPCClient {
                         ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
                     }
                 }).option(ChannelOption.SO_KEEPALIVE, true).option(ChannelOption.TCP_NODELAY, true);
-
+        auth = new Auth(this);
         connect(config);
     }
 
-    private void connect(KernelIPCClientConfig config) throws InterruptedException, IOException {
+    private void connect(KernelIPCClientConfig config) throws IPCClientException, InterruptedException {
         try {
             connectionLock.lock();
 
@@ -116,27 +116,12 @@ public class IPCClientImpl implements IPCClient {
                 }
             });
 
-            try {
-                AuthRequest request = AuthRequest.builder().authToken(
-                        config.getToken() == null ? "" : config.getToken()).build();
-                // Send Auth request and wait for response.
-                AuthResponse authResponse = IPCUtil.sendAndReceive(this, AUTH.getValue(), AUTH_OP_CODE, request,
-                        AUTH_API_VERSION, AuthResponse.class).get();
-                // TODO: Add timeout waiting for auth to come back?
-                // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
-                if (authResponse.getErrorMessage() != null) {
-                    throw new IOException(authResponse.getErrorMessage());
-                }
-                serviceName = authResponse.getServiceName();
-                clientId = authResponse.getClientId();
-                log.info("Connected as serviceName %s , clientId %s", serviceName, clientId);
-                if (serviceName == null) {
-                    throw new IOException("Service name was null");
-                }
-                authenticated = true;
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException(e);
-            }
+            AuthRequest request = new AuthRequest(config.getToken());
+            AuthResponse authResponse = auth.doAuth(request);
+            // Send Auth request and wait for response.
+            serviceName = authResponse.getServiceName();
+            clientId = authResponse.getClientId();
+            authenticated = true;
 
             log.debug("Successfully connected to {}:{}", config.getHostAddress(), config.getPort());
         } finally {
@@ -204,6 +189,11 @@ public class IPCClientImpl implements IPCClient {
     @Override
     public String getServiceName() {
         return serviceName;
+    }
+
+    @Override
+    public String getClientId() {
+        return clientId;
     }
 
     @Override

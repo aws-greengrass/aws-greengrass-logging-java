@@ -37,6 +37,15 @@ public interface IPCClient {
      */
     String getServiceName();
 
+
+    /**
+     * Get this clients's unique id .
+     *
+     * @return client is
+     */
+    String getClientId();
+
+
     /**
      * Register a listener which needs to be re-run every time we disconnect and reconnect.
      *

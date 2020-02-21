@@ -36,6 +36,7 @@ public class ApplicationMessage {
         this.version = buffer.get() & BYTE_MASK;
         this.opCode = buffer.get() & BYTE_MASK;
         this.payload = new byte[bytes.length - 2];
+        //TODO: refactor to avoid copying the bytes
         buffer.get(payload);
     }
 

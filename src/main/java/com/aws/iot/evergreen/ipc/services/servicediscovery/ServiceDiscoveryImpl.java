@@ -54,7 +54,7 @@ public class ServiceDiscoveryImpl implements ServiceDiscovery {
 
         try {
             CompletableFuture<T> responseFuture = IPCUtil.sendAndReceive(ipc, SERVICE_DISCOVERY.getValue(),
-                    opCode.ordinal(), request, API_VERSION, returnTypeClass);
+                    API_VERSION, opCode.ordinal(), request, returnTypeClass);
             ServiceDiscoveryGenericResponse response = responseFuture.get();
             if (!ServiceDiscoveryResponseStatus.Success.equals(response.getResponseStatus())) {
                 throwOnError(response);

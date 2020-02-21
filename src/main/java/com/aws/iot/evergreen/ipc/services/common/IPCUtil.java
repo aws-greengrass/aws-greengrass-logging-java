@@ -5,7 +5,9 @@ import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -16,14 +18,14 @@ public class IPCUtil {
      * Constructs an application packet and embeds that in a protocol packet before sending it to IPC client.
      * @param ipc Core IPC client used to send the message
      * @param destination Application level destination on the kernel side
+     * @param version Application level API Protocol
      * @param opCode Application level request type
      * @param data actual data that need to be exchanges
-     * @param version Application level API Protocol
      * @param returnType return type
      * @return response returned by the kernel cast into type returnType
      */
-    public static <T> CompletableFuture<T> sendAndReceive(IPCClient ipc, int destination, int opCode,
-                                                          Object data, int version, final Class<T> returnType) {
+    public static <T> CompletableFuture<T> sendAndReceive(IPCClient ipc, int destination, int version, int opCode,
+                                                          Object data, final Class<T> returnType) {
         byte[] payload;
         try {
             payload = encode(data);
@@ -39,7 +41,7 @@ public class IPCUtil {
             try {
                 ApplicationMessage response = new ApplicationMessage(message.getPayload());
                 if (response.getVersion() != version) {
-                    throw new RuntimeException(String.format(
+                    throw new IllegalArgumentException(String.format(
                             "Protocol version not supported requested %d, returned %d",
                             version, response.getVersion()));
                 }

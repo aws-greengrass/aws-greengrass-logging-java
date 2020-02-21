@@ -13,6 +13,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,7 +50,8 @@ public class IPCReconnectTest {
                 ApplicationMessage requestApplicationFrame = new ApplicationMessage(inFrame.message.getPayload());
                 AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
                 ApplicationMessage responsesAppFrame = ApplicationMessage.builder()
-                        .version(requestApplicationFrame.getVersion()).payload(IPCUtil.encode(authResponse)).build();
+                        .version(requestApplicationFrame.getVersion())
+                        .payload(IPCUtil.encode(authResponse)).build();
 
                 FrameReader.writeFrame(
                         new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),

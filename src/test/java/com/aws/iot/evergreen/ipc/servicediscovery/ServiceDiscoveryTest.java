@@ -4,6 +4,7 @@ import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
+import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
@@ -23,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class ServiceDiscoveryTest {
-    private JSON encoder = JSON.std.with(new CBORFactory());
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     private IPCClient ipc;
@@ -53,7 +54,8 @@ public class ServiceDiscoveryTest {
     public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameType type)
             throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
-                .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode).payload(IPCUtil.encode(data)).build();
+                .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
+                .payload(IPCUtil.encode(data)).build();
 
         int destination = BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue();
         Message message = new Message(transitionEventAppFrame.toByteArray());
@@ -68,7 +70,7 @@ public class ServiceDiscoveryTest {
     }
 
     @BeforeEach
-    public void before() throws IOException, InterruptedException, ExecutionException {
+    public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
         server = new ServerSocket(0);
         Future<Object> fut = executor.submit(() -> {
             sock = server.accept();

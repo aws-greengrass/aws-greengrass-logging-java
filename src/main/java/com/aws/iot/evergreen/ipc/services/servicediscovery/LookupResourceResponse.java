@@ -3,6 +3,7 @@ package com.aws.iot.evergreen.ipc.services.servicediscovery;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class LookupResourceResponse extends ServiceDiscoveryGenericResponse {
 
     private List<Resource> resources;
