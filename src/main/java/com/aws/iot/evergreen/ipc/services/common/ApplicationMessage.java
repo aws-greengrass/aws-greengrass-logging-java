@@ -13,8 +13,8 @@ import java.nio.ByteBuffer;
 @Data
 @Builder
 public class ApplicationMessage {
-    private static final int MIN_VERSION_VALUE = 1;
-    private static final int MAX_VERSION_VALUE = 255;
+    public static final int MIN_VERSION_VALUE = 1;
+    public static final int MAX_VERSION_VALUE = 255;
     private static final int BYTE_MASK = 0xff;
     private int version;
     private int opCode;
@@ -66,7 +66,6 @@ public class ApplicationMessage {
     /**
      * set the version of the ApplicationMessage.
      */
-
     public void setVersion(int version) {
         if (!(version >= MIN_VERSION_VALUE && version <= MAX_VERSION_VALUE)) {
             throw new IllegalArgumentException("Invalid version " + version);
