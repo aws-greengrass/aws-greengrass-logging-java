@@ -2,59 +2,61 @@ package com.aws.iot.evergreen.ipc.services.common;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
-import com.aws.iot.evergreen.ipc.common.GenericErrors;
-import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.core.TreeNode;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
-import com.fasterxml.jackson.jr.ob.JSON;
-import com.fasterxml.jackson.jr.stree.JacksonJrsTreeCodec;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public class IPCUtil {
-    private static final JSON encoder = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
-    private static final ObjectCodec mapper = new CBORMapper();
+    private static final ObjectMapper mapper = new CBORMapper();
 
     /**
-     * Send a request to the server and then get the response as a future.
-     *
-     * @param ipc         IPC client used for sending the request
-     * @param destination destination service to receive the request
-     * @param data        the message to be sent
-     * @param clazz       the type of the response which is expected
-     * @return future containing the deserialized response class
+     * Constructs an application packet and embeds that in a protocol packet before sending it to IPC client.
+     * @param ipc Core IPC client used to send the message
+     * @param destination Application level destination on the kernel side
+     * @param version Application level API Protocol
+     * @param opCode Application level request type
+     * @param data actual data that need to be exchanges
+     * @param returnType return type
+     * @return response returned by the kernel cast into type returnType
      */
-    public static <T, E extends Enum<?> & GenericErrors> CompletableFuture<GeneralResponse<T, E>> sendAndReceive(
-            IPCClient ipc, int destination, Object data, TypeReference<GeneralResponse<T, E>> clazz) {
+    public static <T> CompletableFuture<T> sendAndReceive(IPCClient ipc, int destination, int version, int opCode,
+                                                          Object data, final Class<T> returnType) {
         byte[] payload;
         try {
             payload = encode(data);
         } catch (IOException e) {
-            CompletableFuture<GeneralResponse<T, E>> f = new CompletableFuture<>();
+            CompletableFuture<T> f = new CompletableFuture<>();
             f.completeExceptionally(e);
             return f;
         }
-
-        CompletableFuture<FrameReader.Message> fut = ipc.sendRequest(destination, new FrameReader.Message(payload));
-        return fut.thenApply((m) -> {
+        ApplicationMessage request = new ApplicationMessage(version, opCode, payload);
+        CompletableFuture<FrameReader.Message> fut = ipc.sendRequest(destination,
+                new FrameReader.Message(request.toByteArray()));
+        return fut.thenApply((message) -> {
             try {
-                return decode(m, clazz);
+                ApplicationMessage response = ApplicationMessage.fromBytes(message.getPayload());
+                if (response.getVersion() != version) {
+                    throw new IllegalArgumentException(String.format(
+                            "Protocol version not supported requested %d, returned %d",
+                            version, response.getVersion()));
+                }
+                return decode(response.getPayload(), returnType);
             } catch (IOException e) {
                 throw new CompletionException(e);
             }
         });
     }
 
-    public static <T> T decode(FrameReader.Message data, TypeReference<T> clazz) throws IOException {
-        TreeNode tree = encoder.treeFrom(data.getPayload());
-        return tree.traverse(mapper).readValueAs(clazz);
+    public static byte[] encode(Object o) throws IOException {
+        return mapper.writeValueAsBytes(o);
     }
 
-    public static byte[] encode(Object o) throws IOException {
-        return encoder.asBytes(o);
+    public static <T> T decode(byte[] data, final Class<T> returnTypeClass) throws IOException {
+        return mapper.readValue(data, returnTypeClass);
     }
 }

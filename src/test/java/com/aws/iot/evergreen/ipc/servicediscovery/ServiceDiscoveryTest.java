@@ -3,17 +3,12 @@ package com.aws.iot.evergreen.ipc.servicediscovery;
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
-import com.aws.iot.evergreen.ipc.common.FrameReader;
-import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
+import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
+import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
+import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscovery;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.UpdateResourceRequest;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.*;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
@@ -29,17 +24,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class ServiceDiscoveryTest {
-    private JSON encoder = JSON.std.with(new CBORFactory());
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     private IPCClient ipc;
@@ -48,8 +44,33 @@ public class ServiceDiscoveryTest {
     private DataInputStream in;
     private DataOutputStream out;
 
+
+    public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass)
+            throws Exception {
+        ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
+        return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
+    }
+
+    public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameType type)
+            throws Exception {
+        ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
+                .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
+                .payload(IPCUtil.encode(data)).build();
+
+        int destination = BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue();
+        Message message = new Message(transitionEventAppFrame.toByteArray());
+        MessageFrame messageFrame = requestId == null ?
+                new MessageFrame(destination, message, type) :
+                new MessageFrame(requestId, destination, message, type);
+        writeFrame(messageFrame, out);
+    }
+
+    public void writeMessageToSockOutputStream(int opCode, Object data, FrameType type) throws Exception {
+        writeMessageToSockOutputStream(opCode, null, data, type);
+    }
+
     @BeforeEach
-    public void before() throws IOException, InterruptedException, ExecutionException {
+    public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
         server = new ServerSocket(0);
         Future<Object> fut = executor.submit(() -> {
             sock = server.accept();
@@ -57,11 +78,14 @@ public class ServiceDiscoveryTest {
             out = new DataOutputStream(sock.getOutputStream());
 
             // Read and write auth
-            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
-                    BuiltInServiceDestinationCode.AUTH.getValue(),
-                    new FrameReader.Message(IPCUtil.encode(GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success).build())),
-                            FrameReader.FrameType.RESPONSE), out);
+            MessageFrame inFrame = readFrame(in);
+            ApplicationMessage request = ApplicationMessage.fromBytes(inFrame.message.getPayload());
+            AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
+
+            ApplicationMessage response = ApplicationMessage.builder().version(request.getVersion())
+                    .payload(IPCUtil.encode(authResponse)).build();
+            writeFrame(new MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
+                    new Message(response.toByteArray()), FrameType.RESPONSE), out);
             return null;
         });
 
@@ -79,28 +103,21 @@ public class ServiceDiscoveryTest {
     @Test
     public void testRegister() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req =
-                RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
-
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq =
-                GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder().
-                        response(Resource.builder().name("ABC").build()).error(ServiceDiscoveryResponseStatus.Success)
-                        .build();
-
-        FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
+        RegisterResourceRequest req = RegisterResourceRequest.builder()
+                .resource(Resource.builder().name("ABC").build()).build();
 
         Future<?> fut = executor.submit(() -> {
-            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
-                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
-                    FrameReader.FrameType.RESPONSE), out);
+            MessageFrame inFrame = readFrame(in);
+
+            RegisterResourceResponse registerResourceResponse = RegisterResourceResponse.builder()
+                    .resource(Resource.builder().name("ABC").build())
+                    .responseStatus(ServiceDiscoveryResponseStatus.Success).build();
+            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse, FrameType.RESPONSE);
             return null;
         });
 
         Resource res = sd.registerResource(req);
-
         fut.get();
-
         assertEquals("ABC", res.getName());
     }
 
@@ -110,51 +127,38 @@ public class ServiceDiscoveryTest {
         RegisterResourceRequest req =
                 RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
 
-        GeneralResponse<Resource, ServiceDiscoveryResponseStatus> genReq =
-                GeneralResponse.<Resource, ServiceDiscoveryResponseStatus>builder()
-                        .error(ServiceDiscoveryResponseStatus.AlreadyRegistered)
-                        .errorMessage("Service 'ABC' is already registered").build();
-
-        FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
+        RegisterResourceResponse registerResourceResponse = RegisterResourceResponse.builder()
+                .responseStatus(ServiceDiscoveryResponseStatus.AlreadyRegistered)
+                .errorMessage("Service 'ABC' is already registered").build();
 
         Future<?> fut = executor.submit(() -> {
-            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
-                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
-                    FrameReader.FrameType.RESPONSE), out);
+            MessageFrame inFrame = readFrame(in);
+            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse, FrameType.RESPONSE);
             return null;
         });
-
         AlreadyRegisteredException ex = assertThrows(AlreadyRegisteredException.class, () -> sd.registerResource(req));
-
         fut.get();
-
-        assertEquals(genReq.getErrorMessage(), ex.getMessage());
+        assertEquals(registerResourceResponse.getErrorMessage(), ex.getMessage());
     }
 
     @Test
     public void testWrongReturnType() throws Exception {
         ServiceDiscovery sd = new ServiceDiscoveryImpl(ipc);
-        RegisterResourceRequest req =
-                RegisterResourceRequest.builder().resource(Resource.builder().name("ABC").build()).build();
-
-        GeneralResponse<UpdateResourceRequest, ServiceDiscoveryResponseStatus> genReq =
-                GeneralResponse.<UpdateResourceRequest, ServiceDiscoveryResponseStatus>builder().response(
-                        UpdateResourceRequest.builder().resource(Resource.builder().name("ABC").build())
-                                .publishToDNSSD(true).build()).error(ServiceDiscoveryResponseStatus.Success).build();
-
-        FrameReader.Message message = new FrameReader.Message(encoder.asBytes(genReq));
+        RegisterResourceRequest req = RegisterResourceRequest.builder()
+                .resource(Resource.builder().name("ABC").build()).build();
 
         Future<?> fut = executor.submit(() -> {
-            FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
-            FrameReader.writeFrame(new FrameReader.MessageFrame(inFrame.requestId,
-                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(), message,
-                    FrameReader.FrameType.RESPONSE), out);
+            MessageFrame inFrame = readFrame(in);
+
+            UpdateResourceRequest updateResourceRequest = UpdateResourceRequest.builder()
+                    .resource(Resource.builder().name("ABC").build())
+                    .publishToDNSSD(true).publishToDNSSD(true).build();
+
+            writeMessageToSockOutputStream(1, inFrame.requestId, updateResourceRequest, FrameType.RESPONSE);
             return null;
         });
 
         assertThrows(ServiceDiscoveryException.class, () -> sd.registerResource(req));
-
         fut.get();
     }
 }
