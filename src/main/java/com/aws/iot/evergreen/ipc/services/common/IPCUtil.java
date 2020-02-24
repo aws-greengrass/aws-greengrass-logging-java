@@ -39,7 +39,7 @@ public class IPCUtil {
                 new FrameReader.Message(request.toByteArray()));
         return fut.thenApply((message) -> {
             try {
-                ApplicationMessage response = new ApplicationMessage(message.getPayload());
+                ApplicationMessage response = ApplicationMessage.fromBytes(message.getPayload());
                 if (response.getVersion() != version) {
                     throw new IllegalArgumentException(String.format(
                             "Protocol version not supported requested %d, returned %d",

@@ -47,7 +47,7 @@ public class IPCReconnectTest {
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
 
 
-                ApplicationMessage requestApplicationFrame = new ApplicationMessage(inFrame.message.getPayload());
+                ApplicationMessage requestApplicationFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
                 AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
                 ApplicationMessage responsesAppFrame = ApplicationMessage.builder()
                         .version(requestApplicationFrame.getVersion())

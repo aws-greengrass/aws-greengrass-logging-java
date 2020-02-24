@@ -47,7 +47,7 @@ public class ServiceDiscoveryTest {
 
     public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass)
             throws Exception {
-        ApplicationMessage reqAppFrame = new ApplicationMessage(inFrame.message.getPayload());
+        ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
         return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
     }
 
@@ -79,7 +79,7 @@ public class ServiceDiscoveryTest {
 
             // Read and write auth
             MessageFrame inFrame = readFrame(in);
-            ApplicationMessage request = new ApplicationMessage(inFrame.message.getPayload());
+            ApplicationMessage request = ApplicationMessage.fromBytes(inFrame.message.getPayload());
             AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
 
             ApplicationMessage response = ApplicationMessage.builder().version(request.getVersion())

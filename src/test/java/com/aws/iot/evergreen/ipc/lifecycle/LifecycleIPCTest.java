@@ -50,7 +50,7 @@ public class LifecycleIPCTest {
 
 
     public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass) throws Exception {
-        ApplicationMessage reqAppFrame = new ApplicationMessage(inFrame.message.getPayload());
+        ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
         return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
     }
 
@@ -84,7 +84,7 @@ public class LifecycleIPCTest {
 
                 // Read and write auth
                 MessageFrame inFrame = readFrame(in);
-                ApplicationMessage requestApplicationFrame = new ApplicationMessage(inFrame.message.getPayload());
+                ApplicationMessage requestApplicationFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
                 AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
                 ApplicationMessage responsesAppFrame = ApplicationMessage.builder()
                         .version(requestApplicationFrame.getVersion())

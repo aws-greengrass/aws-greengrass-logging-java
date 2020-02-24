@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import java.nio.ByteBuffer;
 
@@ -17,9 +18,12 @@ import java.nio.ByteBuffer;
 public class ApplicationMessage {
 
     private static final int BYTE_MASK = 0xff;
+    @NonNull
     private int version;
     private int opCode;
+    @NonNull
     private byte[] payload;
+
 
     /**
      * Constructs application message from bytes.
@@ -31,13 +35,14 @@ public class ApplicationMessage {
      *
      * @param bytes encoded application message object
      */
-    public ApplicationMessage(byte[] bytes) {
+    public static ApplicationMessage fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        this.version = buffer.get() & BYTE_MASK;
-        this.opCode = buffer.get() & BYTE_MASK;
-        this.payload = new byte[bytes.length - 2];
+        int version = buffer.get() & BYTE_MASK;
+        int opCode = buffer.get() & BYTE_MASK;
+        byte[] payload = new byte[bytes.length - 2];
         //TODO: refactor to avoid copying the bytes
         buffer.get(payload);
+        return new ApplicationMessage(version, opCode, payload);
     }
 
 

@@ -36,7 +36,7 @@ public class LifecycleImpl implements Lifecycle {
 
     private FrameReader.Message onStateTransition(FrameReader.Message message) {
         try {
-            ApplicationMessage request = new ApplicationMessage(message.getPayload());
+            ApplicationMessage request = ApplicationMessage.fromBytes(message.getPayload());
             LifecycleResponseStatus resp = LifecycleResponseStatus.Success;
             if (LifecycleClientOpCodes.STATE_TRANSITION.equals(LifecycleClientOpCodes.values()[request.getOpCode()])) {
                 StateTransitionEvent transitionRequest =
