@@ -71,7 +71,7 @@ public class LifecycleImpl implements Lifecycle {
         String serviceName = ipc.getServiceName();
 
         listenToStateChanges(serviceName, (oldState, newState) -> {
-            if (newState.equals("Shutdown")) {
+            if (newState.equals("STOPPING")) {
                 handler.run();
             }
         });
