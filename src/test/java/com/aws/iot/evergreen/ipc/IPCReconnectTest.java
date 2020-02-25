@@ -2,9 +2,9 @@ package com.aws.iot.evergreen.ipc;
 
 import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
-import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
+import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
+import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +13,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -44,11 +45,17 @@ public class IPCReconnectTest {
 
                 // Read and write auth
                 FrameReader.MessageFrame inFrame = FrameReader.readFrame(in);
+
+
+                ApplicationMessage requestApplicationFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
+                AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
+                ApplicationMessage responsesAppFrame = ApplicationMessage.builder()
+                        .version(requestApplicationFrame.getVersion())
+                        .payload(IPCUtil.encode(authResponse)).build();
+
                 FrameReader.writeFrame(
                         new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
-                                new FrameReader.Message(IPCUtil.encode(
-                                        GeneralResponse.builder().response("ABC").error(GenericErrorCodes.Success)
-                                                .build())), FrameReader.FrameType.RESPONSE), out);
+                                new FrameReader.Message(responsesAppFrame.toByteArray()), FrameReader.FrameType.RESPONSE), out);
                 connectCount.getAndIncrement();
             }
         });

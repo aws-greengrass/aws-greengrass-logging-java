@@ -2,19 +2,15 @@ package com.aws.iot.evergreen.ipc;
 
 import com.aws.iot.evergreen.ipc.codec.MessageFrameDecoder;
 import com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder;
-import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
-import com.aws.iot.evergreen.ipc.common.GenericErrorCodes;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.handler.InboundMessageHandler;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
-import com.aws.iot.evergreen.ipc.services.common.AuthRequestTypes;
-import com.aws.iot.evergreen.ipc.services.common.GeneralRequest;
-import com.aws.iot.evergreen.ipc.services.common.GeneralResponse;
-import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
+import com.aws.iot.evergreen.ipc.services.auth.Auth;
+import com.aws.iot.evergreen.ipc.services.auth.AuthRequest;
+import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -39,6 +35,7 @@ import java.util.function.Function;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_LENGTH;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_OFFSET;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.MAX_PAYLOAD_SIZE;
+import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.AUTH;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.RESPONSE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
@@ -48,18 +45,20 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 //TODO: implement logging
 //TODO: throw ipc client specific runtime exceptions
 public class IPCClientImpl implements IPCClient {
+
     private final MessageHandler messageHandler;
     private final EventLoopGroup eventLoopGroup;
     private final Bootstrap clientBootstrap;
-    private Channel channel;
-    private volatile boolean shutdownRequested;
     // Lock used so that only 1 thread is performing the connection
     private final ReentrantLock connectionLock = new ReentrantLock(true);
+    private final Set<Runnable> onConnectTasks = new CopyOnWriteArraySet<>();
+    private final Logger log = LogManager.getLogger(IPCClient.class);
+    private Channel channel;
+    private volatile boolean shutdownRequested;
     private String serviceName = null;
-    private Set<Runnable> onConnectTasks = new CopyOnWriteArraySet<>();
-
-    private Logger log = LogManager.getLogger(IPCClient.class);
+    private String clientId = null;
     private volatile boolean authenticated;
+    private final Auth auth;
 
     /**
      * Construct a client and immediately connect to the server.
@@ -68,7 +67,7 @@ public class IPCClientImpl implements IPCClient {
      * @throws IOException          if connection fails
      * @throws InterruptedException if connection times out
      */
-    public IPCClientImpl(KernelIPCClientConfig config) throws IOException, InterruptedException {
+    public IPCClientImpl(KernelIPCClientConfig config) throws IPCClientException, InterruptedException {
         this.messageHandler = new MessageHandler();
         eventLoopGroup = new NioEventLoopGroup();
         // Help bootstrapping a channel
@@ -85,11 +84,11 @@ public class IPCClientImpl implements IPCClient {
                         ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
                     }
                 }).option(ChannelOption.SO_KEEPALIVE, true).option(ChannelOption.TCP_NODELAY, true);
-
+        auth = new Auth(this);
         connect(config);
     }
 
-    private void connect(KernelIPCClientConfig config) throws InterruptedException, IOException {
+    private void connect(KernelIPCClientConfig config) throws IPCClientException, InterruptedException {
         try {
             connectionLock.lock();
 
@@ -117,26 +116,12 @@ public class IPCClientImpl implements IPCClient {
                 }
             });
 
-            try {
-                // Send Auth request and wait for response.
-                GeneralResponse<String, GenericErrorCodes> resp =
-                        IPCUtil.sendAndReceive(this, BuiltInServiceDestinationCode.AUTH.getValue(),
-                                GeneralRequest.builder().request(config.getToken() == null ? "" : config.getToken())
-                                        .type(AuthRequestTypes.Auth).build(),
-                                new TypeReference<GeneralResponse<String, GenericErrorCodes>>() {
-                                }).get(); // TODO: Add timeout waiting for auth to come back?
-                // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
-                if (!resp.getError().equals(GenericErrorCodes.Success)) {
-                    throw new IOException(resp.getErrorMessage());
-                }
-                serviceName = resp.getResponse();
-                if (serviceName == null) {
-                    throw new IOException("Service name was null");
-                }
-                authenticated = true;
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException(e);
-            }
+            AuthRequest request = new AuthRequest(config.getToken());
+            AuthResponse authResponse = auth.doAuth(request);
+            // Send Auth request and wait for response.
+            serviceName = authResponse.getServiceName();
+            clientId = authResponse.getClientId();
+            authenticated = true;
 
             log.debug("Successfully connected to {}:{}", config.getHostAddress(), config.getPort());
         } finally {
@@ -204,6 +189,11 @@ public class IPCClientImpl implements IPCClient {
     @Override
     public String getServiceName() {
         return serviceName;
+    }
+
+    @Override
+    public String getClientId() {
+        return clientId;
     }
 
     @Override
