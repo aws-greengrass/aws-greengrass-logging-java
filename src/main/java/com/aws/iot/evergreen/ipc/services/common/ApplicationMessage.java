@@ -1,9 +1,8 @@
 package com.aws.iot.evergreen.ipc.services.common;
 
-import lombok.AllArgsConstructor;
+
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
 import java.nio.ByteBuffer;
@@ -13,12 +12,10 @@ import java.nio.ByteBuffer;
  */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class ApplicationMessage {
-
+    public static final int MIN_VERSION_VALUE = 1;
+    public static final int MAX_VERSION_VALUE = 255;
     private static final int BYTE_MASK = 0xff;
-    @NonNull
     private int version;
     private int opCode;
     @NonNull
@@ -57,4 +54,22 @@ public class ApplicationMessage {
         return buffer.array();
     }
 
+    /**
+     All args constructor for ApplicationMessage.
+     */
+    public ApplicationMessage(int version, int opCode, @NonNull byte[] payload) {
+        this.setVersion(version);
+        this.opCode = opCode;
+        this.payload = payload;
+    }
+
+    /**
+     * set the version of the ApplicationMessage.
+     */
+    public void setVersion(int version) {
+        if (!(version >= MIN_VERSION_VALUE && version <= MAX_VERSION_VALUE)) {
+            throw new IllegalArgumentException("Invalid version " + version);
+        }
+        this.version = version;
+    }
 }
