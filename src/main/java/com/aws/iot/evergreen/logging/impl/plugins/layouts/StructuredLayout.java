@@ -36,11 +36,12 @@ public abstract class StructuredLayout extends AbstractLayout<LogEvent> {
     /**
      * Factor to get a StucturedLayout implementation from the given format and charset.
      *
-     * @param format format (either JSON or CBOR).
+     * @param format format one of {@link LogFormat}
      * @param charset character set for strings.
      */
     @PluginFactory
     public static StructuredLayout createLayout(@PluginAttribute(value = "format") LogFormat format,
+                                                @PluginAttribute(value = "pattern") String pattern,
                                                 @PluginAttribute(value = "charset") Charset charset) {
         if (format == null) {
             format = LogFormat.CBOR;
@@ -48,6 +49,8 @@ public abstract class StructuredLayout extends AbstractLayout<LogEvent> {
         switch (format) {
             case JSON:
                 return new JSONLayout(charset);
+            case TEXT:
+                return new PatternLayout(charset, pattern);
             case CBOR:
             default:
                 return new CBORLayout(charset);

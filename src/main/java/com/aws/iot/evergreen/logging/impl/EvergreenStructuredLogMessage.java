@@ -12,6 +12,9 @@ import org.apache.logging.log4j.message.Message;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An implementation of {@link Message} interface to work with Evergreen {@link StructuredLayout}.
@@ -58,7 +61,11 @@ public class EvergreenStructuredLogMessage implements Message {
 
     @Override
     public String getFormattedMessage() {
-        return null;
+        return Stream.of(eventType, message, contexts)
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .filter((x) -> !x.isEmpty())
+                .collect(Collectors.joining(". "));
     }
 
     @Override
@@ -75,6 +82,6 @@ public class EvergreenStructuredLogMessage implements Message {
 
     @Override
     public Throwable getThrowable() {
-        return null;
+        return this.cause;
     }
 }

@@ -27,25 +27,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StructuredLayoutTest {
 
-    private static final StructuredLayout CBOR_LAYOUT = StructuredLayout.createLayout(LogFormat.CBOR, null);
-    private static final StructuredLayout JSON_LAYOUT = StructuredLayout.createLayout(LogFormat.JSON,
-            StandardCharsets.UTF_8);
+    private static final StructuredLayout CBOR_LAYOUT = StructuredLayout.createLayout(LogFormat.CBOR, null, null);
+    private static final StructuredLayout JSON_LAYOUT =
+            StructuredLayout.createLayout(LogFormat.JSON, null, StandardCharsets.UTF_8);
+    private static final StructuredLayout TEXT_LAYOUT =
+            StructuredLayout.createLayout(LogFormat.TEXT, "%m%n", StandardCharsets.UTF_8);
     private static final JSON CBOR_ENCODER = JSON.std.with(new JacksonJrsTreeCodec()).with(new CBORFactory());
-    private static final JSON JSON_ENCODER = JSON.std.with(new JacksonJrsTreeCodec());
     private static final ObjectMapper CBOR_MAPPER = new CBORMapper();
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static OutputStreamAppender cborOutputStreamAppender;
     private static OutputStreamAppender jsonOutputStreamAppender;
+    private static OutputStreamAppender textOutputStreamAppender;
     private static final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
     @BeforeAll
     public static void setupAppender() {
-        cborOutputStreamAppender = OutputStreamAppender.createAppender(CBOR_LAYOUT, null, outContent, "outputStreamAppender",
-                true, false);
+        cborOutputStreamAppender =
+                OutputStreamAppender.createAppender(CBOR_LAYOUT, null, outContent, "outputStreamAppender", true, false);
         cborOutputStreamAppender.start();
-        jsonOutputStreamAppender = OutputStreamAppender.createAppender(JSON_LAYOUT, null, outContent, "outputStreamAppender",
-                true, false);
+        jsonOutputStreamAppender =
+                OutputStreamAppender.createAppender(JSON_LAYOUT, null, outContent, "outputStreamAppender", true, false);
         jsonOutputStreamAppender.start();
+        textOutputStreamAppender =
+                OutputStreamAppender.createAppender(TEXT_LAYOUT, null, outContent, "outputStreamAppender", true, false);
+        textOutputStreamAppender.start();
         CBOR_MAPPER.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
@@ -56,8 +61,8 @@ public class StructuredLayoutTest {
 
     @Test
     public void GIVEN_cbor_appender_WHEN_write_log_events_THEN_events_are_cbor_encoded() throws IOException {
-        List<SimpleMessage> messages = Arrays.asList(
-                new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
+        List<SimpleMessage> messages = Arrays.asList(new SimpleMessage("message 1"), new SimpleMessage("message 2"),
+                new SimpleMessage("msg 3"));
         messages.forEach((m) -> {
             Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
             cborOutputStreamAppender.append(log4jLogEvent);
@@ -77,8 +82,8 @@ public class StructuredLayoutTest {
 
     @Test
     public void GIVEN_json_appender_WHEN_write_log_events_THEN_events_are_json_encoded() throws IOException {
-        List<SimpleMessage> messages = Arrays.asList(
-                new SimpleMessage("message 1"), new SimpleMessage("message 2"), new SimpleMessage("msg 3"));
+        List<SimpleMessage> messages = Arrays.asList(new SimpleMessage("message 1"), new SimpleMessage("message 2"),
+                new SimpleMessage("msg 3"));
         messages.forEach((m) -> {
             Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
             jsonOutputStreamAppender.append(log4jLogEvent);
@@ -92,6 +97,24 @@ public class StructuredLayoutTest {
             SimpleMessage deserializedMessage = JSON_MAPPER.readValue(appendedMessages[i], SimpleMessage.class);
             //comparing the original message with the de-serialized message
             assertEquals(message, deserializedMessage);
+        }
+    }
+
+    @Test
+    public void GIVEN_text_appender_WHEN_write_log_events_THEN_events_are_patterned_as_text() throws IOException {
+        List<SimpleMessage> messages = Arrays.asList(new SimpleMessage("message 1"), new SimpleMessage("message 2"),
+                new SimpleMessage("msg 3"));
+        messages.forEach((m) -> {
+            Log4jLogEvent log4jLogEvent = new Log4jLogEvent.Builder().setMessage(m).build();
+            textOutputStreamAppender.append(log4jLogEvent);
+        });
+
+        byte[] data = outContent.toByteArray();
+        String dataStr = new String(data, StandardCharsets.UTF_8);
+        String[] appendedMessages = dataStr.split(System.lineSeparator());
+        for (int i = 0; i < messages.size(); i++) {
+            SimpleMessage message = messages.get(i);
+            assertEquals(message.getFormattedMessage(), appendedMessages[i]);
         }
     }
 }

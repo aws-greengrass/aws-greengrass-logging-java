@@ -22,6 +22,9 @@ public class EvergreenLogConfig {
     private static final String DEFAULT_LOG_STORE_NAME = "evergreen.log";
     public static final String NUM_ROLLING_FILES_KEY = "log.store.numRollingFiles";
     private static final int DEFAULT_NUM_ROLLING_FILES = 5;
+    public static final String TEXT_LOG_PATTERN_KEY = "log.pattern";
+    private static final String DEFAULT_TEXT_LOG_PATTERN =
+            "%d{yyyy MMM dd HH:mm:ss,SSS} %highlight{[%p]} (%t) %c: %m%n";
 
     private Level level;
     private LogStore store;
@@ -29,24 +32,27 @@ public class EvergreenLogConfig {
     private LogFormat format;
     private String fileSize;
     private int numRollingFiles;
+    private String pattern;
 
     /**
      * Create EvergreenLogConfig instance.
      *
-     * @param level log level
-     * @param store log storage option
-     * @param format log output format
-     * @param fileSize max log size to persist per rolling file
+     * @param level           log level
+     * @param store           log storage option
+     * @param format          log output format
+     * @param fileSize        max log size to persist per rolling file
      * @param numRollingFiles number of files to keep rolling
+     * @param pattern         Log4j text output pattern
      */
     public EvergreenLogConfig(Level level, LogStore store, String storeName, LogFormat format, String fileSize,
-                              int numRollingFiles) {
+                              int numRollingFiles, String pattern) {
         this.level = level;
         this.store = store;
         this.storeName = storeName;
         this.format = format;
         this.fileSize = fileSize;
         this.numRollingFiles = numRollingFiles;
+        this.pattern = pattern;
     }
 
     /**
@@ -86,7 +92,8 @@ public class EvergreenLogConfig {
 
         Level level = Level.getLevel(System.getProperty(LOG_LEVEL_KEY, DEFAULT_LOG_LEVEL));
         String storeName = System.getProperty(LOG_STORE_NAME_KEY, DEFAULT_LOG_STORE_NAME);
+        String pattern = System.getProperty(TEXT_LOG_PATTERN_KEY, DEFAULT_TEXT_LOG_PATTERN);
 
-        return new EvergreenLogConfig(level, store, storeName, format, fileSize, numRollingFiles);
+        return new EvergreenLogConfig(level, store, storeName, format, fileSize, numRollingFiles, pattern);
     }
 }
