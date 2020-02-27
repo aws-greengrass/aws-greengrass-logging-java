@@ -35,7 +35,9 @@ public class Log4jConfigurationFactory extends ConfigurationFactory {
 
         // Configure log output format
         LayoutComponentBuilder layoutBuilder =
-                builder.newLayout("StructuredLayout").addAttribute("format", startupConfig.getFormat())
+                builder.newLayout("StructuredLayout")
+                        .addAttribute("format", startupConfig.getFormat())
+                        .addAttribute("pattern", startupConfig.getPattern())
                         .addAttribute("charset", StandardCharsets.UTF_8);
 
 
