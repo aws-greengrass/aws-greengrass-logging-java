@@ -6,7 +6,7 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.message.StringFormattedMessage;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -75,7 +75,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
             args = Arrays.copyOfRange(args, 0, args.length - 1);
         }
 
-        String msgStr = new StringFormattedMessage(fmt, args).getFormattedMessage();
+        String msgStr = new ParameterizedMessage(fmt, args).getFormattedMessage();
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
                 .getName(), this.level, this.eventType, msgStr, this.eventContextData, this.cause);
         this.logger.logMessage(this.level, message);
