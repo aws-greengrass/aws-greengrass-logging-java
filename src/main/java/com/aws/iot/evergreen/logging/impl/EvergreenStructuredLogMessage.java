@@ -5,8 +5,11 @@
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.Message;
 
@@ -20,22 +23,18 @@ import java.util.stream.Stream;
  * An implementation of {@link Message} interface to work with Evergreen {@link StructuredLayout}.
  */
 @Data
+@NoArgsConstructor
 public class EvergreenStructuredLogMessage implements Message {
     private static final long serialVersionUID = 0L;
 
-    final String level;
-
-    final String eventType;
-
-    final String message;
-
-    final Map<String, String> contexts;
-
-    final String loggerName;
-
-    final Long timestamp;
-
-    final Throwable cause;
+    private String level;
+    private String eventType;
+    private String message;
+    private Map<String, String> contexts;
+    private String loggerName;
+    private long timestamp;
+    @EqualsAndHashCode.Exclude
+    private Throwable cause;
 
     /**
      * Constructor for structured log {@link Message}.
@@ -59,6 +58,7 @@ public class EvergreenStructuredLogMessage implements Message {
         this.cause = cause;
     }
 
+    @JsonIgnore
     @Override
     public String getFormattedMessage() {
         return Stream.of(eventType, message, contexts)
@@ -68,11 +68,13 @@ public class EvergreenStructuredLogMessage implements Message {
                 .collect(Collectors.joining(". "));
     }
 
+    @JsonIgnore
     @Override
     public String getFormat() {
         return null;
     }
 
+    @JsonIgnore
     @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
             justification = "change the serialization format by design and skip parameter values")
     @Override
@@ -80,6 +82,7 @@ public class EvergreenStructuredLogMessage implements Message {
         return null;
     }
 
+    @JsonIgnore
     @Override
     public Throwable getThrowable() {
         return this.cause;

@@ -11,7 +11,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
@@ -20,7 +19,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     final Level level;
     Throwable cause;
     String eventType;
-    ConcurrentMap<String, String> eventContextData = new ConcurrentHashMap<>();
+    Map<String, String> eventContextData = new ConcurrentHashMap<>();
     Log4jLoggerAdapter logger;
 
     /**
