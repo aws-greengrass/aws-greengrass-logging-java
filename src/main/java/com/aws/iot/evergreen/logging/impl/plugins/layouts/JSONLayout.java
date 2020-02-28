@@ -1,6 +1,6 @@
 package com.aws.iot.evergreen.logging.impl.plugins.layouts;
 
-import com.fasterxml.jackson.jr.ob.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.core.LogEvent;
 
 import java.io.ByteArrayOutputStream;
@@ -9,7 +9,7 @@ import java.nio.charset.Charset;
 
 class JSONLayout extends StructuredLayout {
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
-    private final JSON encoder = JSON.std;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public JSONLayout(Charset charset) {
         super(charset);
@@ -24,7 +24,7 @@ class JSONLayout extends StructuredLayout {
     public byte[] toByteArray(LogEvent event) {
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            encoder.write(event.getMessage(), byteArrayOutputStream);
+            OBJECT_MAPPER.writeValue(byteArrayOutputStream, event.getMessage());
             byteArrayOutputStream.write(System.lineSeparator().getBytes(charset));
             return byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
