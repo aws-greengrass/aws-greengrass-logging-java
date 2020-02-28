@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Serializes the {@link Message} in {@link LogEvent} to CBOR or JSON format.
  *
- * <p>For each {@link Message} the CBOR layout reserves the initial four bytes to store the length of the serialized
+ * <p>For each Message the CBOR layout reserves the initial four bytes to store the length of the serialized
  * message.
  */
 @Plugin(name = "StructuredLayout", category = Node.CATEGORY, elementType = Layout.ELEMENT_TYPE, printObject = false)

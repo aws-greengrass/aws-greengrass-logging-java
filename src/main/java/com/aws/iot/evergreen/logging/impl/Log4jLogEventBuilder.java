@@ -16,11 +16,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
  */
 public class Log4jLogEventBuilder implements LogEventBuilder {
-    final Level level;
-    Throwable cause;
-    String eventType;
-    Map<String, String> eventContextData = new ConcurrentHashMap<>();
-    Log4jLoggerAdapter logger;
+    private final Level level;
+    private Throwable cause;
+    private String eventType;
+    private final Map<String, String> eventContextData = new ConcurrentHashMap<>();
+    private transient Log4jLoggerAdapter logger;
 
     /**
      * Log Event Builder constructor.
