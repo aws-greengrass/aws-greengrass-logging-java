@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import javax.measure.unit.Unit;
 
 /**
@@ -59,6 +57,14 @@ public class MetricsBuilderImpl implements MetricsBuilder {
     @Override
     public MetricsBuilder addDimension(String key, Object value) {
         this.dimensions.put(key, value.toString());
+        return this;
+    }
+
+    @Override
+    public MetricsBuilder addDimensions(final Map<String, Object> dimensions) {
+        if (dimensions != null) {
+            dimensions.forEach((key, value) -> this.dimensions.put(key, value.toString()));
+        }
         return this;
     }
 

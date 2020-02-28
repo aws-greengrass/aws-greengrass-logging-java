@@ -21,9 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class MetricsFactoryImpl implements MetricsFactory {
     // Use a ThreadLocal for MetricsBuilder to reuse the object per thread.
-    private static final ThreadLocal<MetricsBuilderImpl> metricsBuilder = ThreadLocal.withInitial(
-        () -> new MetricsBuilderImpl()
-    );
+    private static final ThreadLocal<MetricsBuilderImpl> metricsBuilder =
+            ThreadLocal.withInitial(MetricsBuilderImpl::new);
     private static MetricsFactory instance = new MetricsFactoryImpl();
 
     private transient org.apache.logging.log4j.Logger logger;

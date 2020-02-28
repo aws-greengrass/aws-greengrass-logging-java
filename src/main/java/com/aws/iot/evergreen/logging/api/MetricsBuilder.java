@@ -5,6 +5,7 @@
 
 package com.aws.iot.evergreen.logging.api;
 
+import java.util.Map;
 import javax.measure.unit.Unit;
 
 /**
@@ -36,6 +37,16 @@ public interface MetricsBuilder {
      * @return
      */
     default MetricsBuilder addDimension(String key, Object value) {
+        return this;
+    }
+
+    /**
+     * Add a metric dimensions.
+     *
+     * @param dimensions dimensions to add
+     * @return
+     */
+    default MetricsBuilder addDimensions(Map<String, Object> dimensions) {
         return this;
     }
 
