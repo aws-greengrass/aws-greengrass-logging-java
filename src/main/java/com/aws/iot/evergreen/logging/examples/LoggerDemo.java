@@ -15,6 +15,7 @@ public class LoggerDemo {
 
     static {
         System.setProperty("log.fmt", "JSON");
+        System.setProperty("log.file.sizeInKB", "10");
         //System.setProperty("log.store", "CONSOLE");
         logger = LogManager.getLogger(LoggerDemo.class);
         logger.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");

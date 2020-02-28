@@ -70,11 +70,11 @@ public class Log4jConfigurationFactory extends ConfigurationFactory {
 
         ComponentBuilder triggeringPolicies = builder.newComponent("Policies").addComponent(
                 builder.newComponent("SizeBasedTriggeringPolicy")
-                        .addAttribute("size", startupConfig.getFileSize() + "K"));
+                        .addAttribute("size", startupConfig.getFileSizeKB() + "K"));
         appenderBuilder.addComponent(triggeringPolicies);
 
-        ComponentBuilder rollover =
-                builder.newComponent("DefaultRolloverStrategy").addAttribute("max", startupConfig.getNumRollingFiles());
+        ComponentBuilder rollover = builder.newComponent("DefaultRolloverStrategy").addAttribute("max",
+                startupConfig.getNumRollingFiles());
         appenderBuilder.addComponent(rollover);
         appenderBuilder.add(layoutBuilder);
         builder.add(appenderBuilder);

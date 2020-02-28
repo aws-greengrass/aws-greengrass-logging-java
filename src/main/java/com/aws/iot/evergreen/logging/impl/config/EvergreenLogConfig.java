@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Level;
 @Getter
 public class EvergreenLogConfig {
     // TODO: Replace reading from system properties with reading from Kernel Configuration.
-    private static final long DEFAULT_MAX_SIZE = 1024 * 1024 * 10; // set 10 MB to be the default max size
+    private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     public static final String STORAGE_TYPE_KEY = "log.store";
     private static final String DEFAULT_STORAGE_TYPE = LogStore.FILE.name();
     public static final String LOG_FORMAT_KEY = "log.fmt";
@@ -30,7 +30,7 @@ public class EvergreenLogConfig {
     private LogStore store;
     private String storeName;
     private LogFormat format;
-    private String fileSize;
+    private String fileSizeKB;
     private int numRollingFiles;
     private String pattern;
 
@@ -50,7 +50,7 @@ public class EvergreenLogConfig {
         this.store = store;
         this.storeName = storeName;
         this.format = format;
-        this.fileSize = fileSize;
+        this.fileSizeKB = fileSize;
         this.numRollingFiles = numRollingFiles;
         this.pattern = pattern;
     }
@@ -79,7 +79,7 @@ public class EvergreenLogConfig {
         try {
             totalLogStoreSizeKB = Long.parseLong(System.getProperty(TOTAL_LOG_STORE_SIZE_KEY));
         } catch (NumberFormatException e) {
-            totalLogStoreSizeKB = DEFAULT_MAX_SIZE;
+            totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
 
         int numRollingFiles;
@@ -88,12 +88,12 @@ public class EvergreenLogConfig {
         } catch (NumberFormatException e) {
             numRollingFiles = DEFAULT_NUM_ROLLING_FILES;
         }
-        String fileSize = Long.toString((totalLogStoreSizeKB * 1024) / numRollingFiles);
+        String fileSizeKB = Long.toString(totalLogStoreSizeKB / numRollingFiles);
 
         Level level = Level.getLevel(System.getProperty(LOG_LEVEL_KEY, DEFAULT_LOG_LEVEL));
         String storeName = System.getProperty(LOG_STORE_NAME_KEY, DEFAULT_LOG_STORE_NAME);
         String pattern = System.getProperty(TEXT_LOG_PATTERN_KEY, DEFAULT_TEXT_LOG_PATTERN);
 
-        return new EvergreenLogConfig(level, store, storeName, format, fileSize, numRollingFiles, pattern);
+        return new EvergreenLogConfig(level, store, storeName, format, fileSizeKB, numRollingFiles, pattern);
     }
 }
