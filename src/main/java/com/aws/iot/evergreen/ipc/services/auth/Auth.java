@@ -6,7 +6,6 @@ import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.AUTH;
@@ -32,7 +31,6 @@ public class Auth {
      * @throws IPCClientException for any exceptions
      */
     public AuthResponse doAuth(AuthRequest request) throws IPCClientException {
-
         // TODO: Add timeout waiting for auth to come back?
         // https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         try {
@@ -45,7 +43,7 @@ public class Auth {
             if (authResponse.getServiceName() == null) {
                 throw new IPCClientException("Service name was null");
             }
-            log.info("Connected as serviceName %s , clientId %s", authResponse.getServiceName(),
+            log.info("Connected as serviceName {}, clientId {}", authResponse.getServiceName(),
                     authResponse.getClientId());
             return authResponse;
         } catch (ExecutionException | InterruptedException e) {
