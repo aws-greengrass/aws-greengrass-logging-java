@@ -4,30 +4,48 @@
 
 package com.aws.iot.evergreen.logging.impl;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import lombok.Data;
+
 import java.io.Serializable;
+import javax.measure.quantity.Dimensionless;
+import javax.measure.quantity.Quantity;
 import javax.measure.unit.Unit;
 
-public class Metric implements Serializable {
+/**
+ * Metric is a data class encapsulating the name, value and unit of a metric.
+ */
+@Data
+public class Metric<T extends Quantity> implements Serializable {
     private static final long serialVersionUID = 0L;
 
-    String metricName;
-    Object metricValue;
-    Unit<?> unit = Unit.ONE;
+    private final String name;
+    private final Object value;
+    @JsonSerialize(using = ToStringSerializer.class)
+    private final Unit<T> unit;
 
     /**
      * Metric constructor.
-     * @param metricName the name of the metric
-     * @param metricValue the value of the metric
+     *
+     * @param name the name of the metric
+     * @param value the value of the metric
      * @param unit the unit of the metric value
      */
-    public Metric(String metricName, Object metricValue, Unit<?> unit) {
-        this.metricName = metricName;
-        this.metricValue = metricValue;
+    public Metric(String name, Object value, Unit<T> unit) {
+        this.name = name;
+        this.value = value;
         this.unit = unit;
     }
 
-    public Metric(String metricName, Object metricValue) {
-        this.metricName = metricName;
-        this.metricValue = metricValue;
+    /**
+     * Get a Metric object where unit is not applicable.
+     *
+     * @param name the name of the metric
+     * @param value the value of the metric
+     * @return a Metric object
+     */
+    public static Metric<Dimensionless> of(String name, Object value) {
+        return new Metric<>(name, value, Unit.ONE);
     }
 }

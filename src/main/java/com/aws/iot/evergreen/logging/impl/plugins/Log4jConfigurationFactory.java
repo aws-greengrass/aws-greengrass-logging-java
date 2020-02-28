@@ -5,7 +5,9 @@
 package com.aws.iot.evergreen.logging.impl.plugins;
 
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
+import com.aws.iot.evergreen.logging.impl.config.EvergreenMetricsConfig;
 import com.aws.iot.evergreen.logging.impl.config.LogStore;
+import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
@@ -23,58 +25,67 @@ import java.nio.charset.StandardCharsets;
 
 @Plugin(name = "Log4jConfigurationFactory", category = ConfigurationFactory.CATEGORY)
 public class Log4jConfigurationFactory extends ConfigurationFactory {
+    public static final String METRICS_LOGGER_NAME = "metrics";
 
     static Configuration createConfiguration(final String name, ConfigurationBuilder<BuiltConfiguration> builder) {
-        EvergreenLogConfig startupConfig = EvergreenLogConfig.loadDefaultConfig();
 
         // Set package of plugins
         builder.setConfigurationName(name).setPackages(
                 "com.aws.iot.evergreen.logging.impl.plugins," + "com.aws.iot.evergreen.logging.impl.plugins.layouts");
         builder.setStatusLevel(Level.ERROR);
 
+        // Configure root logger
+        EvergreenLogConfig logConfig = new EvergreenLogConfig();
+        String logAppenderName = name.concat(logConfig.CONFIG_PREFIX);
+        configureLoggerAppender(logConfig, logAppenderName, builder);
+        builder.add(builder.newRootLogger(logConfig.getLevel()).add(builder.newAppenderRef(logAppenderName)));
+
+        // Configure metrics logger
+        EvergreenMetricsConfig metricsConfig = new EvergreenMetricsConfig();
+        String metricsAppenderName = name.concat(metricsConfig.CONFIG_PREFIX);
+        configureLoggerAppender(metricsConfig, metricsAppenderName, builder);
+        builder.add(builder.newLogger(METRICS_LOGGER_NAME, Level.ALL).add(builder.newAppenderRef(metricsAppenderName))
+                .addAttribute("additivity", false));
+
+        return builder.build();
+    }
+
+    private static void configureLoggerAppender(PersistenceConfig config, final String appenderName,
+                                        ConfigurationBuilder<BuiltConfiguration> builder) {
 
         // Configure log output format
-        LayoutComponentBuilder layoutBuilder =
-                builder.newLayout("StructuredLayout")
-                        .addAttribute("format", startupConfig.getFormat())
-                        .addAttribute("pattern", startupConfig.getPattern())
-                        .addAttribute("charset", StandardCharsets.UTF_8);
+        LayoutComponentBuilder layoutBuilder = builder.newLayout("StructuredLayout")
+            .addAttribute("format", config.getFormat())
+            .addAttribute("pattern", config.getPattern())
+            .addAttribute("charset", StandardCharsets.UTF_8);
 
-
-        // Configure log appenders
-        LogStore store = startupConfig.getStore();
-        String appenderName = name.concat(store.toString());
-
-        switch (startupConfig.getStore()) {
+        switch (config.getStore()) {
             case CONSOLE:
                 addConsoleAppenderToBuilder(builder, appenderName, layoutBuilder);
                 break;
             case FILE:
             default:
-                String fileName = startupConfig.getStoreName();
-                addFileAppenderToBuilder(builder, appenderName, fileName, layoutBuilder, startupConfig);
+                String fileName = config.getStoreName();
+                addFileAppenderToBuilder(builder, appenderName, fileName, layoutBuilder,
+                        config.getFileSizeKB(), config.getNumRollingFiles());
                 break;
         }
-
-        // Configure root logger with default settings
-        builder.add(builder.newRootLogger(startupConfig.getLevel()).add(builder.newAppenderRef(appenderName)));
-        return builder.build();
     }
 
     private static void addFileAppenderToBuilder(ConfigurationBuilder<BuiltConfiguration> builder, String appenderName,
                                                  String fileName, LayoutComponentBuilder layoutBuilder,
-                                                 EvergreenLogConfig startupConfig) {
+                                                 String fileSizeKB, int numRollingFiles) {
         AppenderComponentBuilder appenderBuilder =
                 builder.newAppender(appenderName, "RollingFile").addAttribute("fileName", fileName)
                         .addAttribute("filePattern", "%d{MM-dd-yyyy-HH:mm:ss}-".concat(fileName));
 
         ComponentBuilder triggeringPolicies = builder.newComponent("Policies").addComponent(
                 builder.newComponent("SizeBasedTriggeringPolicy")
-                        .addAttribute("size", startupConfig.getFileSizeKB() + "K"));
+                        .addAttribute("size", fileSizeKB + "K"));
         appenderBuilder.addComponent(triggeringPolicies);
 
         ComponentBuilder rollover = builder.newComponent("DefaultRolloverStrategy").addAttribute("max",
-                startupConfig.getNumRollingFiles());
+                numRollingFiles);
         appenderBuilder.addComponent(rollover);
         appenderBuilder.add(layoutBuilder);
         builder.add(appenderBuilder);

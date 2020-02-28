@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentMap;
  * {@link com.aws.iot.evergreen.logging.api.Logger} interface.
  */
 public class Log4jLoggerAdapter implements Logger {
-    transient org.apache.logging.log4j.Logger logger;
-    final String name;
-    ConcurrentMap<String, String> loggerContextData = new ConcurrentHashMap<>();
+    private transient org.apache.logging.log4j.Logger logger;
+    private final String name;
+    private final ConcurrentMap<String, String> loggerContextData = new ConcurrentHashMap<>();
 
     /**
      * Create a {@link Logger} instance based on the given {@link org.apache.logging.log4j.Logger} instance.

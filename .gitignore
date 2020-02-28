@@ -1,3 +1,4 @@
 *.log
+*.metrics
 /target/
 .DS_Store

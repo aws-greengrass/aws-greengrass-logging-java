@@ -77,7 +77,7 @@ public class LoggerTest {
         logger.addDefaultKeyValue("Key", "Data");
 
         logger.atInfo().addKeyValue("Key2", "Data2").log("HI@Info");
-        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), message.capture(), any());
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
         Map<String, String> context = ((EvergreenStructuredLogMessage) message.getValue()).getContexts();
 
         assertEquals(2, context.size());
@@ -148,7 +148,7 @@ public class LoggerTest {
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
 
         logger.atInfo().setCause(new IOException("hi")).setEventType("some type").log();
-        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), message.capture(), any());
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
         Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
         assertEquals("hi", t.getMessage());
 

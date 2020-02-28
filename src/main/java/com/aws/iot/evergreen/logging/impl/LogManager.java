@@ -17,7 +17,8 @@ import java.util.concurrent.ConcurrentMap;
 public class LogManager {
 
     // key: name (String), value: a Logger;
-    static ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> loggerMap = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> loggerMap =
+            new ConcurrentHashMap<>();
 
     protected LogManager() {
     }
@@ -48,23 +49,11 @@ public class LogManager {
     }
 
     /**
-     * Return an appropriate {@link MetricsFactory} instance as specified by the name parameter.
-     * TODO: implement metrics generation https://sim.amazon.com/issues/P32636549
+     * Return a {@link MetricsFactory} instance.
      *
-     * @param name the name of the MetricsFactory to return
      * @return a MetricsFactory instance
      */
-    public static MetricsFactory getMetricsFactory(String name) {
-        return null;
-    }
-
-    /**
-     * Return an appropriate {@link MetricsFactory} instance as specified by the name of the clazz parameter.
-     *
-     * @param clazz the clazz name is used by the MetricsFactory to return
-     * @return a MetricsFactory instance
-     */
-    public static MetricsFactory getMetricsFactory(Class<?> clazz) {
-        return getMetricsFactory(clazz.getName());
+    public static MetricsFactory getMetricsFactory() {
+        return MetricsFactoryImpl.getInstance();
     }
 }

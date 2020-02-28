@@ -25,6 +25,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>2.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.jr</groupId>
             <artifactId>jackson-jr-objects</artifactId>
             <version>2.10.1</version>
@@ -127,6 +133,14 @@
                         </property>
                         <property>
                             <name>log.fmt</name>
+                            <value>TEXT</value>
+                        </property>
+                        <property>
+                            <name>metrics.store</name>
+                            <value>CONSOLE</value>
+                        </property>
+                        <property>
+                            <name>metrics.fmt</name>
                             <value>TEXT</value>
                         </property>
                     </systemProperties>
