@@ -7,6 +7,9 @@ package com.aws.iot.evergreen.logging.impl.config;
 
 import lombok.Getter;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * PersistenceConfig groups the persistence configuration for monitoring data.
  */
@@ -20,7 +23,7 @@ public class PersistenceConfig {
     public static final String STORE_NAME_SUFFIX = ".storeName";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
-    private static final String DEFAULT_STORAGE_TYPE = LogStore.FILE.name();
+    private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.JSON.name();
     private static final int DEFAULT_NUM_ROLLING_FILES = 5;
     private static final String DEFAULT_STORE_NAME = "evergreen.";
@@ -88,7 +91,10 @@ public class PersistenceConfig {
 
         this.fileSizeKB = Long.toString(totalLogStoreSizeKB / numRollingFiles);
 
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX, DEFAULT_STORE_NAME + prefix);
+        Path rootPath = Paths.get(System.getProperty("root"));
+
+        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
+                rootPath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
         this.pattern = System.getProperty(prefix + TEXT_PATTERN_SUFFIX, defaultPattern);
     }
 }
