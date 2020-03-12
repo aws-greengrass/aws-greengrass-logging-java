@@ -18,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -74,6 +76,15 @@ public class LoggerTest {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+        AtomicInteger hitCount = new AtomicInteger(0);
+        Consumer<EvergreenStructuredLogMessage> l = m -> {
+            Map<String, String> context = m.getContexts();
+            assertEquals(2, context.size());
+            assertEquals("Data", context.get("Key"));
+            assertEquals("Data2", context.get("Key2"));
+            hitCount.incrementAndGet();
+        };
+        Log4jLogEventBuilder.addGlobalListener(l);
 
         logger.addDefaultKeyValue("Key", "Data");
 
@@ -84,6 +95,8 @@ public class LoggerTest {
         assertEquals(2, context.size());
         assertEquals("Data", context.get("Key"));
         assertEquals("Data2", context.get("Key2"));
+        Log4jLogEventBuilder.removeGlobalListener(l);
+        assertEquals(1, hitCount.get());
     }
 
     @Test
