@@ -12,6 +12,8 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Consumer;
 
 /**
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
@@ -22,6 +24,8 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     private String eventType;
     private final Map<String, String> eventContextData = new ConcurrentHashMap<>();
     private transient Log4jLoggerAdapter logger;
+    private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
+            = new CopyOnWriteArraySet<>();
 
     /**
      * Log Event Builder constructor.
@@ -55,29 +59,33 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public void log() {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
-                .getName(), this.level, this.eventType, "", this.eventContextData, this.cause);
-        this.logger.logMessage(this.level, message);
+        log("");
     }
 
     @Override
     public void log(Object arg) {
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
-                .getName(), this.level, this.eventType, arg.toString(), this.eventContextData, this.cause);
-        this.logger.logMessage(this.level, message);
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(logger
+                .getName(), level, eventType, arg.toString(), eventContextData, cause);
+        listeners.forEach(l -> l.accept(message));
+        logger.logMessage(level, message);
     }
 
     @Override
     public void log(String fmt, Object... args) {
         // If the cause wasn't set, try setting it from the last vararg if it is a Throwable
-        if (this.cause == null && args.length > 0 && args[args.length - 1] instanceof Throwable) {
-            this.cause = (Throwable) args[args.length - 1];
+        if (cause == null && args.length > 0 && args[args.length - 1] instanceof Throwable) {
+            cause = (Throwable) args[args.length - 1];
             args = Arrays.copyOfRange(args, 0, args.length - 1);
         }
+        log(new ParameterizedMessage(fmt, args).getFormattedMessage());
+    }
     
-        String msgStr = new ParameterizedMessage(fmt, args).getFormattedMessage();
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(this.logger
-                .getName(), this.level, this.eventType, msgStr, this.eventContextData, this.cause);
-        this.logger.logMessage(this.level, message);
+    public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
+        listeners.add(l);
+    }
+    
+    public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
+        listeners.remove(l);
+        
     }
 }
