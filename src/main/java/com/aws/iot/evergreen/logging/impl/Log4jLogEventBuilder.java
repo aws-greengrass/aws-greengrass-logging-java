@@ -40,15 +40,30 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     }
 
     @Override
+    public LogEventBuilder cause(Throwable cause) {
+        return setCause(cause);
+    }
+
+    @Override
     public LogEventBuilder setCause(Throwable cause) {
         this.cause = cause;
         return this;
     }
 
     @Override
+    public LogEventBuilder event(String type) {
+        return setEventType(type);
+    }
+
+    @Override
     public LogEventBuilder setEventType(String type) {
         this.eventType = type;
         return this;
+    }
+
+    @Override
+    public LogEventBuilder kv(String key, Object value) {
+        return addKeyValue(key, value);
     }
 
     @Override

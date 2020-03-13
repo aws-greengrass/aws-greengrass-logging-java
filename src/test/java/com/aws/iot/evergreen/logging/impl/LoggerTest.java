@@ -7,7 +7,10 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.Logger;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.logging.log4j.message.Message;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +26,7 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,6 +44,16 @@ public class LoggerTest {
     ArgumentCaptor<Level> logLevel;
     @Captor
     ArgumentCaptor<Message> message;
+
+    @BeforeAll
+    public static void beforeTesting() {
+        Configurator.setAllLevels(LoggerTest.class.getName(), Level.ALL);
+    }
+
+    @AfterAll
+    public static void afterTesting() {
+        Configurator.setAllLevels(LoggerTest.class.getName(), Level.INFO);
+    }
 
     @Test
     public void GIVEN_logger_for_name_WHEN_check_level_THEN_level_is_info_by_default() {
@@ -61,7 +75,8 @@ public class LoggerTest {
     @Test
     public void GIVEN_logger_WHEN_log_at_level_below_setting_THEN_message_is_not_logged() {
         // Setup logger with spy
-        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        Configurator.setAllLevels("test", Level.INFO);
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger("test");
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
 
         logger.atTrace().log("HI@Trace");
@@ -79,22 +94,24 @@ public class LoggerTest {
         AtomicInteger hitCount = new AtomicInteger(0);
         Consumer<EvergreenStructuredLogMessage> l = m -> {
             Map<String, String> context = m.getContexts();
-            assertEquals(2, context.size());
+            assertEquals(3, context.size());
             assertEquals("Data", context.get("Key"));
             assertEquals("Data2", context.get("Key2"));
+            assertEquals("DataShortform", context.get("KeyShortform"));
             hitCount.incrementAndGet();
         };
         Log4jLogEventBuilder.addGlobalListener(l);
 
         logger.addDefaultKeyValue("Key", "Data");
 
-        logger.atInfo().addKeyValue("Key2", "Data2").log("HI@Info");
+        logger.atInfo().addKeyValue("Key2", "Data2").kv("KeyShortform", "DataShortform").log("HI@Info");
         verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
         Map<String, String> context = ((EvergreenStructuredLogMessage) message.getValue()).getContexts();
 
-        assertEquals(2, context.size());
+        assertEquals(3, context.size());
         assertEquals("Data", context.get("Key"));
         assertEquals("Data2", context.get("Key2"));
+        assertEquals("DataShortform", context.get("KeyShortform"));
         Log4jLogEventBuilder.removeGlobalListener(l);
         assertEquals(1, hitCount.get());
     }
@@ -163,6 +180,201 @@ public class LoggerTest {
 
         logger.atInfo().setCause(new IOException("hi")).setEventType("some type").log();
         verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atInfo().cause(new IOException("hi")).event("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_trace_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atTrace("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.TRACE), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_trace_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atTrace("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.TRACE), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_debug_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atDebug("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.DEBUG), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_debug_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atDebug("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.DEBUG), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_info_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atInfo("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_info_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atInfo("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_error_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atError("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.ERROR), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_error_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atError("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.ERROR), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_fatal_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atFatal("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.FATAL), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_fatal_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atFatal("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.FATAL), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertEquals("hi", t.getMessage());
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_warn_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atWarn("some type").log();
+        verify(loggerSpy).logMessage(eq(Level.WARN), any(), any(), any(), any(), any());
+        Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
+        assertNull(t);
+
+        String event = ((EvergreenStructuredLogMessage) message.getValue()).getEventType();
+        assertEquals("some type", event);
+    }
+
+    @Test
+    public void GIVEN_logger_WHEN_warn_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.atWarn("some type", new IOException("hi")).log();
+        verify(loggerSpy).logMessage(eq(Level.WARN), any(), any(), any(), any(), any());
         Throwable t = ((EvergreenStructuredLogMessage) message.getValue()).getCause();
         assertEquals("hi", t.getMessage());
 

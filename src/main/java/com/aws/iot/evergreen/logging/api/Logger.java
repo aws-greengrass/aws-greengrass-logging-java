@@ -26,11 +26,39 @@ public interface Logger {
     Logger addDefaultKeyValue(String key, Object value);
 
     /**
+     * Add a key-value pair of common contextual information related to the logger.
+     *
+     * @param key   a unique key
+     * @param value value of the key
+     * @return the logger instance
+     */
+    Logger dfltKv(String key, Object value);
+
+    /**
      * Entry point for fluent logging in TRACE level.
      *
      * @return LogEventBuilder instance for level TRACE
      */
     LogEventBuilder atTrace();
+
+    /**
+     * Entry point for fluent logging in TRACE level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level TRACE
+     */
+    LogEventBuilder atTrace(final String eventType);
+
+    /**
+     * Entry point for fluent logging in TRACE level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     *
+     * @return LogEventBuilder instance for level TRACE
+     */
+    LogEventBuilder atTrace(final String eventType, final Throwable cause);
 
     /**
      * Entry point for fluent logging in DEBUG level.
@@ -40,11 +68,49 @@ public interface Logger {
     LogEventBuilder atDebug();
 
     /**
+     * Entry point for fluent logging in DEBUG level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level DEBUG
+     */
+    LogEventBuilder atDebug(final String eventType);
+
+    /**
+     * Entry point for fluent logging in DEBUG level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     *
+     * @return LogEventBuilder instance for level DEBUG
+     */
+    LogEventBuilder atDebug(final String eventType, final Throwable cause);
+
+    /**
      * Entry point for fluent logging in INFO level.
      *
      * @return LogEventBuilder instance for level INFO
      */
     LogEventBuilder atInfo();
+
+    /**
+     * Entry point for fluent logging in INFO level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level INFO
+     */
+    LogEventBuilder atInfo(final String eventType);
+
+    /**
+     * Entry point for fluent logging in INFO level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     *
+     * @return LogEventBuilder instance for level INFO
+     */
+    LogEventBuilder atInfo(final String eventType, final Throwable cause);
 
     /**
      * Entry point for fluent logging in WARN level.
@@ -54,6 +120,25 @@ public interface Logger {
     LogEventBuilder atWarn();
 
     /**
+     * Entry point for fluent logging in WARN level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level WARN
+     */
+    LogEventBuilder atWarn(final String eventType);
+
+    /**
+     * Entry point for fluent logging in WARN level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     *
+     * @return LogEventBuilder instance for level WARN
+     */
+    LogEventBuilder atWarn(final String eventType, final Throwable cause);
+
+    /**
      * Entry point for fluent logging in ERROR level.
      *
      * @return LogEventBuilder instance for level ERROR
@@ -61,11 +146,48 @@ public interface Logger {
     LogEventBuilder atError();
 
     /**
+     * Entry point for fluent logging in ERROR level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level ERROR
+     */
+    LogEventBuilder atError(final String eventType);
+
+    /**
+     * Entry point for fluent logging in ERROR level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     *
+     * @return LogEventBuilder instance for level ERROR
+     */
+    LogEventBuilder atError(final String eventType, final Throwable cause);
+
+    /**
      * Entry point for fluent logging in FATAL level.
      *
      * @return LogEventBuilder instance for level FATAL
      */
     LogEventBuilder atFatal();
+
+    /**
+     * Entry point for fluent logging in FATAL level.
+     *
+     * @param eventType Type of the event that generated the log
+     *
+     * @return LogEventBuilder instance for level FATAL
+     */
+    LogEventBuilder atFatal(final String eventType);
+
+    /**
+     * Entry point for fluent logging in FATAL level.
+     *
+     * @param eventType Type of the event that generated the log
+     * @param cause Throwable object for cause if available
+     * @return LogEventBuilder instance for level FATAL
+     */
+    LogEventBuilder atFatal(final String eventType, final Throwable cause);
 
     /**
      * Check if TRACE level is enabled for the logger.
