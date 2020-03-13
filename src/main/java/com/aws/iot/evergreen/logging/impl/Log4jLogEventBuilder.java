@@ -82,7 +82,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     
     public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.add(l);
-}
+    }
     
     public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.remove(l);
