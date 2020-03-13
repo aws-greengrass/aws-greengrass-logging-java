@@ -22,7 +22,27 @@ public interface LogEventBuilder {
      * @param cause the throwable
      * @return the instance of LogEventBuilder
      */
+    default LogEventBuilder cause(Throwable cause) {
+        return this;
+    }
+
+    /**
+     * Set the throwable in LogEventBuilder.
+     *
+     * @param cause the throwable
+     * @return the instance of LogEventBuilder
+     */
     default LogEventBuilder setCause(Throwable cause) {
+        return this;
+    }
+
+    /**
+     * Set the log event type in LogEventBuilder.
+     *
+     * @param type log event type
+     * @return the instance of LogEventBuilder
+     */
+    default LogEventBuilder event(String type) {
         return this;
     }
 
@@ -44,6 +64,17 @@ public interface LogEventBuilder {
      * @return the instance of LogEventBuilder
      */
     default LogEventBuilder addKeyValue(String key, Object value) {
+        return this;
+    }
+
+    /**
+     * Add a key-value pair of contextual information in LogEventBuilder.
+     *
+     * @param key   a unique key
+     * @param value value of the key
+     * @return the instance of LogEventBuilder
+     */
+    default LogEventBuilder kv(String key, Object value) {
         return this;
     }
 

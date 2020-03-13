@@ -45,55 +45,107 @@ public class Log4jLoggerAdapter implements Logger {
     }
 
     @Override
+    public Logger dfltKv(String key, Object value) {
+        return addDefaultKeyValue(key, value);
+    }
+
+    @Override
     public LogEventBuilder atTrace() {
-        if (isTraceEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.TRACE,
-                    Collections.unmodifiableMap(loggerContextData));
-        }
-        return LogEventBuilder.NOOP;
+        return atLevel(Level.TRACE, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atTrace(final String eventType) {
+        return atLevel(Level.TRACE, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atTrace(final String eventType, final Throwable cause) {
+        return atLevel(Level.TRACE, eventType, cause);
     }
 
     @Override
     public LogEventBuilder atDebug() {
-        if (isDebugEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.DEBUG,
-                    Collections.unmodifiableMap(loggerContextData));
-        }
-        return LogEventBuilder.NOOP;
+        return atLevel(Level.DEBUG, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atDebug(final String eventType) {
+        return atLevel(Level.DEBUG, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atDebug(final String eventType, final Throwable cause) {
+        return atLevel(Level.DEBUG, eventType, cause);
     }
 
     @Override
     public LogEventBuilder atInfo() {
-        if (isInfoEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.INFO,
-                    Collections.unmodifiableMap(loggerContextData));
-        }
-        return LogEventBuilder.NOOP;
+        return atLevel(Level.INFO, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atInfo(final String eventType) {
+        return atLevel(Level.INFO, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atInfo(final String eventType, final Throwable cause) {
+        return atLevel(Level.INFO, eventType, cause);
     }
 
     @Override
     public LogEventBuilder atWarn() {
-        if (isWarnEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.WARN,
-                    Collections.unmodifiableMap(loggerContextData));
-        }
-        return LogEventBuilder.NOOP;
+        return atLevel(Level.WARN, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atWarn(final String eventType) {
+        return atLevel(Level.WARN, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atWarn(final String eventType, final Throwable cause) {
+        return atLevel(Level.WARN, eventType, cause);
     }
 
     @Override
     public LogEventBuilder atError() {
-        if (isErrorEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.ERROR,
-                    Collections.unmodifiableMap(loggerContextData));
-        }
-        return LogEventBuilder.NOOP;
+        return atLevel(Level.ERROR, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atError(final String eventType) {
+        return atLevel(Level.ERROR, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atError(final String eventType, final Throwable cause) {
+        return atLevel(Level.ERROR, eventType, cause);
     }
 
     @Override
     public LogEventBuilder atFatal() {
-        if (isFatalEnabled()) {
-            return new Log4jLogEventBuilder(this, org.apache.logging.log4j.Level.FATAL,
-                    Collections.unmodifiableMap(loggerContextData));
+        return atLevel(Level.FATAL, null, null);
+    }
+
+    @Override
+    public LogEventBuilder atFatal(final String eventType) {
+        return atLevel(Level.FATAL, eventType, null);
+    }
+
+    @Override
+    public LogEventBuilder atFatal(final String eventType, final Throwable cause) {
+        return atLevel(Level.FATAL, eventType, cause);
+    }
+
+    private LogEventBuilder atLevel(final Level logLevel,
+                                    final String eventType,
+                                    final Throwable cause) {
+        if (isLogLevelEnabled(logLevel)) {
+            return new Log4jLogEventBuilder(this, logLevel, Collections.unmodifiableMap(loggerContextData))
+                    .setCause(cause)
+                    .setEventType(eventType);
         }
         return LogEventBuilder.NOOP;
     }
@@ -126,6 +178,24 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public boolean isFatalEnabled() {
         return logger.isFatalEnabled();
+    }
+
+    private boolean isLogLevelEnabled(final Level logLevel) {
+        // Level is a class with static objects, not enum
+        if (logLevel == Level.TRACE) {
+            return logger.isTraceEnabled();
+        } else if (logLevel == Level.DEBUG) {
+            return logger.isDebugEnabled();
+        } else if (logLevel == Level.INFO) {
+            return logger.isInfoEnabled();
+        } else if (logLevel == Level.WARN) {
+            return logger.isWarnEnabled();
+        } else if (logLevel == Level.ERROR) {
+            return logger.isErrorEnabled();
+        } else if (logLevel == Level.FATAL) {
+            return logger.isFatalEnabled();
+        }
+        return false;
     }
 
     @Override
