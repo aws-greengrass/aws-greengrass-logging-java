@@ -24,6 +24,8 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     private String eventType;
     private final Map<String, String> eventContextData = new ConcurrentHashMap<>();
     private transient Log4jLoggerAdapter logger;
+    private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
+            = new CopyOnWriteArraySet<>();
 
     /**
      * Log Event Builder constructor.
@@ -64,8 +66,8 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     public void log(Object arg) {
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(logger
                 .getName(), level, eventType, arg.toString(), eventContextData, cause);
-        logger.logMessage(level, message);
         listeners.forEach(l -> l.accept(message));
+        logger.logMessage(level, message);
     }
 
     @Override
@@ -77,9 +79,6 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
         }
         log(new ParameterizedMessage(fmt, args).getFormattedMessage());
     }
-    
-    private static CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
-            = new CopyOnWriteArraySet<>();
     
     public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.add(l);
