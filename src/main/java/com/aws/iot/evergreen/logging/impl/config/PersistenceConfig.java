@@ -24,7 +24,7 @@ public class PersistenceConfig {
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
-    private static final String DEFAULT_DATA_FORMAT = LogFormat.JSON.name();
+    private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
     private static final int DEFAULT_NUM_ROLLING_FILES = 5;
     private static final String DEFAULT_STORE_NAME = "evergreen.";
 
