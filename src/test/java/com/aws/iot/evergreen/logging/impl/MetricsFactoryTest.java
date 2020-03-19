@@ -7,12 +7,15 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.impl.config.EvergreenMetricsConfig;
 import org.apache.logging.log4j.Level;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,12 +35,21 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class MetricsFactoryTest {
+class MetricsFactoryTest {
+
+    @TempDir
+    static Path tempDir;
+
+    @BeforeAll
+    static void beforeAll() {
+        System.setProperty("root", tempDir.toAbsolutePath().toString());
+    }
+
     @Captor
     ArgumentCaptor<EvergreenMetricsMessage> message;
 
     @Test
-    public void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() {
+    void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() {
         MetricsFactoryImpl mf = (MetricsFactoryImpl) MetricsFactoryImpl.getInstance();
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(mf);
 
@@ -56,7 +68,7 @@ public class MetricsFactoryTest {
     }
 
     @Test
-    public void GIVEN_metricsFactory_WHEN_it_has_default_dimensions_THEN_metrics_contains_default_dimensions() {
+    void GIVEN_metricsFactory_WHEN_it_has_default_dimensions_THEN_metrics_contains_default_dimensions() {
         MetricsFactoryImpl mf = (MetricsFactoryImpl) MetricsFactoryImpl.getInstance();
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(mf);
 
@@ -71,7 +83,7 @@ public class MetricsFactoryTest {
     }
 
     @Test
-    public void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() {
+    void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() {
         MetricsFactoryImpl mf = (MetricsFactoryImpl) MetricsFactoryImpl.getInstance();
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(mf);
 
@@ -94,8 +106,7 @@ public class MetricsFactoryTest {
 
         Map<String, String> defaultDimensionMap = Collections.singletonMap("d1", "v1");
 
-        Map<String, String> dimensionMap = new HashMap<>();
-        dimensionMap.putAll(defaultDimensionMap);
+        Map<String, String> dimensionMap = new HashMap<>(defaultDimensionMap);
         dimensionMap.put("d2", "v2");
 
         assertThat(message.getAllValues(), containsInAnyOrder(

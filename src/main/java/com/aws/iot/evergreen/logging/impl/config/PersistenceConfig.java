@@ -91,10 +91,26 @@ public class PersistenceConfig {
 
         this.fileSizeKB = Long.toString(totalLogStoreSizeKB / numRollingFiles);
 
-        Path rootPath = Paths.get(System.getProperty("root"));
+        if (store.equals(LogStore.FILE)) {
+            initializeStoreName(prefix);
+        }
 
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                rootPath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
         this.pattern = System.getProperty(prefix + TEXT_PATTERN_SUFFIX, defaultPattern);
+    }
+
+    private void initializeStoreName(String prefix) {
+        Path storePath;
+
+        String rootPathStr = System.getProperty("root");
+
+        if (rootPathStr != null) {
+            // if root is set, use root as store path
+            storePath = Paths.get(rootPathStr);
+        } else {
+            // if root is not set, use working directory as store path
+            storePath = Paths.get(System.getProperty("user.dir"));
+        }
+        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
+                storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
     }
 }
