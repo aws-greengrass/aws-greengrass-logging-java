@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class IPCReconnectTest {
+class IPCReconnectTest {
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     private IPCClientImpl ipc;
@@ -38,7 +38,7 @@ public class IPCReconnectTest {
     private DataOutputStream out;
 
     @Test
-    public void GIVEN_ipc_client_WHEN_server_dies_THEN_client_reconnects() throws Exception {
+    void GIVEN_ipc_client_WHEN_server_dies_THEN_client_reconnects() throws Exception {
         AtomicInteger connectCount = new AtomicInteger();
         // First setup the server for connections
         server = new ServerSocket(0);
@@ -116,7 +116,7 @@ public class IPCReconnectTest {
     }
 
     @Test
-    public void GIVEN_unconnected_ipc_client_WHEN_connect_fails_THEN_client_fails_to_connect() throws Exception {
+    void GIVEN_unconnected_ipc_client_WHEN_connect_fails_THEN_client_fails_to_connect() throws Exception {
         server = new ServerSocket(0);
         server.close();
 

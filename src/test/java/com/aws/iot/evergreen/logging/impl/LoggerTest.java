@@ -14,12 +14,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -39,24 +41,30 @@ import static org.mockito.Mockito.verify;
 // TODO: write proper unit tests https://issues.amazon.com/issues/P31936029
 @ExtendWith(MockitoExtension.class)
 @Tag("Integration")
-public class LoggerTest {
+class LoggerTest {
+
+    @TempDir
+    static Path tempDir;
+
     @Captor
     ArgumentCaptor<Level> logLevel;
     @Captor
     ArgumentCaptor<Message> message;
 
     @BeforeAll
-    public static void beforeTesting() {
+    static void beforeTesting() {
+        System.setProperty("root", tempDir.toAbsolutePath().toString());
+
         Configurator.setAllLevels(LoggerTest.class.getName(), Level.ALL);
     }
 
     @AfterAll
-    public static void afterTesting() {
+    static void afterTesting() {
         Configurator.setAllLevels(LoggerTest.class.getName(), Level.INFO);
     }
 
     @Test
-    public void GIVEN_logger_for_name_WHEN_check_level_THEN_level_is_info_by_default() {
+    void GIVEN_logger_for_name_WHEN_check_level_THEN_level_is_info_by_default() {
         Logger logger = LogManager.getLogger("test");
 
         assertEquals("test", logger.getName());
@@ -66,14 +74,14 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_for_class_WHEN_getName_THEN_name_is_class_name() {
+    void GIVEN_logger_for_class_WHEN_getName_THEN_name_is_class_name() {
         Logger logger = LogManager.getLogger(this.getClass());
 
         assertEquals("com.aws.iot.evergreen.logging.impl.LoggerTest", logger.getName());
     }
 
     @Test
-    public void GIVEN_logger_WHEN_log_at_level_below_setting_THEN_message_is_not_logged() {
+    void GIVEN_logger_WHEN_log_at_level_below_setting_THEN_message_is_not_logged() {
         // Setup logger with spy
         Configurator.setAllLevels("test", Level.INFO);
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger("test");
@@ -87,7 +95,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_logger_has_default_context_THEN_logline_contains_default_context() {
+    void GIVEN_logger_WHEN_logger_has_default_context_THEN_logline_contains_default_context() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -117,7 +125,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_at_trace_WHEN_log_at_each_level_THEN_logs_at_each_level() {
+    void GIVEN_logger_at_trace_WHEN_log_at_each_level_THEN_logs_at_each_level() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -173,7 +181,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_log_with_cause_and_event_type_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_log_with_cause_and_event_type_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -188,7 +196,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -203,7 +211,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_trace_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_trace_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -218,7 +226,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_trace_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_trace_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -233,7 +241,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_debug_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_debug_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -248,7 +256,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_debug_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_debug_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -263,7 +271,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_info_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_info_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -278,7 +286,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_info_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_info_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -293,7 +301,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_error_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_error_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -308,7 +316,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_error_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_error_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -323,7 +331,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_fatal_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_fatal_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -338,7 +346,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_fatal_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_fatal_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -353,7 +361,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_warn_log_with_event_type_shortform_THEN_logline_contains_event_type() {
+    void GIVEN_logger_WHEN_warn_log_with_event_type_shortform_THEN_logline_contains_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -368,7 +376,7 @@ public class LoggerTest {
     }
 
     @Test
-    public void GIVEN_logger_WHEN_warn_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
+    void GIVEN_logger_WHEN_warn_log_with_cause_and_event_type_shortform_THEN_logline_contains_cause_and_event_type() {
         // Setup logger with spy
         Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger(this.getClass());
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
@@ -385,7 +393,8 @@ public class LoggerTest {
     private org.apache.logging.log4j.Logger setupLoggerSpy(Log4jLoggerAdapter logger) {
         org.apache.logging.log4j.Logger loggerSpy = spy(logger.getLogger());
         logger.setLogger(loggerSpy);
-        doCallRealMethod().when(loggerSpy).logMessage(logLevel.capture(), any(), any(), any(), message.capture(), any());
+        doCallRealMethod().when(loggerSpy)
+                .logMessage(logLevel.capture(), any(), any(), any(), message.capture(), any());
         return loggerSpy;
     }
 }
