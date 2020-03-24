@@ -390,6 +390,26 @@ class LoggerTest {
         assertEquals("some type", event);
     }
 
+    @Test
+    void GIVEN_logger_WHEN_log_nulls_THEN_logger_logs_string_null() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger("null_logger");
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        logger.info(null);
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        String event = message.getValue().getFormattedMessage();
+        assertEquals("null. {}", event);
+
+        Mockito.reset(loggerSpy);
+        loggerSpy = setupLoggerSpy(logger);
+
+        logger.addDefaultKeyValue("k1", null).atInfo().kv("k", null).log();
+        verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
+        String event2 = message.getValue().getFormattedMessage();
+        assertEquals("{k1=null, k=null}", event2);
+    }
+
     private org.apache.logging.log4j.Logger setupLoggerSpy(Log4jLoggerAdapter logger) {
         org.apache.logging.log4j.Logger loggerSpy = spy(logger.getLogger());
         logger.setLogger(loggerSpy);
