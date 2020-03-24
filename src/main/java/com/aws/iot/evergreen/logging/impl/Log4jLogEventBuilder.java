@@ -68,7 +68,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public LogEventBuilder addKeyValue(String key, Object value) {
-        this.eventContextData.put(key, value.toString());
+        this.eventContextData.put(key, value == null ? "null" : value.toString());
         return this;
     }
 
@@ -94,13 +94,13 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
         }
         log(new ParameterizedMessage(fmt, args).getFormattedMessage());
     }
-    
+
     public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.add(l);
     }
-    
+
     public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.remove(l);
-        
+
     }
 }

@@ -40,7 +40,7 @@ public class Log4jLoggerAdapter implements Logger {
 
     @Override
     public Logger addDefaultKeyValue(String key, Object value) {
-        loggerContextData.put(key, value.toString());
+        loggerContextData.put(key, value == null ? "null" : value.toString());
         return this;
     }
 
