@@ -19,6 +19,14 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.measure.quantity.Duration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -88,20 +96,35 @@ class MetricsFactoryTest {
         org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(mf);
 
         mf.addDefaultDimension("d1", "v1");
-        Thread thread1 = new Thread(() -> {
+
+        CyclicBarrier start = new CyclicBarrier(2);
+        ExecutorService ses = Executors.newFixedThreadPool(2);
+        Future future1 = ses.submit(() -> {
+            try {
+                start.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                fail("Error starting thread1 in sync", e);
+            }
             mf.newMetrics().setNamespace("th1").addMetric("error", 1).emit();
             mf.newMetrics().setNamespace("th1").addDimension("d1", "override").addMetric("latency", 1, Duration.UNIT).emit();
         });
-        thread1.start();
 
-        mf.newMetrics().setNamespace("main").addDimension("d2", "v2").addMetric("time", 2, Duration.UNIT).emit();
+        Future future2 = ses.submit(() -> {
+            try {
+                start.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                fail("Error starting thread2 in sync", e);
+            }
+            mf.newMetrics().setNamespace("main").addDimension("d2", "v2").addMetric("time", 2, Duration.UNIT).emit();
+        });
+
         try {
-            thread1.join(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            fail("Test thread timed out emitting metrics.");
+            future1.get(5, TimeUnit.SECONDS);
+            future2.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            fail("Error waiting for child threads to finish", e);
         }
-
+        ses.shutdown();
         verify(loggerSpy, times(3)).logMessage(eq(Level.ALL), any(), any(), any(), any(), any());
 
         Map<String, String> defaultDimensionMap = Collections.singletonMap("d1", "v1");
