@@ -11,8 +11,8 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.Message;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * A wrapper over {@link org.apache.logging.log4j.Logger} in conforming to the
@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentMap;
 public class Log4jLoggerAdapter implements Logger {
     private transient org.apache.logging.log4j.Logger logger;
     private final String name;
-    private final ConcurrentMap<String, String> loggerContextData = new ConcurrentHashMap<>();
+    private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
 
     /**
      * Create a {@link Logger} instance based on the given {@link org.apache.logging.log4j.Logger} instance.
@@ -40,7 +40,7 @@ public class Log4jLoggerAdapter implements Logger {
 
     @Override
     public Logger addDefaultKeyValue(String key, Object value) {
-        loggerContextData.put(key, value == null ? "null" : value.toString());
+        loggerContextData.put(key, value == null ? "null" : value);
         return this;
     }
 
@@ -261,5 +261,4 @@ public class Log4jLoggerAdapter implements Logger {
     public void setLogger(org.apache.logging.log4j.Logger logger) {
         this.logger = logger;
     }
-
 }
