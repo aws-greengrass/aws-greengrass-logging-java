@@ -10,10 +10,13 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
@@ -22,7 +25,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     private final Level level;
     private Throwable cause;
     private String eventType;
-    private final Map<String, String> eventContextData = new ConcurrentHashMap<>();
+    private final Map<String, Object> eventContextData = new ConcurrentHashMap<>();
     private transient Log4jLoggerAdapter logger;
     private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
             = new CopyOnWriteArraySet<>();
@@ -33,7 +36,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
      * @param level the log level setting on the logger
      * @param loggerContextData a map of key value pairs with contextual information for the logger
      */
-    public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level, Map<String, String> loggerContextData) {
+    public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level, Map<String, Object> loggerContextData) {
         this.logger = logger;
         this.level = level;
         eventContextData.putAll(loggerContextData);
@@ -68,7 +71,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public LogEventBuilder addKeyValue(String key, Object value) {
-        this.eventContextData.put(key, value == null ? "null" : value.toString());
+        this.eventContextData.put(key, value == null ? "null" : value);
         return this;
     }
 
@@ -79,8 +82,12 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     @Override
     public void log(Object arg) {
+        // Convert context to string, then log it out
+        Map<String, String> contextMap = new HashMap<>();
+        eventContextData.forEach((k, v) -> contextMap.put(k, convertToString(v)));
+
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(logger
-                .getName(), level, eventType, arg.toString(), eventContextData, cause);
+                .getName(), level, eventType, arg.toString(), contextMap, cause);
         listeners.forEach(l -> l.accept(message));
         logger.logMessage(level, message);
     }
@@ -101,6 +108,13 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
 
     public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
         listeners.remove(l);
+    }
 
+    private static String convertToString(Object o) {
+        // If it is a function which we can call to get a result, then call it and use the output of the function
+        if (o instanceof Supplier) {
+            return convertToString(((Supplier) o).get());
+        }
+        return Objects.toString(o);
     }
 }

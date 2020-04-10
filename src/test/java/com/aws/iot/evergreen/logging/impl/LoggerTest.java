@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -408,6 +409,33 @@ class LoggerTest {
         verify(loggerSpy).logMessage(eq(Level.INFO), any(), any(), any(), any(), any());
         String event2 = message.getValue().getFormattedMessage();
         assertEquals("{k1=null, k=null}", event2);
+    }
+
+    @Test
+    void GIVEN_logger_WHEN_log_with_supplier_context_THEN_context_calls_supplier() {
+        // Setup logger with spy
+        Log4jLoggerAdapter logger = (Log4jLoggerAdapter) LogManager.getLogger("supplied");
+        org.apache.logging.log4j.Logger loggerSpy = setupLoggerSpy(logger);
+
+        AtomicInteger i = new AtomicInteger();
+        Supplier<String> s = () -> {
+            int count = i.getAndIncrement();
+            return "supplied-" + count;
+        };
+        AtomicInteger i2 = new AtomicInteger();
+        Supplier<String> s2 = () -> {
+            int count = i2.getAndIncrement();
+            return "suppliedDefault-" + count;
+        };
+
+        logger.addDefaultKeyValue("k1", s2);
+        logger.atInfo().kv("k", s).log();
+        String event1 = message.getValue().getFormattedMessage();
+        assertEquals("{k1=suppliedDefault-0, k=supplied-0}", event1);
+
+        logger.atInfo().kv("k", s).log();
+        String event2 = message.getValue().getFormattedMessage();
+        assertEquals("{k1=suppliedDefault-1, k=supplied-1}", event2);
     }
 
     private org.apache.logging.log4j.Logger setupLoggerSpy(Log4jLoggerAdapter logger) {
