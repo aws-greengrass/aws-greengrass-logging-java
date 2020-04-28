@@ -5,6 +5,8 @@
 
 package com.aws.iot.evergreen.logging.api;
 
+import java.util.function.Supplier;
+
 /**
  * Evergreen Logger interface.
  */
@@ -33,6 +35,15 @@ public interface Logger {
      * @return the logger instance
      */
     Logger dfltKv(String key, Object value);
+
+    /**
+     * Add a key-value pair of common contextual information related to the logger.
+     *
+     * @param key   a unique key
+     * @param value supplier for the value
+     * @return the logger instance
+     */
+    Logger dfltKv(String key, Supplier<Object> value);
 
     /**
      * Entry point for fluent logging in TRACE level.

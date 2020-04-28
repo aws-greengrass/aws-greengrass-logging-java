@@ -26,6 +26,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
     private Throwable cause;
     private String eventType;
     private final Map<String, Object> eventContextData = new ConcurrentHashMap<>();
+    private final Map<String, Supplier<Object>> eventContextDataSupplier = new ConcurrentHashMap<>();
     private transient Log4jLoggerAdapter logger;
     private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
             = new CopyOnWriteArraySet<>();
@@ -36,10 +37,13 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
      * @param level the log level setting on the logger
      * @param loggerContextData a map of key value pairs with contextual information for the logger
      */
-    public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level, Map<String, Object> loggerContextData) {
+    public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level,
+                                Map<String, Object> loggerContextData,
+                                Map<String, Supplier<Object>> loggerContextDataSupplier) {
         this.logger = logger;
         this.level = level;
         eventContextData.putAll(loggerContextData);
+        eventContextDataSupplier.putAll(loggerContextDataSupplier);
     }
 
     @Override
@@ -85,6 +89,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
         // Convert context to string, then log it out
         Map<String, String> contextMap = new HashMap<>();
         eventContextData.forEach((k, v) -> contextMap.put(k, convertToString(v)));
+        eventContextDataSupplier.forEach((k, v) -> contextMap.put(k, convertToString(v.get())));
 
         EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(logger
                 .getName(), level, eventType, arg.toString(), contextMap, cause);

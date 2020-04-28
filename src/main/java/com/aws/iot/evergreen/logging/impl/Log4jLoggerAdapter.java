@@ -13,6 +13,7 @@ import org.apache.logging.log4j.message.Message;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * A wrapper over {@link org.apache.logging.log4j.Logger} in conforming to the
@@ -22,6 +23,7 @@ public class Log4jLoggerAdapter implements Logger {
     private transient org.apache.logging.log4j.Logger logger;
     private final String name;
     private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
+    private final Map<String, Supplier<Object>> loggerContextDataSupplier = new ConcurrentHashMap<>();
 
     /**
      * Create a {@link Logger} instance based on the given {@link org.apache.logging.log4j.Logger} instance.
@@ -47,6 +49,12 @@ public class Log4jLoggerAdapter implements Logger {
     @Override
     public Logger dfltKv(String key, Object value) {
         return addDefaultKeyValue(key, value);
+    }
+
+    @Override
+    public Logger dfltKv(String key, Supplier<Object> value) {
+        loggerContextDataSupplier.put(key, value);
+        return this;
     }
 
     @Override
@@ -143,9 +151,11 @@ public class Log4jLoggerAdapter implements Logger {
                                     final String eventType,
                                     final Throwable cause) {
         if (isLogLevelEnabled(logLevel)) {
-            return new Log4jLogEventBuilder(this, logLevel, Collections.unmodifiableMap(loggerContextData))
-                    .setCause(cause)
-                    .setEventType(eventType);
+            return new Log4jLogEventBuilder(this, logLevel,
+                    Collections.unmodifiableMap(loggerContextData),
+                    Collections.unmodifiableMap(loggerContextDataSupplier))
+                        .setCause(cause)
+                        .setEventType(eventType);
         }
         return LogEventBuilder.NOOP;
     }
@@ -241,7 +251,10 @@ public class Log4jLoggerAdapter implements Logger {
     }
 
     private void log(Level level, String msg, Object... args) {
-        new Log4jLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
+        LogEventBuilder logEvent = new Log4jLogEventBuilder(this, level,
+                Collections.unmodifiableMap(loggerContextData),
+                Collections.unmodifiableMap(loggerContextDataSupplier));
+        logEvent.log(msg, args);
     }
 
     /**
