@@ -12,7 +12,6 @@ import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.configstore.exceptions.ConfigStoreIPCException;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -23,7 +22,7 @@ import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.CON
 
 public class ConfigStoreImpl implements ConfigStore {
     public static final int API_VERSION = 1;
-    private final Set<Consumer<Map<String, Object>>> callbacks = new CopyOnWriteArraySet<>();
+    private final Set<Consumer<String>> callbacks = new CopyOnWriteArraySet<>();
     private final IPCClient ipc;
 
     /**
@@ -33,11 +32,11 @@ public class ConfigStoreImpl implements ConfigStore {
      */
     public ConfigStoreImpl(IPCClient ipc) {
         this.ipc = ipc;
-        ipc.registerMessageHandler(CONFIG_STORE.getValue(), this::onChange);
+        ipc.registerMessageHandler(CONFIG_STORE.getValue(), this::onKeyChange);
     }
 
     @Override
-    public synchronized void subscribe(Consumer<Map<String, Object>> onChange) throws ConfigStoreIPCException {
+    public synchronized void subscribe(Consumer<String> onKeyChange) throws ConfigStoreIPCException {
         // Register with IPC to re-register the listener when the client reconnects
         ipc.onReconnect(() -> {
             try {
@@ -47,20 +46,26 @@ public class ConfigStoreImpl implements ConfigStore {
             }
         });
 
-        callbacks.add(onChange);
+        callbacks.add(onKeyChange);
         registerSubscription();
     }
 
-    private FrameReader.Message onChange(FrameReader.Message message) {
+    @Override
+    public Object read(String key) throws ConfigStoreIPCException {
+        return sendAndReceive(ConfigStoreClientOpCodes.READ_KEY, new ConfigStoreReadValueRequest(key),
+                ConfigStoreReadValueResponse.class).getValue();
+    }
+
+    private FrameReader.Message onKeyChange(FrameReader.Message message) {
         try {
             ApplicationMessage request = ApplicationMessage.fromBytes(message.getPayload());
             ConfigStoreResponseStatus resp = ConfigStoreResponseStatus.Success;
-            if (ConfigStoreServiceOpCodes.VALUE_CHANGED
+            if (ConfigStoreServiceOpCodes.KEY_CHANGED
                     .equals(ConfigStoreServiceOpCodes.values()[request.getOpCode()])) {
-                ConfigValueChangedEvent changedEvent =
-                        IPCUtil.decode(request.getPayload(), ConfigValueChangedEvent.class);
+                ConfigKeyChangedEvent changedEvent =
+                        IPCUtil.decode(request.getPayload(), ConfigKeyChangedEvent.class);
 
-                callbacks.forEach(f -> f.accept(changedEvent.getNewValue()));
+                callbacks.forEach(f -> f.accept(changedEvent.getChangedKey()));
             } else {
                 resp = ConfigStoreResponseStatus.InvalidRequest;
             }

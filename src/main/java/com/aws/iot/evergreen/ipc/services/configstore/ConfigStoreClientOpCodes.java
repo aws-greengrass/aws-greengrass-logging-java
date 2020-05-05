@@ -6,5 +6,5 @@
 package com.aws.iot.evergreen.ipc.services.configstore;
 
 public enum ConfigStoreClientOpCodes {
-    SUBSCRIBE_ALL;
+    SUBSCRIBE_ALL, READ_KEY;
 }

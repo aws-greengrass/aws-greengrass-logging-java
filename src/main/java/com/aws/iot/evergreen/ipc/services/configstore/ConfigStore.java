@@ -7,7 +7,6 @@ package com.aws.iot.evergreen.ipc.services.configstore;
 
 import com.aws.iot.evergreen.ipc.services.configstore.exceptions.ConfigStoreIPCException;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -15,11 +14,18 @@ import java.util.function.Consumer;
  */
 public interface ConfigStore {
     /**
-     * Subscribe to ConfigStore changes. Callback will be called immediately with the
-     * initial values.
+     * Subscribe to ConfigStore changes.
      *
-     * @param onChange a callback function called the new state
+     * @param onKeyChange a callback function called with the config key which changed
      * @throws ConfigStoreIPCException for any error
      */
-    void subscribe(Consumer<Map<String, Object>> onChange) throws ConfigStoreIPCException;
+    void subscribe(Consumer<String> onKeyChange) throws ConfigStoreIPCException;
+
+    /**
+     * Read a value from the config store.
+     *
+     * @param key Which key to read
+     * @throws ConfigStoreIPCException for any error
+     */
+    Object read(String key) throws ConfigStoreIPCException;
 }

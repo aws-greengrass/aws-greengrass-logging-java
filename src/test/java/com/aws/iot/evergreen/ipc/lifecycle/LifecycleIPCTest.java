@@ -15,9 +15,14 @@ import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
-import com.aws.iot.evergreen.ipc.services.lifecycle.*;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
-import com.fasterxml.jackson.jr.ob.JSON;
+import com.aws.iot.evergreen.ipc.services.lifecycle.Lifecycle;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleClientOpCodes;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleGenericResponse;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleImpl;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleListenRequest;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleResponseStatus;
+import com.aws.iot.evergreen.ipc.services.lifecycle.StateChangeRequest;
+import com.aws.iot.evergreen.ipc.services.lifecycle.StateTransitionEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,8 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class LifecycleIPCTest {
-    private JSON encoder = JSON.std.with(new CBORFactory());
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private IPCClient ipc;
     private Socket sock;
@@ -54,12 +58,12 @@ public class LifecycleIPCTest {
     private int connectionCount = 0;
 
 
-    public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass) throws Exception {
+    public static <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass) throws Exception {
         ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
         return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
     }
 
-    public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type) throws Exception {
+    private void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type) throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
                 .version(LifecycleImpl.API_VERSION).opCode(opCode)
                 .payload(IPCUtil.encode(data)).build();
@@ -72,7 +76,7 @@ public class LifecycleIPCTest {
         FrameReader.writeFrame(messageFrame, out);
     }
 
-    public void writeMessageToSockOutputStream(int opCode, Object data, FrameReader.FrameType type) throws Exception {
+    private void writeMessageToSockOutputStream(int opCode, Object data, FrameReader.FrameType type) throws Exception {
         writeMessageToSockOutputStream(opCode, null, data, type);
     }
 

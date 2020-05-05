@@ -26,9 +26,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
+import static com.aws.iot.evergreen.ipc.lifecycle.LifecycleIPCTest.readMessageFromSockInputStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,13 +49,7 @@ public class ConfigStoreIPCTest {
     private DataOutputStream out;
     private int connectionCount = 0;
 
-    public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass)
-            throws Exception {
-        ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
-        return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
-    }
-
-    public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type)
+    private void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type)
             throws Exception {
         ApplicationMessage transitionEventAppFrame =
                 ApplicationMessage.builder().version(ConfigStoreImpl.API_VERSION).opCode(opCode)
@@ -69,13 +62,9 @@ public class ConfigStoreIPCTest {
         FrameReader.writeFrame(messageFrame, out);
     }
 
-    public void writeMessageToSockOutputStream(int opCode, Object data, FrameReader.FrameType type) throws Exception {
-        writeMessageToSockOutputStream(opCode, null, data, type);
-    }
-
 
     @BeforeEach
-    public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
+    public void before() throws IOException, InterruptedException, IPCClientException {
         server = new ServerSocket(0);
         connectionCount = 0;
         executor.submit(() -> {
@@ -122,25 +111,22 @@ public class ConfigStoreIPCTest {
                     readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
 
             ConfigStoreGenericResponse successResponse =
-                    ConfigStoreGenericResponse.builder().status(ConfigStoreResponseStatus.Success).build();
+                    new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        HashMap<String, Object> newValue = new HashMap<String, Object>() {{
-            put("a", "A");
-        }};
         CountDownLatch cdl = new CountDownLatch(1);
-        configStore.subscribe((newState) -> {
-            assertEquals(newValue, newState);
+        configStore.subscribe((changedKey) -> {
+            assertEquals("a", changedKey);
             cdl.countDown();
         });
         fut.get();
 
-        // Send a VALUE_CHANGED
+        // Send a KEY_CHANGED
         fut = executor.submit(() -> {
-            ConfigValueChangedEvent valueChangedEvent = ConfigValueChangedEvent.builder().newValue(newValue).build();
-            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.VALUE_CHANGED.ordinal(), valueChangedEvent,
+            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("a").build();
+            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
                     readMessageFromSockInputStream(FrameReader.readFrame(in), ConfigStoreResponseStatus.class);
@@ -163,17 +149,18 @@ public class ConfigStoreIPCTest {
                     readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
 
             ConfigStoreGenericResponse successResponse =
-                    ConfigStoreGenericResponse.builder().status(ConfigStoreResponseStatus.Success).build();
+                    new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        HashMap<String, Object> newValue = new HashMap<String, Object>() {{
-            put("a", "A");
-        }};
         CountDownLatch cdl = new CountDownLatch(2);
-        configStore.subscribe((newState) -> {
-            assertEquals(newValue, newState);
+        configStore.subscribe((changedKey) -> {
+            if (cdl.getCount() == 2) {
+                assertEquals("a", changedKey);
+            } else {
+                assertEquals("b", changedKey);
+            }
             cdl.countDown();
         });
         fut.get();
@@ -181,8 +168,8 @@ public class ConfigStoreIPCTest {
 
         // Send a VALUE_CHANGED
         fut = executor.submit(() -> {
-            ConfigValueChangedEvent valueChangedEvent = ConfigValueChangedEvent.builder().newValue(newValue).build();
-            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.VALUE_CHANGED.ordinal(), valueChangedEvent,
+            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("a").build();
+            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
                     readMessageFromSockInputStream(FrameReader.readFrame(in), ConfigStoreResponseStatus.class);
@@ -209,12 +196,12 @@ public class ConfigStoreIPCTest {
                     readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
 
             ConfigStoreGenericResponse successResponse =
-                    ConfigStoreGenericResponse.builder().status(ConfigStoreResponseStatus.Success).build();
+                    new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
 
-            // Make a state VALUE_CHANGED request and send it
-            ConfigValueChangedEvent valueChangedEvent = ConfigValueChangedEvent.builder().newValue(newValue).build();
-            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.VALUE_CHANGED.ordinal(), valueChangedEvent,
+            // Make a KEY_CHANGED request and send it
+            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("b").build();
+            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
                     readMessageFromSockInputStream(FrameReader.readFrame(in), ConfigStoreResponseStatus.class);
@@ -223,7 +210,30 @@ public class ConfigStoreIPCTest {
         });
         fut.get();
 
-        // Make sure the state VALUE_CHANGED handler got called twice despite the disconnection in between
+        // Make sure the KEY_CHANGED handler got called twice despite the disconnection in between
         assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void GIVEN_configstore_client_WHEN_read_THEN_response_has_value() throws Exception {
+        ConfigStore configStore = new ConfigStoreImpl(ipc);
+
+        // validate read request and respond success
+        Future<?> fut = executor.submit(() -> {
+            MessageFrame inFrame = FrameReader.readFrame(in);
+            ConfigStoreReadValueRequest readRequest =
+                    readMessageFromSockInputStream(inFrame, ConfigStoreReadValueRequest.class);
+
+            assertEquals("key", readRequest.getKey());
+
+            ConfigStoreReadValueResponse successResponse = ConfigStoreReadValueResponse.builder().value("ABC")
+                    .responseStatus(ConfigStoreResponseStatus.Success).build();
+            writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
+            return null;
+        });
+
+        Object val = configStore.read("key");
+        fut.get();
+        assertEquals("ABC", val);
     }
 }

@@ -6,16 +6,14 @@
 package com.aws.iot.evergreen.ipc.services.configstore;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfigStoreGenericResponse {
-
-    private ConfigStoreResponseStatus status;
-
-    private String errorMessage;
-
+public class ConfigKeyChangedEvent {
+    private String changedKey;
 }
