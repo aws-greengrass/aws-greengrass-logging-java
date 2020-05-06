@@ -8,16 +8,15 @@ package com.aws.iot.evergreen.ipc.services.common;
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public class IPCUtil {
-    private static final ObjectMapper mapper = new CBORMapper();
+    private static final ObjectMapper mapper = new CBORMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 
     /**
      * Constructs an application packet and embeds that in a protocol packet before sending it to IPC client.

@@ -13,11 +13,15 @@ import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.*;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceResponse;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscovery;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryResponseStatus;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.UpdateResourceRequest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory;
-import com.fasterxml.jackson.jr.ob.JSON;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,13 +33,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.aws.iot.evergreen.ipc.common.FrameReader.*;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
+import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -49,14 +56,7 @@ public class ServiceDiscoveryTest {
     private DataInputStream in;
     private DataOutputStream out;
 
-
-    public <T> T readMessageFromSockInputStream(final MessageFrame inFrame, final Class<T> returnTypeClass)
-            throws Exception {
-        ApplicationMessage reqAppFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
-        return IPCUtil.decode(reqAppFrame.getPayload(), returnTypeClass);
-    }
-
-    public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameType type)
+    private void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameType type)
             throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
                 .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
@@ -68,10 +68,6 @@ public class ServiceDiscoveryTest {
                 new MessageFrame(destination, message, type) :
                 new MessageFrame(requestId, destination, message, type);
         writeFrame(messageFrame, out);
-    }
-
-    public void writeMessageToSockOutputStream(int opCode, Object data, FrameType type) throws Exception {
-        writeMessageToSockOutputStream(opCode, null, data, type);
     }
 
     @BeforeEach
