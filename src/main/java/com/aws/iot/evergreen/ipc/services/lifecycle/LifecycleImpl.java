@@ -12,13 +12,13 @@ import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.lifecycle.exceptions.LifecycleIPCException;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.BiConsumer;
 
 import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.LIFECYCLE;
@@ -49,18 +49,20 @@ public class LifecycleImpl implements Lifecycle {
                 Set<BiConsumer<String, String>> callbacks =
                         stateTransitionCallbacks.get(transitionRequest.getService());
                 if (callbacks != null) {
-                    callbacks.forEach(f -> f.accept(transitionRequest.getOldState(), transitionRequest.getNewState()));
+                    ForkJoinPool.commonPool().submit(() -> callbacks.parallelStream()
+                            .forEach(f -> f.accept(transitionRequest.getOldState(), transitionRequest.getNewState())))
+                            .get();
                 } else {
                     resp = LifecycleResponseStatus.StateTransitionCallbackNotFound;
                 }
             } else {
                 resp = LifecycleResponseStatus.InvalidRequest;
             }
-            ApplicationMessage responseMessage = ApplicationMessage.builder()
-                    .version(request.getVersion()).payload(IPCUtil.encode(resp)).build();
+            ApplicationMessage responseMessage =
+                    ApplicationMessage.builder().version(request.getVersion()).payload(IPCUtil.encode(resp)).build();
 
             return new FrameReader.Message(responseMessage.toByteArray());
-        } catch (IOException ex) {
+        } catch (IOException | InterruptedException | ExecutionException ex) {
             // TODO: Log exception or something else.
             //  https://issues.amazon.com/issues/86453f7c-c94e-4a3c-b8ff-679767e7443c
         }
@@ -117,8 +119,9 @@ public class LifecycleImpl implements Lifecycle {
     private <T> T sendAndReceive(LifecycleServiceOpCodes opCode, Object request, final Class<T> returnTypeClass)
             throws LifecycleIPCException {
         try {
-            CompletableFuture<T> responseFuture = IPCUtil.sendAndReceive(
-                    ipc, LIFECYCLE.getValue(), API_VERSION, opCode.ordinal(), request, returnTypeClass);
+            CompletableFuture<T> responseFuture =
+                    IPCUtil.sendAndReceive(ipc, LIFECYCLE.getValue(), API_VERSION, opCode.ordinal(), request,
+                            returnTypeClass);
             LifecycleGenericResponse response = (LifecycleGenericResponse) responseFuture.get();
             if (!LifecycleResponseStatus.Success.equals(response.getStatus())) {
                 throwOnError(response);
