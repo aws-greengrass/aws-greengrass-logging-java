@@ -32,7 +32,8 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -40,7 +41,6 @@ import java.util.function.Function;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_LENGTH;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.LENGTH_FIELD_OFFSET;
 import static com.aws.iot.evergreen.ipc.codec.MessageFrameEncoder.MAX_PAYLOAD_SIZE;
-import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.AUTH;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.REQUEST;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType.RESPONSE;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
@@ -51,6 +51,7 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 //TODO: throw ipc client specific runtime exceptions
 public class IPCClientImpl implements IPCClient {
 
+    public static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private final MessageHandler messageHandler;
     private final EventLoopGroup eventLoopGroup;
     private final Bootstrap clientBootstrap;

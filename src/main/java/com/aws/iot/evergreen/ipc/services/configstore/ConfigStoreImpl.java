@@ -6,6 +6,7 @@
 package com.aws.iot.evergreen.ipc.services.configstore;
 
 import com.aws.iot.evergreen.ipc.IPCClient;
+import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
@@ -65,7 +66,7 @@ public class ConfigStoreImpl implements ConfigStore {
                 ConfigKeyChangedEvent changedEvent =
                         IPCUtil.decode(request.getPayload(), ConfigKeyChangedEvent.class);
 
-                callbacks.forEach(f -> f.accept(changedEvent.getChangedKey()));
+                IPCClientImpl.EXECUTOR.execute(() -> callbacks.forEach(f -> f.accept(changedEvent.getChangedKey())));
             } else {
                 resp = ConfigStoreResponseStatus.InvalidRequest;
             }
