@@ -136,6 +136,7 @@ public class PersistenceConfig {
             logFileAppender.setName("eg-file");
             logFileAppender.setAppend(true);
             logFileAppender.setFile(storeName);
+            logFileAppender.setEncoder(basicEncoder);
 
             SizeAndTimeBasedRollingPolicy logFilePolicy = new SizeAndTimeBasedRollingPolicy();
             logFilePolicy.setContext(logCtx);

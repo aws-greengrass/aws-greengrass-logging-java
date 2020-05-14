@@ -99,7 +99,7 @@ class LoggerTest {
             assertEquals("DataShortform", context.get("KeyShortform"));
             hitCount.incrementAndGet();
         };
-        EGLogEventBuilder.addGlobalListener(l);
+        Slf4jLogAdapter.addGlobalListener(l);
 
         logger.addDefaultKeyValue("Key", "Data");
 
@@ -108,7 +108,7 @@ class LoggerTest {
         String event = message.getValue();
 
         assertThat(event, containsString("{Key2=Data2, KeyShortform=DataShortform, Key=Data}"));
-        EGLogEventBuilder.removeGlobalListener(l);
+        Slf4jLogAdapter.removeGlobalListener(l);
         assertEquals(1, hitCount.get());
     }
 

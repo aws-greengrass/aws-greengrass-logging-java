@@ -6,8 +6,6 @@
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
-import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
-import com.aws.iot.evergreen.logging.impl.config.LogFormat;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
@@ -16,8 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -25,13 +21,10 @@ import java.util.function.Supplier;
  */
 public class EGLogEventBuilder implements LogEventBuilder {
     private final Level level;
-    private final EvergreenLogConfig config;
     private Throwable cause;
     private String eventType;
     private final Map<String, Object> eventContextData = new ConcurrentHashMap<>();
-    private transient Slf4jLogAdapter logger;
-    private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners =
-            new CopyOnWriteArraySet<>();
+    private final transient Slf4jLogAdapter logger;
 
     /**
      * Log Event Builder constructor.
@@ -40,12 +33,10 @@ public class EGLogEventBuilder implements LogEventBuilder {
      * @param level             the log level setting on the logger
      * @param loggerContextData a map of key value pairs with contextual information for the logger
      */
-    public EGLogEventBuilder(Slf4jLogAdapter logger, Level level, Map<String, Object> loggerContextData,
-                             EvergreenLogConfig config) {
+    public EGLogEventBuilder(Slf4jLogAdapter logger, Level level, Map<String, Object> loggerContextData) {
         this.logger = logger;
         this.level = level;
         eventContextData.putAll(loggerContextData);
-        this.config = config;
     }
 
     @Override
@@ -81,15 +72,6 @@ public class EGLogEventBuilder implements LogEventBuilder {
         return this;
     }
 
-    private String serialize(EvergreenStructuredLogMessage message) {
-        if (LogFormat.TEXT.equals(config.getFormat())) {
-            return message.getTextMessage();
-        } else if (LogFormat.JSON.equals(config.getFormat())) {
-            return message.getJSONMessage();
-        }
-        return "ERROR Unknown LogFormat " + config.getFormat();
-    }
-
     @Override
     public void log() {
         log("");
@@ -104,8 +86,7 @@ public class EGLogEventBuilder implements LogEventBuilder {
         EvergreenStructuredLogMessage message =
                 new EvergreenStructuredLogMessage(logger.getName(), level, eventType, convertToString(arg), contextMap,
                         cause);
-        listeners.forEach(l -> l.accept(message));
-        logger.logMessage(level, serialize(message));
+        logger.logMessage(message);
     }
 
     @Override
@@ -116,14 +97,6 @@ public class EGLogEventBuilder implements LogEventBuilder {
             args = Arrays.copyOfRange(args, 0, args.length - 1);
         }
         log(MessageFormatter.arrayFormat(fmt, args, null).getMessage());
-    }
-
-    public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
-        listeners.add(l);
-    }
-
-    public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
-        listeners.remove(l);
     }
 
     private static String convertToString(Object o) {

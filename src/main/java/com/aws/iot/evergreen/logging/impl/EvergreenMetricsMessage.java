@@ -16,9 +16,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Data
 public class EvergreenMetricsMessage {
@@ -43,19 +40,6 @@ public class EvergreenMetricsMessage {
         this.dimensions.putAll(dimensions);
         this.metrics.addAll(metrics);
         this.namespace = String.valueOf(namespace);
-    }
-
-    /**
-     * Get basic formatted message containing only the metric and dimensions.
-     * @return String
-     */
-    @JsonIgnore
-    public String getFormattedMessage() {
-        return Stream.of(namespace, metrics, dimensions)
-                .filter(Objects::nonNull)
-                .map(Object::toString)
-                .filter((x) -> !x.isEmpty())
-                .collect(Collectors.joining(" "));
     }
 
     /**

@@ -68,7 +68,7 @@ public class EvergreenStructuredLogMessage {
      * @return String
      */
     @JsonIgnore
-    public String getFormattedMessage() {
+    private String getFormattedMessage() {
         return Stream.of(eventType, message, contexts).filter(Objects::nonNull).map(Object::toString)
                 .filter((x) -> !x.isEmpty()).collect(Collectors.joining(". "));
     }
