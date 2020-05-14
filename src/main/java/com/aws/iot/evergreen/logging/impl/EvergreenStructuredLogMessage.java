@@ -83,7 +83,9 @@ public class EvergreenStructuredLogMessage {
     public String getTextMessage() {
         String msg = String.format("%s [%s] (%s) %s: %s",
                 // Create a new SDF every time because SDF isn't threadsafe
-                new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSS").format(new Date(timestamp)), level, thread, loggerName,
+                new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ").format(new Date(timestamp)),
+                level, thread,
+                loggerName,
                 getFormattedMessage());
         if (cause == null) {
             return msg;
