@@ -39,7 +39,9 @@ public class Log4jConfigurationFactory extends ConfigurationFactory {
         String logAppenderName = name.concat(logConfig.CONFIG_PREFIX);
         configureLoggerAppender(logConfig, logAppenderName, builder);
         builder.add(builder.newRootLogger(logConfig.getLevel()).add(builder.newAppenderRef(logAppenderName)));
-        builder.setShutdownHook("disable"); // Disable Log4J shutdown hook
+        // Disable Log4J shutdown hook because otherwise it can shutdown while the kernel is also shutting down
+        // thus preventing us from logging during the kernel shutdown.
+        builder.setShutdownHook("disable");
 
         // Configure metrics logger
         EvergreenMetricsConfig metricsConfig = new EvergreenMetricsConfig();
