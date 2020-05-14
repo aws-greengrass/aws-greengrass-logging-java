@@ -12,13 +12,10 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import javax.measure.unit.Unit;
 
 /**
- * An implementation of {@link MetricsBuilder} providing a fluent API to generate metrics.
- * Not thread safe.
+ * An implementation of {@link MetricsBuilder} providing a fluent API to generate metrics. Not thread safe.
  */
 @NoArgsConstructor
 public class MetricsBuilderImpl implements MetricsBuilder {
@@ -26,7 +23,7 @@ public class MetricsBuilderImpl implements MetricsBuilder {
     private final Map<String, String> defaultDimensions = new HashMap<>();
     private transient MetricsFactoryImpl logger;
     private String namespace;
-    private final List<Metric> metrics = new LinkedList<>();
+    private final List<Metric<?>> metrics = new LinkedList<>();
 
     /**
      * MetricsBuilder constructor.
@@ -76,7 +73,7 @@ public class MetricsBuilderImpl implements MetricsBuilder {
 
     @Override
     public void emit() {
-        defaultDimensions.forEach((k, v) -> this.dimensions.putIfAbsent(k, v));
+        defaultDimensions.forEach(this.dimensions::putIfAbsent);
         EvergreenMetricsMessage message = new EvergreenMetricsMessage(namespace, metrics, dimensions);
         this.logger.logMetrics(message);
         this.dimensions.clear();

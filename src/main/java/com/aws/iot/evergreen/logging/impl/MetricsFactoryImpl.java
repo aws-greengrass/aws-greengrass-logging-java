@@ -8,32 +8,30 @@ package com.aws.iot.evergreen.logging.impl;
 import com.aws.iot.evergreen.logging.api.MetricsBuilder;
 import com.aws.iot.evergreen.logging.api.MetricsFactory;
 import com.aws.iot.evergreen.logging.impl.config.EvergreenMetricsConfig;
-import com.aws.iot.evergreen.logging.impl.plugins.Log4jConfigurationFactory;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An implementation of {@link MetricsFactory} to generate metrics events.
  */
 public class MetricsFactoryImpl implements MetricsFactory {
     // Use a ThreadLocal for MetricsBuilder to reuse the object per thread.
-    private static final ThreadLocal<MetricsBuilderImpl> metricsBuilder = ThreadLocal.withInitial(
-        () -> new MetricsBuilderImpl()
-    );
-    private static MetricsFactory instance = new MetricsFactoryImpl();
+    private static final ThreadLocal<MetricsBuilderImpl> metricsBuilder =
+            ThreadLocal.withInitial(MetricsBuilderImpl::new);
+    private static final MetricsFactory instance = new MetricsFactoryImpl();
+    public static final String METRIC_LOGGER_NAME = "Metrics";
+    private final EvergreenMetricsConfig config;
 
-    private transient org.apache.logging.log4j.Logger logger;
+    private transient Logger logger;
     private final ConcurrentMap<String, String> defaultDimensions = new ConcurrentHashMap<>();
-    private AtomicBoolean enabled = new AtomicBoolean();
 
     private MetricsFactoryImpl() {
-        logger = LogManager.getLogger(Log4jConfigurationFactory.METRICS_LOGGER_NAME);
+        logger = LoggerFactory.getLogger(METRIC_LOGGER_NAME);
         // TODO: get configurations from kernel config
-        setConfig(new EvergreenMetricsConfig());
+        config = EvergreenMetricsConfig.getInstance();
     }
 
     /**
@@ -65,7 +63,7 @@ public class MetricsFactoryImpl implements MetricsFactory {
      * @return true if metrics are enabled, false otherwise.
      */
     public boolean isMetricsEnabled() {
-        return enabled.get();
+        return config.isEnabled();
     }
 
     /**
@@ -74,18 +72,14 @@ public class MetricsFactoryImpl implements MetricsFactory {
      * @param message the EvergreenMetricsMessage to be logged
      */
     public void logMetrics(EvergreenMetricsMessage message) {
-        logger.logMessage(Level.ALL, null, null, null, message, null);
+        logger.trace(message.getJSONMessage());
     }
 
-    public void setConfig(EvergreenMetricsConfig config) {
-        enabled.set(config.isEnabled());
-    }
-
-    public org.apache.logging.log4j.Logger getLogger() {
+    public Logger getLogger() {
         return this.logger;
     }
 
-    public void setLogger(org.apache.logging.log4j.Logger logger) {
+    public void setLogger(Logger logger) {
         this.logger = logger;
     }
 

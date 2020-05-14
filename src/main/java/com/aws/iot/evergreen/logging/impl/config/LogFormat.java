@@ -6,5 +6,5 @@
 package com.aws.iot.evergreen.logging.impl.config;
 
 public enum LogFormat {
-    JSON, CBOR, TEXT
+    JSON, TEXT
 }

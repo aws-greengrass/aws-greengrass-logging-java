@@ -5,11 +5,11 @@
 
 package com.aws.iot.evergreen.logging.impl;
 
-import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.apache.logging.log4j.message.Message;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -20,12 +20,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * An implementation of {@link Message} interface to work with Evergreen {@link StructuredLayout}.
- */
 @Data
-public class EvergreenMetricsMessage implements Message {
-    private static final long serialVersionUID = 0L;
+public class EvergreenMetricsMessage {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final String namespace;
     private final List<Metric> metrics = new LinkedList<>();
@@ -40,7 +37,7 @@ public class EvergreenMetricsMessage implements Message {
      * @param metrics    list of {@link Metric}
      * @param dimensions a map of metrics dimensions
      */
-    public EvergreenMetricsMessage(String namespace, List<Metric> metrics,
+    public EvergreenMetricsMessage(String namespace, List<Metric<?>> metrics,
                                    Map<String, String> dimensions) {
         this.timestamp = Instant.now().toEpochMilli();
         this.dimensions.putAll(dimensions);
@@ -48,8 +45,11 @@ public class EvergreenMetricsMessage implements Message {
         this.namespace = String.valueOf(namespace);
     }
 
+    /**
+     * Get basic formatted message containing only the metric and dimensions.
+     * @return String
+     */
     @JsonIgnore
-    @Override
     public String getFormattedMessage() {
         return Stream.of(namespace, metrics, dimensions)
                 .filter(Objects::nonNull)
@@ -58,21 +58,16 @@ public class EvergreenMetricsMessage implements Message {
                 .collect(Collectors.joining(" "));
     }
 
+    /**
+     * Get JSON encoded metric.
+     * @return String
+     */
     @JsonIgnore
-    @Override
-    public String getFormat() {
-        return null;
-    }
-
-    @JsonIgnore
-    @Override
-    public Object[] getParameters() {
-        return new Object[0];
-    }
-
-    @JsonIgnore
-    @Override
-    public Throwable getThrowable() {
-        return null;
+    public String getJSONMessage() {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        }
     }
 }

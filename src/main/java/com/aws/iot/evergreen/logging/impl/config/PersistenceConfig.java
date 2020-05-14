@@ -5,8 +5,18 @@
 
 package com.aws.iot.evergreen.logging.impl.config;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.encoder.EncoderBase;
+import ch.qos.logback.core.rolling.RollingFileAppender;
+import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
+import ch.qos.logback.core.util.FileSize;
 import lombok.Getter;
+import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -19,7 +29,6 @@ public class PersistenceConfig {
     public static final String DATA_FORMAT_SUFFIX = ".fmt";
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String NUM_ROLLING_FILES_SUFFIX = ".file.numRollingFiles";
-    public static final String TEXT_PATTERN_SUFFIX = ".pattern";
     public static final String STORE_NAME_SUFFIX = ".storeName";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
@@ -31,33 +40,14 @@ public class PersistenceConfig {
     protected LogStore store;
     protected String storeName;
     protected LogFormat format;
-    protected String fileSizeKB;
+    protected long fileSizeKB;
     protected int numRollingFiles;
-    protected String pattern;
-
-    /**
-     * Create PersistenceConfig instance.
-     *
-     * @param store           data storage option
-     * @param format          data output format
-     * @param fileSize        max file size to persist per rolling file
-     * @param numRollingFiles number of files to keep rolling
-     * @param pattern         Log4j text output pattern
-     */
-    public PersistenceConfig(LogStore store, String storeName, LogFormat format, String fileSize, int numRollingFiles,
-                             String pattern) {
-        this.store = store;
-        this.storeName = storeName;
-        this.format = format;
-        this.fileSizeKB = fileSize;
-        this.numRollingFiles = numRollingFiles;
-        this.pattern = pattern;
-    }
+    private RollingFileAppender logFileAppender = null;
 
     /**
      * Get default PersistenceConfig from system properties.
      */
-    public PersistenceConfig(String prefix, String defaultPattern) {
+    public PersistenceConfig(String prefix) {
         LogStore store;
         try {
             store = LogStore.valueOf(System.getProperty(prefix + STORAGE_TYPE_SUFFIX, DEFAULT_STORAGE_TYPE));
@@ -70,7 +60,7 @@ public class PersistenceConfig {
         try {
             format = LogFormat.valueOf(System.getProperty(prefix + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
         } catch (IllegalArgumentException e) {
-            format = LogFormat.CBOR;
+            format = LogFormat.JSON;
         }
         this.format = format;
 
@@ -89,13 +79,11 @@ public class PersistenceConfig {
         }
         this.numRollingFiles = numRollingFiles;
 
-        this.fileSizeKB = Long.toString(totalLogStoreSizeKB / numRollingFiles);
+        this.fileSizeKB = totalLogStoreSizeKB / numRollingFiles;
 
         if (store.equals(LogStore.FILE)) {
             initializeStoreName(prefix);
         }
-
-        this.pattern = System.getProperty(prefix + TEXT_PATTERN_SUFFIX, defaultPattern);
     }
 
     private void initializeStoreName(String prefix) {
@@ -112,5 +100,76 @@ public class PersistenceConfig {
         }
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
                 storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
+    }
+
+    protected void reconfigure(Logger loggerToConfigure) {
+        LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
+
+        BasicEncoder basicEncoder = new BasicEncoder();
+        basicEncoder.setContext(logCtx);
+        basicEncoder.start();
+
+        // Set sub-loggers to inherit this config
+        loggerToConfigure.setAdditive(true);
+        // set backend logger level to trace because we'll be filtering it in the frontend
+        loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
+        // remove all default appenders
+        loggerToConfigure.iteratorForAppenders().forEachRemaining((a) -> {
+            if (!a.getName().startsWith("eg-")) {
+                loggerToConfigure.detachAppender(a);
+                a.stop();
+            }
+        });
+
+        if (LogStore.CONSOLE.equals(store)) {
+            ConsoleAppender logConsoleAppender = new ConsoleAppender();
+            logConsoleAppender.setContext(logCtx);
+            logConsoleAppender.setName("eg-console");
+            logConsoleAppender.setEncoder(basicEncoder);
+            logConsoleAppender.start();
+            loggerToConfigure.addAppender(logConsoleAppender);
+        } else if (LogStore.FILE.equals(store)) {
+            final RollingFileAppender originalAppender = logFileAppender;
+
+            logFileAppender = new RollingFileAppender();
+            logFileAppender.setContext(logCtx);
+            logFileAppender.setName("eg-file");
+            logFileAppender.setAppend(true);
+            logFileAppender.setFile(storeName);
+
+            SizeAndTimeBasedRollingPolicy logFilePolicy = new SizeAndTimeBasedRollingPolicy();
+            logFilePolicy.setContext(logCtx);
+            logFilePolicy.setParent(logFileAppender);
+            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}");
+            logFilePolicy.setMaxHistory(numRollingFiles);
+            logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
+            logFilePolicy.start();
+
+            logFileAppender.setRollingPolicy(logFilePolicy);
+            logFileAppender.start();
+
+            // Add the replacement
+            loggerToConfigure.addAppender(logFileAppender);
+            // Remove the original. These aren't atomic, but we won't be losing any logs
+            loggerToConfigure.detachAppender(originalAppender);
+            originalAppender.stop();
+        }
+    }
+
+    private static class BasicEncoder extends EncoderBase<ILoggingEvent> {
+        @Override
+        public byte[] headerBytes() {
+            return new byte[0];
+        }
+
+        @Override
+        public byte[] encode(ILoggingEvent event) {
+            return (event.getFormattedMessage() + System.lineSeparator()).getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public byte[] footerBytes() {
+            return new byte[0];
+        }
     }
 }

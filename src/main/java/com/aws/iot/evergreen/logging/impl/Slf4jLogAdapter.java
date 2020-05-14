@@ -7,30 +7,33 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import com.aws.iot.evergreen.logging.api.Logger;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.message.Message;
+import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
+import org.slf4j.event.Level;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A wrapper over {@link org.apache.logging.log4j.Logger} in conforming to the
+ * A wrapper over {@link org.slf4j.Logger} in conforming to the
  * {@link com.aws.iot.evergreen.logging.api.Logger} interface.
  */
-public class Log4jLoggerAdapter implements Logger {
-    private transient org.apache.logging.log4j.Logger logger;
+public class Slf4jLogAdapter implements Logger {
+    private transient org.slf4j.Logger logger;
     private final String name;
     private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
+    private final EvergreenLogConfig config;
 
     /**
-     * Create a {@link Logger} instance based on the given {@link org.apache.logging.log4j.Logger} instance.
+     * Create a {@link Logger} instance based on the given {@link org.slf4j.Logger} instance.
      *
-     * @param logger a {@link org.apache.logging.log4j.Logger} instance
+     * @param logger logger implementation
+     * @param config configuration for this logger
      */
-    public Log4jLoggerAdapter(org.apache.logging.log4j.Logger logger) {
+    public Slf4jLogAdapter(org.slf4j.Logger logger, EvergreenLogConfig config) {
         this.logger = logger;
         this.name = logger.getName();
+        this.config = config;
     }
 
     @Override
@@ -124,26 +127,11 @@ public class Log4jLoggerAdapter implements Logger {
         return atLevel(Level.ERROR, eventType, cause);
     }
 
-    @Override
-    public LogEventBuilder atFatal() {
-        return atLevel(Level.FATAL, null, null);
-    }
-
-    @Override
-    public LogEventBuilder atFatal(final String eventType) {
-        return atLevel(Level.FATAL, eventType, null);
-    }
-
-    @Override
-    public LogEventBuilder atFatal(final String eventType, final Throwable cause) {
-        return atLevel(Level.FATAL, eventType, cause);
-    }
-
     private LogEventBuilder atLevel(final Level logLevel,
                                     final String eventType,
                                     final Throwable cause) {
         if (isLogLevelEnabled(logLevel)) {
-            return new Log4jLogEventBuilder(this, logLevel, Collections.unmodifiableMap(loggerContextData))
+            return new EGLogEventBuilder(this, logLevel, Collections.unmodifiableMap(loggerContextData), config)
                     .setCause(cause)
                     .setEventType(eventType);
         }
@@ -152,50 +140,31 @@ public class Log4jLoggerAdapter implements Logger {
 
     @Override
     public boolean isTraceEnabled() {
-        return logger.isTraceEnabled();
+        return isLogLevelEnabled(Level.TRACE);
     }
 
     @Override
     public boolean isDebugEnabled() {
-        return logger.isDebugEnabled();
+        return isLogLevelEnabled(Level.DEBUG);
     }
 
     @Override
     public boolean isInfoEnabled() {
-        return logger.isInfoEnabled();
+        return isLogLevelEnabled(Level.INFO);
     }
 
     @Override
     public boolean isWarnEnabled() {
-        return logger.isWarnEnabled();
+        return isLogLevelEnabled(Level.WARN);
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return logger.isErrorEnabled();
-    }
-
-    @Override
-    public boolean isFatalEnabled() {
-        return logger.isFatalEnabled();
+        return isLogLevelEnabled(Level.ERROR);
     }
 
     private boolean isLogLevelEnabled(final Level logLevel) {
-        // Level is a class with static objects, not enum
-        if (logLevel == Level.TRACE) {
-            return logger.isTraceEnabled();
-        } else if (logLevel == Level.DEBUG) {
-            return logger.isDebugEnabled();
-        } else if (logLevel == Level.INFO) {
-            return logger.isInfoEnabled();
-        } else if (logLevel == Level.WARN) {
-            return logger.isWarnEnabled();
-        } else if (logLevel == Level.ERROR) {
-            return logger.isErrorEnabled();
-        } else if (logLevel == Level.FATAL) {
-            return logger.isFatalEnabled();
-        }
-        return false;
+        return config.getLevel().toInt() <= logLevel.toInt();
     }
 
     @Override
@@ -233,32 +202,42 @@ public class Log4jLoggerAdapter implements Logger {
         }
     }
 
-    @Override
-    public void fatal(String message, Object... args) {
-        if (isFatalEnabled()) {
-            this.log(Level.FATAL, message, args);
-        }
-    }
-
     private void log(Level level, String msg, Object... args) {
-        new Log4jLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
+        new EGLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData), config).log(msg, args);
     }
 
     /**
-     * Log a {@link Message} at the given log level.
+     * Log a String at the given log level.
      *
      * @param level   the log level
-     * @param message the {@link Message} to be logged
+     * @param message the message to be logged
      */
-    public void logMessage(Level level, Message message) {
-        this.logger.logMessage(level, null, null, null, message, message.getThrowable());
+    public void logMessage(Level level, String message) {
+        switch (level) {
+            case ERROR:
+                logger.error(message);
+                break;
+            case WARN:
+                logger.warn(message);
+                break;
+            case INFO:
+                logger.info(message);
+                break;
+            case DEBUG:
+                logger.debug(message);
+                break;
+            case TRACE:
+            default:
+                logger.trace(message);
+                break;
+        }
     }
 
-    public org.apache.logging.log4j.Logger getLogger() {
+    public org.slf4j.Logger getLogger() {
         return this.logger;
     }
 
-    public void setLogger(org.apache.logging.log4j.Logger logger) {
+    public void setLogger(org.slf4j.Logger logger) {
         this.logger = logger;
     }
 }
