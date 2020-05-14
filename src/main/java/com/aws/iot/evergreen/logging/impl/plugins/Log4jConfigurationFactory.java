@@ -7,7 +7,6 @@ package com.aws.iot.evergreen.logging.impl.plugins;
 
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import com.aws.iot.evergreen.logging.impl.config.EvergreenMetricsConfig;
-import com.aws.iot.evergreen.logging.impl.config.LogStore;
 import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -32,7 +31,7 @@ public class Log4jConfigurationFactory extends ConfigurationFactory {
 
         // Set package of plugins
         builder.setConfigurationName(name).setPackages(
-                "com.aws.iot.evergreen.logging.impl.plugins," + "com.aws.iot.evergreen.logging.impl.plugins.layouts");
+                "com.aws.iot.evergreen.logging.impl.plugins,com.aws.iot.evergreen.logging.impl.plugins.layouts");
         builder.setStatusLevel(Level.ERROR);
 
         // Configure root logger
@@ -40,6 +39,7 @@ public class Log4jConfigurationFactory extends ConfigurationFactory {
         String logAppenderName = name.concat(logConfig.CONFIG_PREFIX);
         configureLoggerAppender(logConfig, logAppenderName, builder);
         builder.add(builder.newRootLogger(logConfig.getLevel()).add(builder.newAppenderRef(logAppenderName)));
+        builder.setShutdownHook("disable"); // Disable Log4J shutdown hook
 
         // Configure metrics logger
         EvergreenMetricsConfig metricsConfig = new EvergreenMetricsConfig();
