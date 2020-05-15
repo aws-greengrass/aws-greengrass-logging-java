@@ -6,38 +6,28 @@
 package com.aws.iot.evergreen.logging.impl.config;
 
 import lombok.Getter;
+import lombok.Setter;
+import org.slf4j.LoggerFactory;
+
+import static com.aws.iot.evergreen.logging.impl.MetricsFactoryImpl.METRIC_LOGGER_NAME;
 
 @Getter
 public class EvergreenMetricsConfig extends PersistenceConfig {
-    private static final String DEFAULT_TEXT_METRICS_PATTERN = "%d{yyyy MMM dd HH:mm:ss,SSS} %m%n";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
 
     public static final String METRICS_SWITCH_KEY = "metrics.enabled";
     public static final String CONFIG_PREFIX = "metrics";
 
-    private final boolean enabled;
+    @Setter
+    private boolean enabled;
 
-    /**
-     * Create EvergreenMetricsConfig instance with metrics configurations.
-     *
-     * @param enabled         whether metrics are enabled
-     * @param store           metrics storage option
-     * @param format          metrics output format
-     * @param fileSize        max file size to persist metrics per rolling file
-     * @param numRollingFiles number of files to keep rolling
-     * @param pattern         Log4j text output pattern
-     */
-    public EvergreenMetricsConfig(boolean enabled, LogStore store, String storeName, LogFormat format, String fileSize,
-                                  int numRollingFiles, String pattern) {
-        super(store, storeName, format, fileSize, numRollingFiles, pattern);
-        this.enabled = enabled;
-    }
+    private static final EvergreenMetricsConfig INSTANCE = new EvergreenMetricsConfig();
 
     /**
      * Get default metrics configurations from system properties.
      */
-    public EvergreenMetricsConfig() {
-        super(CONFIG_PREFIX, DEFAULT_TEXT_METRICS_PATTERN);
+    private EvergreenMetricsConfig() {
+        super(CONFIG_PREFIX);
         boolean enabled;
 
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
@@ -47,10 +37,10 @@ public class EvergreenMetricsConfig extends PersistenceConfig {
             enabled = Boolean.parseBoolean(enabledStr);
         }
         this.enabled = enabled;
+        reconfigure((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(METRIC_LOGGER_NAME));
     }
 
-    public EvergreenMetricsConfig(boolean enabled) {
-        super(CONFIG_PREFIX, DEFAULT_TEXT_METRICS_PATTERN);
-        this.enabled = enabled;
+    public static EvergreenMetricsConfig getInstance() {
+        return INSTANCE;
     }
 }

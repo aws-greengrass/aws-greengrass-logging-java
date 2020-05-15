@@ -5,29 +5,29 @@
 
 package com.aws.iot.evergreen.logging.impl;
 
-import com.aws.iot.evergreen.logging.impl.plugins.layouts.StructuredLayout;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.message.Message;
+import org.slf4j.event.Level;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * An implementation of {@link Message} interface to work with Evergreen {@link StructuredLayout}.
- */
 @Data
 @NoArgsConstructor
-public class EvergreenStructuredLogMessage implements Message {
-    private static final long serialVersionUID = 0L;
-
+public class EvergreenStructuredLogMessage {
+    private String thread;
     private String level;
     private String eventType;
     private String message;
@@ -37,8 +37,11 @@ public class EvergreenStructuredLogMessage implements Message {
     @EqualsAndHashCode.Exclude
     private Throwable cause;
 
+    @JsonIgnore
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     /**
-     * Constructor for structured log {@link Message}.
+     * Constructor for structured log message.
      *
      * @param loggerName the name of the logger which the message will be appended to
      * @param level      the log {@link Level} of this log message
@@ -47,9 +50,8 @@ public class EvergreenStructuredLogMessage implements Message {
      * @param context    a map of key value pairs with the contextual information related to the log message
      * @param cause      the {@link Throwable} related to the log message
      */
-    public EvergreenStructuredLogMessage(
-            String loggerName, Level level, String eventType, String msg,
-            Map<String, String> context, Throwable cause) {
+    public EvergreenStructuredLogMessage(String loggerName, Level level, String eventType, String msg,
+                                         Map<String, String> context, Throwable cause) {
         this.level = level.toString();
         this.message = msg;
         this.contexts = context;
@@ -57,35 +59,58 @@ public class EvergreenStructuredLogMessage implements Message {
         this.loggerName = loggerName;
         this.timestamp = Instant.now().toEpochMilli();
         this.cause = cause;
+        this.thread = Thread.currentThread().getName();
     }
 
+    /**
+     * Get basic formatted message containing only the message and context.
+     *
+     * @return String
+     */
     @JsonIgnore
-    @Override
-    public String getFormattedMessage() {
-        return Stream.of(eventType, message, contexts)
-                .filter(Objects::nonNull)
-                .map(Object::toString)
-                .filter((x) -> !x.isEmpty())
-                .collect(Collectors.joining(". "));
+    private String getFormattedMessage() {
+        return Stream.of(eventType, message, contexts).filter(Objects::nonNull).map(Object::toString)
+                .filter((x) -> !x.isEmpty()).collect(Collectors.joining(". "));
     }
 
+    /**
+     * Get fully formatted message including all fields.
+     *
+     * @return String
+     */
     @JsonIgnore
-    @Override
-    public String getFormat() {
-        return null;
+    @SuppressWarnings("checkstyle:emptycatchblock")
+    public String getTextMessage() {
+        String msg = String.format("%s [%s] (%s) %s: %s",
+                // Create a new SDF every time because SDF isn't threadsafe
+                new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ").format(new Date(timestamp)),
+                level, thread,
+                loggerName,
+                getFormattedMessage());
+        if (cause == null) {
+            return msg;
+        }
+
+        try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+            cause.printStackTrace(pw);
+            return msg + System.lineSeparator() + sw.toString();
+        } catch (IOException ignore) {
+            // Not possible
+        }
+        return msg;
     }
 
+    /**
+     * Get the whole message encoded as JSON.
+     *
+     * @return String
+     */
     @JsonIgnore
-    @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
-            justification = "change the serialization format by design and skip parameter values")
-    @Override
-    public Object[] getParameters() {
-        return null;
-    }
-
-    @JsonIgnore
-    @Override
-    public Throwable getThrowable() {
-        return this.cause;
+    public String getJSONMessage() {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        }
     }
 }

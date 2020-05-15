@@ -6,37 +6,34 @@
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.slf4j.event.Level;
+import org.slf4j.helpers.MessageFormatter;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
  */
-public class Log4jLogEventBuilder implements LogEventBuilder {
+public class EGLogEventBuilder implements LogEventBuilder {
     private final Level level;
     private Throwable cause;
     private String eventType;
     private final Map<String, Object> eventContextData = new ConcurrentHashMap<>();
-    private transient Log4jLoggerAdapter logger;
-    private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners
-            = new CopyOnWriteArraySet<>();
+    private final transient Slf4jLogAdapter logger;
 
     /**
      * Log Event Builder constructor.
-     * @param logger the Greengrass logger
-     * @param level the log level setting on the logger
+     *
+     * @param logger            the Greengrass logger
+     * @param level             the log level setting on the logger
      * @param loggerContextData a map of key value pairs with contextual information for the logger
      */
-    public Log4jLogEventBuilder(Log4jLoggerAdapter logger, Level level, Map<String, Object> loggerContextData) {
+    public EGLogEventBuilder(Slf4jLogAdapter logger, Level level, Map<String, Object> loggerContextData) {
         this.logger = logger;
         this.level = level;
         eventContextData.putAll(loggerContextData);
@@ -86,10 +83,10 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
         Map<String, String> contextMap = new HashMap<>();
         eventContextData.forEach((k, v) -> contextMap.put(k, convertToString(v)));
 
-        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage(logger
-                .getName(), level, eventType, arg.toString(), contextMap, cause);
-        listeners.forEach(l -> l.accept(message));
-        logger.logMessage(level, message);
+        EvergreenStructuredLogMessage message =
+                new EvergreenStructuredLogMessage(logger.getName(), level, eventType, convertToString(arg), contextMap,
+                        cause);
+        logger.logMessage(message);
     }
 
     @Override
@@ -99,15 +96,7 @@ public class Log4jLogEventBuilder implements LogEventBuilder {
             cause = (Throwable) args[args.length - 1];
             args = Arrays.copyOfRange(args, 0, args.length - 1);
         }
-        log(new ParameterizedMessage(fmt, args).getFormattedMessage());
-    }
-
-    public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
-        listeners.add(l);
-    }
-
-    public static void removeGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
-        listeners.remove(l);
+        log(MessageFormatter.arrayFormat(fmt, args, null).getMessage());
     }
 
     private static String convertToString(Object o) {

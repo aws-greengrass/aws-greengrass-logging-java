@@ -165,31 +165,6 @@ public interface Logger {
     LogEventBuilder atError(final String eventType, final Throwable cause);
 
     /**
-     * Entry point for fluent logging in FATAL level.
-     *
-     * @return LogEventBuilder instance for level FATAL
-     */
-    LogEventBuilder atFatal();
-
-    /**
-     * Entry point for fluent logging in FATAL level.
-     *
-     * @param eventType Type of the event that generated the log
-     *
-     * @return LogEventBuilder instance for level FATAL
-     */
-    LogEventBuilder atFatal(final String eventType);
-
-    /**
-     * Entry point for fluent logging in FATAL level.
-     *
-     * @param eventType Type of the event that generated the log
-     * @param cause Throwable object for cause if available
-     * @return LogEventBuilder instance for level FATAL
-     */
-    LogEventBuilder atFatal(final String eventType, final Throwable cause);
-
-    /**
      * Check if TRACE level is enabled for the logger.
      *
      * @return True if the TRACE is enabled, false otherwise.
@@ -223,13 +198,6 @@ public interface Logger {
      * @return True if the ERROR is enabled, false otherwise.
      */
     boolean isErrorEnabled();
-
-    /**
-     * Check if FATAL level is enabled for the logger.
-     *
-     * @return True if the FATAL is enabled, false otherwise.
-     */
-    boolean isFatalEnabled();
 
     /**
      * Log a message at the TRACE level according to the specified format
@@ -290,18 +258,6 @@ public interface Logger {
      * @param args    the arguments
      */
     void error(String message, Object... args);
-
-    /**
-     * Log a message at the FATAL level according to the specified format
-     * and argument.
-     *
-     * <p>This form avoids superfluous object creation when the logger
-     * is disabled for the FATAL level.
-     *
-     * @param message the format string
-     * @param args    the arguments
-     */
-    void fatal(String message, Object... args);
 
     // TODO: Add configuration interface and dynamic reload https://sim.amazon.com/issues/P31935972
     // void reloadConfig(topics config);
