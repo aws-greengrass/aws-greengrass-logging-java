@@ -9,7 +9,6 @@ import com.aws.iot.evergreen.logging.api.MetricsFactory;
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -21,13 +20,10 @@ import java.util.concurrent.ConcurrentMap;
 public class LogManager {
 
     // key: name (String), value: a Logger;
-    private static ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> loggerMap =
+    private static final ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> loggerMap =
             new ConcurrentHashMap<>();
     @Getter
     private static final EvergreenLogConfig config = EvergreenLogConfig.getInstance();
-
-    protected LogManager() {
-    }
 
     /**
      * Return an appropriate {@link com.aws.iot.evergreen.logging.api.Logger} instance as specified by the name
@@ -38,7 +34,7 @@ public class LogManager {
      */
     public static com.aws.iot.evergreen.logging.api.Logger getLogger(String name) {
         return loggerMap.computeIfAbsent(name, n -> {
-            Logger logger = LoggerFactory.getLogger(name);
+            Logger logger = config.getLogger(name);
             return new Slf4jLogAdapter(logger, config);
         });
     }

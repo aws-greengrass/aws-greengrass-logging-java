@@ -7,7 +7,6 @@ package com.aws.iot.evergreen.logging.impl.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.slf4j.LoggerFactory;
 
 import static com.aws.iot.evergreen.logging.impl.MetricsFactoryImpl.METRIC_LOGGER_NAME;
 
@@ -37,7 +36,7 @@ public class EvergreenMetricsConfig extends PersistenceConfig {
             enabled = Boolean.parseBoolean(enabledStr);
         }
         this.enabled = enabled;
-        reconfigure((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(METRIC_LOGGER_NAME));
+        reconfigure(EvergreenLogConfig.getInstance().getLogger(METRIC_LOGGER_NAME));
     }
 
     public static EvergreenMetricsConfig getInstance() {
