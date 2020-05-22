@@ -14,10 +14,12 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 /**
  * PersistenceConfig groups the persistence configuration for monitoring data.
@@ -36,17 +38,22 @@ public class PersistenceConfig {
     private static final int DEFAULT_NUM_ROLLING_FILES = 5;
     private static final String DEFAULT_STORE_NAME = "evergreen.";
 
+    protected final String prefix;
     protected LogStore store;
     protected String storeName;
+    @Setter
     protected LogFormat format;
     protected long fileSizeKB;
     protected int numRollingFiles;
-    private RollingFileAppender logFileAppender = null;
+    private RollingFileAppender<ILoggingEvent> logFileAppender = null;
+    private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
+    private Logger logger;
 
     /**
      * Get default PersistenceConfig from system properties.
      */
     public PersistenceConfig(String prefix) {
+        this.prefix = prefix;
         LogStore store;
         try {
             store = LogStore.valueOf(System.getProperty(prefix + STORAGE_TYPE_SUFFIX, DEFAULT_STORAGE_TYPE));
@@ -80,9 +87,27 @@ public class PersistenceConfig {
 
         this.fileSizeKB = totalLogStoreSizeKB / numRollingFiles;
 
-        if (store.equals(LogStore.FILE)) {
-            initializeStoreName(prefix);
-        }
+        initializeStoreName(prefix);
+    }
+
+    public void setStoreType(LogStore store) {
+        this.store = store;
+        reconfigure();
+    }
+
+    public void setStorePath(Path path) {
+        this.storeName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
+        reconfigure();
+    }
+
+    public void setNumRollingFiles(int numRollingFiles) {
+        this.numRollingFiles = numRollingFiles;
+        reconfigure();
+    }
+
+    public void setFileSizeKB(int fileSizeKB) {
+        this.fileSizeKB = fileSizeKB;
+        reconfigure();
     }
 
     private void initializeStoreName(String prefix) {
@@ -101,7 +126,14 @@ public class PersistenceConfig {
                 storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
     }
 
+    protected void reconfigure() {
+        reconfigure(logger);
+    }
+
     protected void reconfigure(Logger loggerToConfigure) {
+        Objects.requireNonNull(loggerToConfigure);
+
+        logger = loggerToConfigure;
         LoggerContext logCtx = loggerToConfigure.getLoggerContext();
 
         BasicEncoder basicEncoder = new BasicEncoder();
@@ -121,38 +153,59 @@ public class PersistenceConfig {
         });
 
         if (LogStore.CONSOLE.equals(store)) {
-            ConsoleAppender logConsoleAppender = new ConsoleAppender();
+            final ConsoleAppender<ILoggingEvent> originalAppender = logConsoleAppender;
+            final RollingFileAppender<ILoggingEvent> fileAppender = logFileAppender;
+            logConsoleAppender = new ConsoleAppender<>();
             logConsoleAppender.setContext(logCtx);
             logConsoleAppender.setName("eg-console");
             logConsoleAppender.setEncoder(basicEncoder);
             logConsoleAppender.start();
-            loggerToConfigure.addAppender(logConsoleAppender);
-        } else if (LogStore.FILE.equals(store)) {
-            final RollingFileAppender originalAppender = logFileAppender;
 
-            logFileAppender = new RollingFileAppender();
+            // Add the replacement
+            loggerToConfigure.addAppender(logConsoleAppender);
+            // Remove the original. These aren't atomic, but we won't be losing any logs
+            if (originalAppender != null) {
+                loggerToConfigure.detachAppender(originalAppender);
+                originalAppender.stop();
+            }
+            if (fileAppender != null) {
+                loggerToConfigure.detachAppender(fileAppender);
+                fileAppender.stop();
+            }
+        } else if (LogStore.FILE.equals(store)) {
+            final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
+            final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
+
+            logFileAppender = new RollingFileAppender<>();
             logFileAppender.setContext(logCtx);
             logFileAppender.setName("eg-file");
             logFileAppender.setAppend(true);
             logFileAppender.setFile(storeName);
             logFileAppender.setEncoder(basicEncoder);
 
-            SizeAndTimeBasedRollingPolicy logFilePolicy = new SizeAndTimeBasedRollingPolicy();
+            SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
-            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}");
+            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}_%i");
             logFilePolicy.setMaxHistory(numRollingFiles);
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 
             logFileAppender.setRollingPolicy(logFilePolicy);
+            logFileAppender.setTriggeringPolicy(logFilePolicy);
             logFileAppender.start();
 
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
-            loggerToConfigure.detachAppender(originalAppender);
-            originalAppender.stop();
+            if (originalAppender != null) {
+                loggerToConfigure.detachAppender(originalAppender);
+                originalAppender.stop();
+            }
+            if (consoleAppender != null) {
+                loggerToConfigure.detachAppender(consoleAppender);
+                consoleAppender.stop();
+            }
         }
     }
 
