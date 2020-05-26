@@ -90,22 +90,51 @@ public class PersistenceConfig {
         initializeStoreName(prefix);
     }
 
+    /**
+     * Change the configured store type.
+     * @param store new store type
+     */
     public void setStoreType(LogStore store) {
+        if (Objects.equals(this.store, store)) {
+            return;
+        }
         this.store = store;
         reconfigure();
     }
 
+    /**
+     * Change the configured store path (only applies for file output).
+     * @param path new path
+     */
     public void setStorePath(Path path) {
-        this.storeName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
+        String newStoreName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
+        if (Objects.equals(this.storeName, newStoreName)) {
+            return;
+        }
+        this.storeName = newStoreName;
         reconfigure();
     }
 
+    /**
+     * Change the configured number of files to keep before deleting (only applies for file output).
+     * @param numRollingFiles how many files to keep before deleting the old ones
+     */
     public void setNumRollingFiles(int numRollingFiles) {
+        if (Objects.equals(this.numRollingFiles, numRollingFiles)) {
+            return;
+        }
         this.numRollingFiles = numRollingFiles;
         reconfigure();
     }
 
-    public void setFileSizeKB(int fileSizeKB) {
+    /**
+     * Change the configured max file size in KB before rolling over (only applies for file output).
+     * @param fileSizeKB new file size in KB
+     */
+    public void setFileSizeKB(long fileSizeKB) {
+        if (Objects.equals(this.fileSizeKB, fileSizeKB)) {
+            return;
+        }
         this.fileSizeKB = fileSizeKB;
         reconfigure();
     }
