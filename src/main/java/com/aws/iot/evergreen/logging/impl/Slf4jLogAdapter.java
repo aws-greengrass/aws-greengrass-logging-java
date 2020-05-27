@@ -28,6 +28,7 @@ public class Slf4jLogAdapter implements Logger {
     private final String name;
     private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
     private final EvergreenLogConfig config;
+    private Level individualLevel = null;
 
     /**
      * Create a {@link Logger} instance based on the given {@link org.slf4j.Logger} instance.
@@ -174,7 +175,11 @@ public class Slf4jLogAdapter implements Logger {
     }
 
     private boolean isLogLevelEnabled(final Level logLevel) {
-        return config.getLevel().toInt() <= logLevel.toInt();
+        Level runningLevel = config.getLevel();
+        if (individualLevel != null) {
+            runningLevel = individualLevel;
+        }
+        return runningLevel.toInt() <= logLevel.toInt();
     }
 
     @Override
@@ -212,6 +217,15 @@ public class Slf4jLogAdapter implements Logger {
         }
     }
 
+    @Override
+    public void setLevel(String level) {
+        if (level == null || level.isEmpty()) {
+            this.individualLevel = null;
+        } else {
+            this.individualLevel = Level.valueOf(level.toUpperCase());
+        }
+    }
+
     private void log(Level level, String msg, Object... args) {
         new EGLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
     }
@@ -230,7 +244,7 @@ public class Slf4jLogAdapter implements Logger {
      *
      * @param m     the message to be logged
      */
-    public void logMessage(EvergreenStructuredLogMessage m) {
+    void logMessage(EvergreenStructuredLogMessage m) {
         listeners.forEach(l -> l.accept(m));
         String message = serialize(m);
         switch (Level.valueOf(m.getLevel())) {
@@ -253,11 +267,11 @@ public class Slf4jLogAdapter implements Logger {
         }
     }
 
-    public org.slf4j.Logger getLogger() {
+    org.slf4j.Logger getLogger() {
         return this.logger;
     }
 
-    public void setLogger(org.slf4j.Logger logger) {
+    void setLogger(org.slf4j.Logger logger) {
         this.logger = logger;
     }
 }

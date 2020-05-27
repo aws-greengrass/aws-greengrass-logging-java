@@ -259,6 +259,10 @@ public interface Logger {
      */
     void error(String message, Object... args);
 
-    // TODO: Add configuration interface and dynamic reload https://sim.amazon.com/issues/P31935972
-    // void reloadConfig(topics config);
+    /**
+     * Change the logger's level.
+     *
+     * @param level new level value
+     */
+    void setLevel(String level);
 }
