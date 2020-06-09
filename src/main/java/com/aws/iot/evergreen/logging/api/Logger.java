@@ -265,4 +265,10 @@ public interface Logger {
      * @param level new level value
      */
     void setLevel(String level);
+
+    /**
+     * Copy this logger to a new logger and inherit the default context.
+     * New logger keeps the old logger's name and will follow the old logger's level.
+     */
+    Logger createChild();
 }
