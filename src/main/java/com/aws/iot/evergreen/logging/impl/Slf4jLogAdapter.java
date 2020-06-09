@@ -12,6 +12,7 @@ import com.aws.iot.evergreen.logging.impl.config.LogFormat;
 import org.slf4j.event.Level;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -24,6 +25,7 @@ import java.util.function.Consumer;
 public class Slf4jLogAdapter implements Logger {
     private static final CopyOnWriteArraySet<Consumer<EvergreenStructuredLogMessage>> listeners =
             new CopyOnWriteArraySet<>();
+    private final Slf4jLogAdapter parentLogger;
     private transient org.slf4j.Logger logger;
     private final String name;
     private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
@@ -37,9 +39,14 @@ public class Slf4jLogAdapter implements Logger {
      * @param config configuration for this logger
      */
     public Slf4jLogAdapter(org.slf4j.Logger logger, EvergreenLogConfig config) {
+        this(logger, config, null);
+    }
+
+    private Slf4jLogAdapter(org.slf4j.Logger logger, EvergreenLogConfig config, Slf4jLogAdapter slf4jLogAdapter) {
         this.logger = logger;
         this.name = logger.getName();
         this.config = config;
+        this.parentLogger = slf4jLogAdapter;
     }
 
     public static void addGlobalListener(Consumer<EvergreenStructuredLogMessage> l) {
@@ -143,7 +150,15 @@ public class Slf4jLogAdapter implements Logger {
 
     private LogEventBuilder atLevel(final Level logLevel, final String eventType, final Throwable cause) {
         if (isLogLevelEnabled(logLevel)) {
-            return new EGLogEventBuilder(this, logLevel, Collections.unmodifiableMap(loggerContextData)).setCause(cause)
+            Map<String, Object> context;
+            if (parentLogger == null) {
+                context = loggerContextData;
+            } else {
+                context = new HashMap<>(parentLogger.loggerContextData);
+                context.putAll(loggerContextData);
+            }
+
+            return new EGLogEventBuilder(this, logLevel, Collections.unmodifiableMap(context)).setCause(cause)
                     .setEventType(eventType);
         }
         return LogEventBuilder.NOOP;
@@ -178,6 +193,8 @@ public class Slf4jLogAdapter implements Logger {
         Level runningLevel = config.getLevel();
         if (individualLevel != null) {
             runningLevel = individualLevel;
+        } else if (parentLogger != null && parentLogger.individualLevel != null) {
+            runningLevel = parentLogger.individualLevel;
         }
         return runningLevel.toInt() <= logLevel.toInt();
     }
@@ -226,6 +243,11 @@ public class Slf4jLogAdapter implements Logger {
         }
     }
 
+    @Override
+    public Logger createChild() {
+        return new Slf4jLogAdapter(this.logger, config, this);
+    }
+
     private void log(Level level, String msg, Object... args) {
         new EGLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
     }
@@ -242,7 +264,7 @@ public class Slf4jLogAdapter implements Logger {
     /**
      * Log a String at the given log level.
      *
-     * @param m     the message to be logged
+     * @param m the message to be logged
      */
     void logMessage(EvergreenStructuredLogMessage m) {
         listeners.forEach(l -> l.accept(m));
