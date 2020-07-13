@@ -51,7 +51,7 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 //TODO: throw ipc client specific runtime exceptions
 public class IPCClientImpl implements IPCClient {
 
-    public static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+    public static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
     private final MessageHandler messageHandler;
     private final EventLoopGroup eventLoopGroup;
     private final Bootstrap clientBootstrap;
