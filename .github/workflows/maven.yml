@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, greengrass]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -29,10 +29,17 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+      # explicitly setting aws creds to prevent aws-maven plugin from picking up wrong creds.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.evergreen_dev_snapshot_access_key_id }}
+          aws-secret-access-key: ${{ secrets.evergreen_dev_snapshot_access_key_secret }}
+          aws-region: us-west-2
       - name: Publish with Maven
-        run: mvn -ntp --settings settings.xml clean deploy -Daccess-key-id=${{ secrets.evergreen_dev_snapshot_access_key_id }} -Daccess-key-secret=${{ secrets.evergreen_dev_snapshot_access_key_secret }} -Devergreen-ipc-java-sdk-repository-url=${{ secrets.evergreen_ipc_java_sdk_dev_snapshot_url }}
+        run: mvn -ntp --settings settings.xml clean deploy -Devergreen-ipc-java-sdk-repository-url=${{ secrets.evergreen_ipc_java_sdk_dev_snapshot_url }}
       - name: Convert Jacoco to Cobertura
-        run: curl -o cover2cover.py https://gist.githubusercontent.com/MikeDombo/82567fccc1b2aced0c76fc053efd5a26/raw/f79f748f37cabb4cedd186321ea70e9fb383815d/cover2cover.py && python3 cover2cover.py target/jacoco-report/jacoco.xml src/main/java > target/jacoco-report/cobertura.xml
+        run: python3 .github/scripts/cover2cover.py target/jacoco-report/jacoco.xml src/main/java > target/jacoco-report/cobertura.xml
       - name: cobertura-report
         uses: 5monkeys/cobertura-action@master
         with:
