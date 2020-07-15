@@ -29,13 +29,6 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      # explicitly setting aws creds to prevent aws-maven plugin from picking up wrong creds.
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.evergreen_dev_snapshot_access_key_id }}
-          aws-secret-access-key: ${{ secrets.evergreen_dev_snapshot_access_key_secret }}
-          aws-region: us-west-2
       - name: Publish with Maven
         run: mvn -ntp --settings settings.xml clean deploy -Devergreen-ipc-java-sdk-repository-url=${{ secrets.evergreen_ipc_java_sdk_dev_snapshot_url }}
       - name: Convert Jacoco to Cobertura
