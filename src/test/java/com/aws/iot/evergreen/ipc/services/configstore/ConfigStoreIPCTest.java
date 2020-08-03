@@ -107,8 +107,8 @@ public class ConfigStoreIPCTest {
         // validate subscribe request and respond success
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = FrameReader.readFrame(in);
-            ConfigStoreSubscribeRequest subscribeRequest =
-                    readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
+            SubscribeToConfigurationUpdateRequest subscribeRequest =
+                    readMessageFromSockInputStream(inFrame, SubscribeToConfigurationUpdateRequest.class);
 
             ConfigStoreGenericResponse successResponse =
                     new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
@@ -117,7 +117,7 @@ public class ConfigStoreIPCTest {
         });
 
         CountDownLatch cdl = new CountDownLatch(1);
-        configStore.subscribe((changedKey) -> {
+        configStore.subscribeToConfigurationUpdate("ABC", (changedKey) -> {
             assertEquals("a", changedKey);
             cdl.countDown();
         });
@@ -125,7 +125,8 @@ public class ConfigStoreIPCTest {
 
         // Send a KEY_CHANGED
         fut = executor.submit(() -> {
-            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("a").build();
+            ConfigurationUpdateEvent valueChangedEvent =
+                    ConfigurationUpdateEvent.builder().componentName("ABC").changedKey("a").build();
             writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
@@ -145,8 +146,8 @@ public class ConfigStoreIPCTest {
         // validate subscribe request and respond success
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = FrameReader.readFrame(in);
-            ConfigStoreSubscribeRequest subscribeRequest =
-                    readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
+            SubscribeToConfigurationUpdateRequest subscribeRequest =
+                    readMessageFromSockInputStream(inFrame, SubscribeToConfigurationUpdateRequest.class);
 
             ConfigStoreGenericResponse successResponse =
                     new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
@@ -155,7 +156,7 @@ public class ConfigStoreIPCTest {
         });
 
         CountDownLatch cdl = new CountDownLatch(2);
-        configStore.subscribe((changedKey) -> {
+        configStore.subscribeToConfigurationUpdate("ABC", (changedKey) -> {
             if (cdl.getCount() == 2) {
                 assertEquals("a", changedKey);
             } else {
@@ -168,7 +169,8 @@ public class ConfigStoreIPCTest {
 
         // Send a VALUE_CHANGED
         fut = executor.submit(() -> {
-            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("a").build();
+            ConfigurationUpdateEvent valueChangedEvent =
+                    ConfigurationUpdateEvent.builder().componentName("ABC").changedKey("a").build();
             writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
@@ -192,15 +194,16 @@ public class ConfigStoreIPCTest {
         fut = executor.submit(() -> {
             // Respond to subscribe request
             MessageFrame inFrame = FrameReader.readFrame(in);
-            ConfigStoreSubscribeRequest subscribeRequest =
-                    readMessageFromSockInputStream(inFrame, ConfigStoreSubscribeRequest.class);
+            SubscribeToConfigurationUpdateRequest subscribeRequest =
+                    readMessageFromSockInputStream(inFrame, SubscribeToConfigurationUpdateRequest.class);
 
             ConfigStoreGenericResponse successResponse =
                     new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
 
             // Make a KEY_CHANGED request and send it
-            ConfigKeyChangedEvent valueChangedEvent = ConfigKeyChangedEvent.builder().changedKey("b").build();
+            ConfigurationUpdateEvent valueChangedEvent =
+                    ConfigurationUpdateEvent.builder().componentName("ABC").changedKey("b").build();
             writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.KEY_CHANGED.ordinal(), null, valueChangedEvent,
                     FrameReader.FrameType.REQUEST);
             ConfigStoreResponseStatus ret =
@@ -221,18 +224,18 @@ public class ConfigStoreIPCTest {
         // validate read request and respond success
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = FrameReader.readFrame(in);
-            ConfigStoreReadValueRequest readRequest =
-                    readMessageFromSockInputStream(inFrame, ConfigStoreReadValueRequest.class);
+            GetConfigurationRequest readRequest =
+                    readMessageFromSockInputStream(inFrame, GetConfigurationRequest.class);
 
             assertEquals("key", readRequest.getKey());
 
-            ConfigStoreReadValueResponse successResponse = ConfigStoreReadValueResponse.builder().value("ABC")
+            GetConfigurationResponse successResponse = GetConfigurationResponse.builder().value("ABC")
                     .responseStatus(ConfigStoreResponseStatus.Success).build();
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        Object val = configStore.read("key");
+        Object val = configStore.getConfiguration("SomeService","key");
         fut.get();
         assertEquals("ABC", val);
     }

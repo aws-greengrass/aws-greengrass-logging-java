@@ -17,11 +17,12 @@ import lombok.ToString;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class ConfigStoreReadValueResponse extends ConfigStoreGenericResponse {
+public class GetConfigurationResponse extends ConfigStoreGenericResponse {
+    private String componentName;
     private Object value;
 
     @Builder
-    public ConfigStoreReadValueResponse(ConfigStoreResponseStatus responseStatus, String errorMessage, Object value) {
+    public GetConfigurationResponse(ConfigStoreResponseStatus responseStatus, String errorMessage, Object value) {
         super(responseStatus, errorMessage);
         this.value = value;
     }

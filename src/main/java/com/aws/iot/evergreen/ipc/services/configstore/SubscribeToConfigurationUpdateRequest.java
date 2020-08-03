@@ -10,10 +10,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @Builder
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfigKeyChangedEvent {
-    private String changedKey;
+public class SubscribeToConfigurationUpdateRequest {
+    private String componentName;
 }
