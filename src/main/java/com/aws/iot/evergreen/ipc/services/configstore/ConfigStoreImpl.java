@@ -62,9 +62,11 @@ public class ConfigStoreImpl implements ConfigStore {
     }
 
     @Override
-    public void updateConfiguration(String key) throws ConfigStoreIPCException {
-        sendAndReceive(ConfigStoreClientOpCodes.GET_CONFIG, UpdateConfigurationRequest.builder().key(key).build(),
-                UpdateConfigurationResponse.class);
+    public void updateConfiguration(String componentName, String key, String value, long timestamp)
+            throws ConfigStoreIPCException {
+        sendAndReceive(ConfigStoreClientOpCodes.GET_CONFIG,
+                UpdateConfigurationRequest.builder().componentName(componentName).key(key).value(value)
+                        .timestamp(timestamp).build(), UpdateConfigurationResponse.class);
     }
 
     @Override

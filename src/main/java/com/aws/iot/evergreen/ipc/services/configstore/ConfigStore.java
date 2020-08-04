@@ -36,10 +36,14 @@ public interface ConfigStore {
     /**
      * Update an existing/ create new config key-value pair for own service config.
      *
+     * @param componentName Component name whose config is being updated
      * @param key Key to update
+     * @param value Proposed value
+     * @param timestamp Proposed timestamp
      * @throws ConfigStoreIPCException for any error
      */
-    void updateConfiguration(String key) throws ConfigStoreIPCException;
+    void updateConfiguration(String componentName, String key, String value, long timestamp)
+            throws ConfigStoreIPCException;
 
     /**
      * Subscribe to validation of dynamically changing config.
