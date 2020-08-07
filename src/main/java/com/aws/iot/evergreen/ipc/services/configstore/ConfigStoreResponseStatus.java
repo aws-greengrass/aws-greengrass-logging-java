@@ -8,5 +8,5 @@ package com.aws.iot.evergreen.ipc.services.configstore;
 import com.aws.iot.evergreen.ipc.common.GenericErrors;
 
 public enum ConfigStoreResponseStatus implements GenericErrors {
-    Success, InternalError, InvalidRequest, Unauthorized, NotFound, NoConfig;
+    Success, ServiceError, InvalidRequest, UnauthorizedError, ResourceNotFoundError, NoConfig;
 }

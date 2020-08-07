@@ -13,9 +13,9 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class UpdateConfigurationResponse extends ConfigStoreGenericResponse {
+public class SendConfigurationValidityReportResponse extends ConfigStoreGenericResponse {
     @Builder
-    public UpdateConfigurationResponse(ConfigStoreResponseStatus responseStatus, String errorMessage) {
+    public SendConfigurationValidityReportResponse(ConfigStoreResponseStatus responseStatus, String errorMessage) {
         super(responseStatus, errorMessage);
     }
 }

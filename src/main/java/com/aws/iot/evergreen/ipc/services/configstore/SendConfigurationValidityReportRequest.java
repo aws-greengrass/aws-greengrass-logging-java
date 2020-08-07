@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReportConfigurationValidityRequest {
+public class SendConfigurationValidityReportRequest {
     ConfigurationValidityStatus status;
     String message;
 }

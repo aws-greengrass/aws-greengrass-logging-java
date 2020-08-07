@@ -16,4 +16,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SubscribeToConfigurationUpdateRequest {
     private String componentName;
+    // TODO : API Design has key name in the request too, add key name if the decision
+    //  is to maintain per key subscriptions
 }

@@ -38,11 +38,11 @@ public interface ConfigStore {
      *
      * @param componentName Component name whose config is being updated
      * @param key Key to update
-     * @param value Proposed value
+     * @param newValue Proposed value
      * @param timestamp Proposed timestamp
      * @throws ConfigStoreIPCException for any error
      */
-    void updateConfiguration(String componentName, String key, String value, long timestamp)
+    void updateConfiguration(String componentName, String key, Object newValue, long timestamp)
             throws ConfigStoreIPCException;
 
     /**
@@ -61,6 +61,6 @@ public interface ConfigStore {
      * @param message additional description to be used in case of failures in validating
      * @throws ConfigStoreIPCException for any error
      */
-    void reportConfigurationValidity(ConfigurationValidityStatus status, String message)
+    void sendConfigurationValidityReport(ConfigurationValidityStatus status, String message)
             throws ConfigStoreIPCException;
 }

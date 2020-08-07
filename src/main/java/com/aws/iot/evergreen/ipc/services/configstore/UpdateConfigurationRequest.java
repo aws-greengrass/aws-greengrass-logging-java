@@ -18,5 +18,5 @@ public class UpdateConfigurationRequest {
     private String componentName;
     private String key;
     private long timestamp;
-    private Object value;
+    private Object newValue;
 }

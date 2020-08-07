@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.CONFIG_STORE;
@@ -26,7 +27,7 @@ public class ConfigStoreImpl implements ConfigStore {
     public static final int API_VERSION = 1;
     private final Map<String, CopyOnWriteArraySet<Consumer<String>>> configUpdateCallbacks = new ConcurrentHashMap<>();
     private final IPCClient ipc;
-    private Consumer<Map<String, Object>> configValidationCallback;
+    private AtomicReference<Consumer<Map<String, Object>>> configValidationCallback = new AtomicReference<>();
 
     /**
      * Make the implementation of the ConfigStore client.
@@ -62,10 +63,10 @@ public class ConfigStoreImpl implements ConfigStore {
     }
 
     @Override
-    public void updateConfiguration(String componentName, String key, String value, long timestamp)
+    public void updateConfiguration(String componentName, String key, Object newValue, long timestamp)
             throws ConfigStoreIPCException {
         sendAndReceive(ConfigStoreClientOpCodes.GET_CONFIG,
-                UpdateConfigurationRequest.builder().componentName(componentName).key(key).value(value)
+                UpdateConfigurationRequest.builder().componentName(componentName).key(key).newValue(newValue)
                         .timestamp(timestamp).build(), UpdateConfigurationResponse.class);
     }
 
@@ -80,16 +81,16 @@ public class ConfigStoreImpl implements ConfigStore {
                 // TODO: Log exception / retry
             }
         });
-        configValidationCallback = validationEventHandler;
+        configValidationCallback.set(validationEventHandler);
         registerConfigValidationSubscription();
     }
 
     @Override
-    public void reportConfigurationValidity(ConfigurationValidityStatus status, String message)
+    public void sendConfigurationValidityReport(ConfigurationValidityStatus status, String message)
             throws ConfigStoreIPCException {
         sendAndReceive(ConfigStoreClientOpCodes.REPORT_CONFIG_VALIDITY,
-                ReportConfigurationValidityRequest.builder().status(status).message(message).build(),
-                ReportConfigurationValidityResponse.class);
+                SendConfigurationValidityReportRequest.builder().status(status).message(message).build(),
+                SendConfigurationValidityReportResponse.class);
     }
 
     private FrameReader.Message onServiceEvent(FrameReader.Message message) {
@@ -108,7 +109,7 @@ public class ConfigStoreImpl implements ConfigStore {
                     ValidateConfigurationUpdateEvent validateEvent =
                             IPCUtil.decode(request.getPayload(), ValidateConfigurationUpdateEvent.class);
                     IPCClientImpl.EXECUTOR
-                            .execute(() -> configValidationCallback.accept(validateEvent.getConfiguration()));
+                            .execute(() -> configValidationCallback.get().accept(validateEvent.getConfiguration()));
                     break;
                 default:
                     resp = ConfigStoreResponseStatus.InvalidRequest;
