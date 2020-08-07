@@ -15,6 +15,7 @@ import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
+import org.hamcrest.collection.IsMapContaining;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 import static com.aws.iot.evergreen.ipc.lifecycle.LifecycleIPCTest.readMessageFromSockInputStream;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -238,5 +241,43 @@ public class ConfigStoreIPCTest {
         Object val = configStore.getConfiguration("SomeService","key");
         fut.get();
         assertEquals("ABC", val);
+    }
+
+    @Test
+    public void GIVEN_subscribed_to_validate_config_WHEN_validation_event_sent_THEN_client_receives_event() throws Exception {
+        ConfigStore configStore = new ConfigStoreImpl(ipc);
+
+        // handle subscribe request
+        Future<?> fut = executor.submit(() -> {
+            MessageFrame inFrame = FrameReader.readFrame(in);
+            SubscribeToValidateConfigurationRequest request =
+                    readMessageFromSockInputStream(inFrame, SubscribeToValidateConfigurationRequest.class);
+
+            ConfigStoreGenericResponse successResponse =
+                    new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
+            writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
+            return null;
+        });
+
+        CountDownLatch cdl = new CountDownLatch(1);
+        configStore.subscribeToValidateConfiguration(configToValidate -> {
+            assertThat(configToValidate, IsMapContaining.hasEntry("key", "value"));
+            cdl.countDown();
+        });
+        fut.get();
+
+        // Send a VALIDATION_EVENT
+        fut = executor.submit(() -> {
+            ValidateConfigurationUpdateEvent validateEvent =
+                    ValidateConfigurationUpdateEvent.builder().configuration(Collections.singletonMap("key", "value")).build();
+            writeMessageToSockOutputStream(ConfigStoreServiceOpCodes.VALIDATION_EVENT.ordinal(), null, validateEvent,
+                    FrameReader.FrameType.REQUEST);
+            ConfigStoreResponseStatus ret =
+                    readMessageFromSockInputStream(FrameReader.readFrame(in), ConfigStoreResponseStatus.class);
+            assertEquals(ConfigStoreResponseStatus.Success, ret);
+            return null;
+        });
+        fut.get();
+        assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
     }
 }

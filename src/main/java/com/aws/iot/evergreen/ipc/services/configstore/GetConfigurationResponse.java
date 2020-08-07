@@ -18,6 +18,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class GetConfigurationResponse extends ConfigStoreGenericResponse {
+    // TODO : component name seems redundant
     private String componentName;
     private Object value;
 
