@@ -23,7 +23,8 @@ public class GetConfigurationResponse extends ConfigStoreGenericResponse {
     private Object value;
 
     @Builder
-    public GetConfigurationResponse(ConfigStoreResponseStatus responseStatus, String errorMessage, Object value) {
+    public GetConfigurationResponse(ConfigStoreResponseStatus responseStatus, String errorMessage,
+                                    String componentName, Object value) {
         super(responseStatus, errorMessage);
         this.value = value;
     }

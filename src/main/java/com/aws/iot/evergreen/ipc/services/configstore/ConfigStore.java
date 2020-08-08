@@ -18,10 +18,11 @@ public interface ConfigStore {
      * Subscribe to config changes of a component.
      *
      * @param componentName whose config is to be read, null value treated as self
+     * @param keyName       key name to subscribe to, if null, subscribes to all configuration
      * @param onKeyChange   a callback function called with the config key which changed
      * @throws ConfigStoreIPCException for any error
      */
-    void subscribeToConfigurationUpdate(String componentName, Consumer<String> onKeyChange)
+    void subscribeToConfigurationUpdate(String componentName, String keyName, Consumer<String> onKeyChange)
             throws ConfigStoreIPCException;
 
     /**
@@ -37,9 +38,9 @@ public interface ConfigStore {
      * Update an existing/ create new config key-value pair for own service config.
      *
      * @param componentName Component name whose config is being updated
-     * @param key Key to update
-     * @param newValue Proposed value
-     * @param timestamp Proposed timestamp
+     * @param key           Key to update
+     * @param newValue      Proposed value
+     * @param timestamp     Proposed timestamp
      * @throws ConfigStoreIPCException for any error
      */
     void updateConfiguration(String componentName, String key, Object newValue, long timestamp)

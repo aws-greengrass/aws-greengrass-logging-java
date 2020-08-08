@@ -11,12 +11,16 @@ import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.configstore.exceptions.ConfigStoreIPCException;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -25,7 +29,9 @@ import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.CON
 
 public class ConfigStoreImpl implements ConfigStore {
     public static final int API_VERSION = 1;
-    private final Map<String, CopyOnWriteArraySet<Consumer<String>>> configUpdateCallbacks = new ConcurrentHashMap<>();
+    private static final String CONFIGURATION_KEY_PATH_DELIMITER = ".";
+    private final Map<ConfigUpdateListenerId, Consumer<String>> configUpdateCallbacks =
+            new ConcurrentHashMap<>();
     private final IPCClient ipc;
     private AtomicReference<Consumer<Map<String, Object>>> configValidationCallback = new AtomicReference<>();
 
@@ -40,20 +46,21 @@ public class ConfigStoreImpl implements ConfigStore {
     }
 
     @Override
-    public synchronized void subscribeToConfigurationUpdate(String componentName, Consumer<String> onKeyChange)
+    public synchronized void subscribeToConfigurationUpdate(String componentName, String keyName,
+                                                            Consumer<String> onKeyChange)
             throws ConfigStoreIPCException {
         // Register with IPC to re-register the listener when the client reconnects
         ipc.onReconnect(() -> {
             try {
-                registerConfigUpdateSubscription(componentName);
+                registerConfigUpdateSubscription(componentName, keyName);
             } catch (ConfigStoreIPCException e) {
                 // TODO: Log exception / retry
             }
         });
 
-        configUpdateCallbacks.putIfAbsent(componentName, new CopyOnWriteArraySet<>());
-        configUpdateCallbacks.get(componentName).add(onKeyChange);
-        registerConfigUpdateSubscription(componentName);
+        ConfigUpdateListenerId configUpdateListenerId = new ConfigUpdateListenerId(componentName, keyName);
+        configUpdateCallbacks.putIfAbsent(configUpdateListenerId, onKeyChange);
+        registerConfigUpdateSubscription(componentName, keyName);
     }
 
     @Override
@@ -102,8 +109,8 @@ public class ConfigStoreImpl implements ConfigStore {
                 case KEY_CHANGED:
                     ConfigurationUpdateEvent changedEvent =
                             IPCUtil.decode(request.getPayload(), ConfigurationUpdateEvent.class);
-                    IPCClientImpl.EXECUTOR.execute(() -> configUpdateCallbacks.get(changedEvent.getComponentName())
-                            .forEach(f -> f.accept(changedEvent.getChangedKey())));
+                    IPCClientImpl.EXECUTOR.execute(() -> getListenersForUpdateEvent(changedEvent.getComponentName(),
+                            changedEvent.getChangedKey()).forEach(f -> f.accept(changedEvent.getChangedKey())));
                     break;
                 case VALIDATION_EVENT:
                     ValidateConfigurationUpdateEvent validateEvent =
@@ -126,9 +133,9 @@ public class ConfigStoreImpl implements ConfigStore {
         return new FrameReader.Message(new byte[0]);
     }
 
-    private void registerConfigUpdateSubscription(String componentName) throws ConfigStoreIPCException {
+    private void registerConfigUpdateSubscription(String componentName, String keyName) throws ConfigStoreIPCException {
         sendAndReceive(ConfigStoreClientOpCodes.SUBSCRIBE_TO_ALL_CONFIG_UPDATES,
-                SubscribeToConfigurationUpdateRequest.builder().componentName(componentName).build(),
+                SubscribeToConfigurationUpdateRequest.builder().componentName(componentName).keyName(keyName).build(),
                 ConfigStoreGenericResponse.class);
     }
 
@@ -158,5 +165,61 @@ public class ConfigStoreImpl implements ConfigStore {
             default:
                 throw new ConfigStoreIPCException(response.getErrorMessage());
         }
+    }
+
+    // This is a temporary workaround to make this one channel per client/component implementation work with
+    // multiple update subscriptions between the client and a destination component as proposed in API design
+    // and implemented on the server side. This workaround is not needed long term as the new SDK will implicitly
+    // fulfill this requirement, for now this does the job while avoiding short term adjustments on the server
+    // side. A more graceful intermediate approach would be to support multiple channels for one IPC client
+    // in the current implementation
+    private Set<Consumer<String>> getListenersForUpdateEvent(String componentName, String changedKey) {
+        // Subscribed key should always be the parent/an ancestor of the changed key
+        // e.g. with below config structure -
+        // services:
+        //   target_component:
+        //     configuration:
+        //       level1_key:
+        //         level2_key:
+        //           level3_key:
+        //             level4_key: value
+        // If the client has subscribed to level2_key and a change to level4_key triggers an update event,
+        // subscription on client side will be tracked as {target_component, level1_key.level2_key} and the
+        // key name in the update event from server side will be level1_key.level2_key.level3_key.level4_key
+        // We exploit this fact to find out the subscribed key for a received changedKey since the event
+        // has component name but not the original key for the subscription for which update event is sent.
+
+        Set<Consumer<String>> listeners = new HashSet<>();
+        if (!changedKey.contains(CONFIGURATION_KEY_PATH_DELIMITER)) {
+            // changed key is the child of configuration namespace e.g.level1_key in above example
+            // check if there is a subscription on all configuration, i.e. subscribe key is null
+            Consumer<String> allConfigListener =
+                    configUpdateCallbacks.get(new ConfigUpdateListenerId(componentName, null));
+            if (allConfigListener != null) {
+                listeners.add(allConfigListener);
+            }
+            Consumer<String> exactKeyListener =
+                    configUpdateCallbacks.get(new ConfigUpdateListenerId(componentName, changedKey));
+            if (exactKeyListener != null) {
+                listeners.add(exactKeyListener);
+            }
+        }
+        // subscribed to specific key under configuration namespace, can be a nested key
+        // lookup all component - key subscriptions to find the ones eligible to handle the received changed key
+        configUpdateCallbacks.entrySet().stream().filter(e -> e.getKey().componentName.equals(componentName))
+                .filter(e -> e.getKey().keySubscribed != null && changedKey.startsWith(e.getKey().keySubscribed))
+                .map(e -> listeners.add(e.getValue()));
+        return listeners;
+    }
+
+    /**
+     * Used to track subscriptions for config update by component and subscribed key.
+     */
+    @EqualsAndHashCode
+    @ToString
+    @AllArgsConstructor
+    private static class ConfigUpdateListenerId {
+        private String componentName;
+        private String keySubscribed;
     }
 }

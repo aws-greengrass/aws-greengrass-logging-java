@@ -39,6 +39,7 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 import static com.aws.iot.evergreen.ipc.lifecycle.LifecycleIPCTest.readMessageFromSockInputStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -112,6 +113,8 @@ public class ConfigStoreIPCTest {
             MessageFrame inFrame = FrameReader.readFrame(in);
             SubscribeToConfigurationUpdateRequest subscribeRequest =
                     readMessageFromSockInputStream(inFrame, SubscribeToConfigurationUpdateRequest.class);
+            assertEquals("ABC", subscribeRequest.getComponentName());
+            assertNull(subscribeRequest.getKeyName());
 
             ConfigStoreGenericResponse successResponse =
                     new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
@@ -120,7 +123,7 @@ public class ConfigStoreIPCTest {
         });
 
         CountDownLatch cdl = new CountDownLatch(1);
-        configStore.subscribeToConfigurationUpdate("ABC", (changedKey) -> {
+        configStore.subscribeToConfigurationUpdate("ABC", null, (changedKey) -> {
             assertEquals("a", changedKey);
             cdl.countDown();
         });
@@ -151,6 +154,8 @@ public class ConfigStoreIPCTest {
             MessageFrame inFrame = FrameReader.readFrame(in);
             SubscribeToConfigurationUpdateRequest subscribeRequest =
                     readMessageFromSockInputStream(inFrame, SubscribeToConfigurationUpdateRequest.class);
+            assertEquals("ABC", subscribeRequest.getComponentName());
+            assertNull(subscribeRequest.getKeyName());
 
             ConfigStoreGenericResponse successResponse =
                     new ConfigStoreGenericResponse(ConfigStoreResponseStatus.Success, null);
@@ -159,7 +164,7 @@ public class ConfigStoreIPCTest {
         });
 
         CountDownLatch cdl = new CountDownLatch(2);
-        configStore.subscribeToConfigurationUpdate("ABC", (changedKey) -> {
+        configStore.subscribeToConfigurationUpdate("ABC", null, (changedKey) -> {
             if (cdl.getCount() == 2) {
                 assertEquals("a", changedKey);
             } else {

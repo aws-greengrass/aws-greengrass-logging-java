@@ -5,9 +5,11 @@
 
 package com.aws.iot.evergreen.ipc.services.configstore;
 
+import com.aws.iot.evergreen.ipc.common.ServiceEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
@@ -16,6 +18,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ValidateConfigurationUpdateEvent {
+@EqualsAndHashCode(callSuper = false)
+public class ValidateConfigurationUpdateEvent extends ServiceEvent {
     private Map<String, Object> configuration;
 }
