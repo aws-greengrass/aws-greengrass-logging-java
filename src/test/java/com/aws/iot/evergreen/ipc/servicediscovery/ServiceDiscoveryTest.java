@@ -5,14 +5,7 @@
 
 package com.aws.iot.evergreen.ipc.servicediscovery;
 
-import com.aws.iot.evergreen.ipc.IPCClient;
-import com.aws.iot.evergreen.ipc.IPCClientImpl;
-import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
-import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
-import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
-import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
-import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
-import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
+import com.aws.iot.evergreen.ipc.common.BaseIPCTest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceResponse;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
@@ -22,84 +15,20 @@ import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryRespo
 import com.aws.iot.evergreen.ipc.services.servicediscovery.UpdateResourceRequest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.AlreadyRegisteredException;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.exceptions.ServiceDiscoveryException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static com.aws.iot.evergreen.ipc.common.FrameReader.FrameType;
-import static com.aws.iot.evergreen.ipc.common.FrameReader.Message;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
-import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
-public class ServiceDiscoveryTest {
-    private ExecutorService executor = Executors.newCachedThreadPool();
-
-    private IPCClient ipc;
-    private Socket sock;
-    private ServerSocket server;
-    private DataInputStream in;
-    private DataOutputStream out;
-
-    private void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameType type)
-            throws Exception {
-        ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
-                .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
-                .payload(IPCUtil.encode(data)).build();
-
-        int destination = BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue();
-        Message message = new Message(transitionEventAppFrame.toByteArray());
-        MessageFrame messageFrame = requestId == null ?
-                new MessageFrame(destination, message, type) :
-                new MessageFrame(requestId, destination, message, type);
-        writeFrame(messageFrame, out);
-    }
-
-    @BeforeEach
-    public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
-        server = new ServerSocket(0);
-        Future<Object> fut = executor.submit(() -> {
-            sock = server.accept();
-            in = new DataInputStream(sock.getInputStream());
-            out = new DataOutputStream(sock.getOutputStream());
-
-            // Read and write auth
-            MessageFrame inFrame = readFrame(in);
-            ApplicationMessage request = ApplicationMessage.fromBytes(inFrame.message.getPayload());
-            AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
-
-            ApplicationMessage response = ApplicationMessage.builder().version(request.getVersion())
-                    .payload(IPCUtil.encode(authResponse)).build();
-            writeFrame(new MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
-                    new Message(response.toByteArray()), FrameType.RESPONSE), out);
-            return null;
-        });
-
-        ipc = new IPCClientImpl(KernelIPCClientConfig.builder().port(server.getLocalPort()).build());
-        fut.get();
-    }
-
-    @AfterEach
-    public void after() throws IOException {
-        ipc.disconnect();
-        sock.close();
-        server.close();
-    }
+public class ServiceDiscoveryTest extends BaseIPCTest {
 
     @Test
     public void testRegister() throws Exception {
