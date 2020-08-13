@@ -12,14 +12,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class ConfigurationUpdateEvent extends ServiceEvent {
-    // TODO: If each target_component-config_key subscription from a client has a dedicated
-    //  stream, is componentName redundant?
     private String componentName;
-    private String changedKey;
+    private List<String> changedKeyPath;
 }

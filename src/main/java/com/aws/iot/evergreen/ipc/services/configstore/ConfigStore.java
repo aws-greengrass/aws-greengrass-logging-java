@@ -7,6 +7,7 @@ package com.aws.iot.evergreen.ipc.services.configstore;
 
 import com.aws.iot.evergreen.ipc.services.configstore.exceptions.ConfigStoreIPCException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -18,32 +19,32 @@ public interface ConfigStore {
      * Subscribe to config changes of a component.
      *
      * @param componentName whose config is to be read, null value treated as self
-     * @param keyName       key name to subscribe to, if null, subscribes to all configuration
+     * @param keyPath       key path to subscribe to, if null, subscribes to all configuration
      * @param onKeyChange   a callback function called with the config key which changed
      * @throws ConfigStoreIPCException for any error
      */
-    void subscribeToConfigurationUpdate(String componentName, String keyName, Consumer<String> onKeyChange)
+    void subscribeToConfigurationUpdate(String componentName, List<String> keyPath, Consumer<List<String>> onKeyChange)
             throws ConfigStoreIPCException;
 
     /**
-     * Get a value of component's config key from the config store.
+     * Get a value of component's config keyPath from the config store.
      *
      * @param componentName whose config is to be read, null value treated as self
-     * @param key           Which key to read
+     * @param keyPath       Which key path to read
      * @throws ConfigStoreIPCException for any error
      */
-    Object getConfiguration(String componentName, String key) throws ConfigStoreIPCException;
+    Object getConfiguration(String componentName, List<String> keyPath) throws ConfigStoreIPCException;
 
     /**
-     * Update an existing/ create new config key-value pair for own service config.
+     * Update an existing / create new config at the given path.
      *
      * @param componentName Component name whose config is being updated
-     * @param key           Key to update
+     * @param keyPath       Path of the key to update
      * @param newValue      Proposed value
      * @param timestamp     Proposed timestamp
      * @throws ConfigStoreIPCException for any error
      */
-    void updateConfiguration(String componentName, String key, Object newValue, long timestamp)
+    void updateConfiguration(String componentName, List<String> keyPath, Object newValue, long timestamp)
             throws ConfigStoreIPCException;
 
     /**
