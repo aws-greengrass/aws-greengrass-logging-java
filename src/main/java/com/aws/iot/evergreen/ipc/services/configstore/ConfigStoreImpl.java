@@ -73,11 +73,11 @@ public class ConfigStoreImpl implements ConfigStore {
     }
 
     @Override
-    public void updateConfiguration(String componentName, List<String> keyPath, Object newValue, long timestamp)
-            throws ConfigStoreIPCException {
+    public void updateConfiguration(String componentName, List<String> keyPath, Object newValue, long timestamp,
+                                    Object currentValue) throws ConfigStoreIPCException {
         sendAndReceive(ConfigStoreClientOpCodes.UPDATE_CONFIG,
                 UpdateConfigurationRequest.builder().componentName(componentName).keyPath(keyPath).newValue(newValue)
-                        .timestamp(timestamp).build(), UpdateConfigurationResponse.class);
+                        .timestamp(timestamp).currentValue(currentValue).build(), UpdateConfigurationResponse.class);
     }
 
     @Override
@@ -224,8 +224,8 @@ public class ConfigStoreImpl implements ConfigStore {
             if (bigList == null || bigList.isEmpty()) {
                 return false;
             }
-            if (bigList.equals(smallList)) {
-                return true;
+            if (bigList.size() < smallList.size()) {
+                return false;
             }
             for (String part : smallList) {
                 if (!part.equals(bigList.get(smallList.indexOf(part)))) {

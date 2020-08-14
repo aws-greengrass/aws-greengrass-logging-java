@@ -42,10 +42,11 @@ public interface ConfigStore {
      * @param keyPath       Path of the key to update
      * @param newValue      Proposed value
      * @param timestamp     Proposed timestamp
+     * @param currentValue  Value to compare the config's current value with, and swap only if it matches
      * @throws ConfigStoreIPCException for any error
      */
-    void updateConfiguration(String componentName, List<String> keyPath, Object newValue, long timestamp)
-            throws ConfigStoreIPCException;
+    void updateConfiguration(String componentName, List<String> keyPath, Object newValue, long timestamp,
+                             Object currentValue) throws ConfigStoreIPCException;
 
     /**
      * Subscribe to validation of dynamically changing config.

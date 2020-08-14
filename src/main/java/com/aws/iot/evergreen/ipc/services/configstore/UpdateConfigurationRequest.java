@@ -21,4 +21,5 @@ public class UpdateConfigurationRequest {
     private List<String> keyPath;
     private long timestamp;
     private Object newValue;
+    private Object currentValue;
 }
