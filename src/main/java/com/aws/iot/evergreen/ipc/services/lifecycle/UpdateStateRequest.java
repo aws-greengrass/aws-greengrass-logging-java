@@ -14,8 +14,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StateTransitionEvent {
-    private String oldState;
-    private String newState;
-    private String service;
+public class UpdateStateRequest {
+    public String state;
 }

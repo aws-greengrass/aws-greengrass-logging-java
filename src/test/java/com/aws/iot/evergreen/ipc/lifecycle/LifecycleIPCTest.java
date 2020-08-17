@@ -16,13 +16,14 @@ import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.lifecycle.Lifecycle;
-import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleClientOpCodes;
 import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleGenericResponse;
 import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleImpl;
-import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleListenRequest;
 import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleResponseStatus;
-import com.aws.iot.evergreen.ipc.services.lifecycle.StateChangeRequest;
-import com.aws.iot.evergreen.ipc.services.lifecycle.StateTransitionEvent;
+import com.aws.iot.evergreen.ipc.services.lifecycle.LifecycleServiceOpCodes;
+import com.aws.iot.evergreen.ipc.services.lifecycle.PostComponentUpdateEvent;
+import com.aws.iot.evergreen.ipc.services.lifecycle.PreComponentUpdateEvent;
+import com.aws.iot.evergreen.ipc.services.lifecycle.SubscribeToComponentUpdatesResponse;
+import com.aws.iot.evergreen.ipc.services.lifecycle.UpdateStateRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,52 +125,59 @@ public class LifecycleIPCTest {
 
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = readFrame(in);
-            StateChangeRequest stateChangeRequest = readMessageFromSockInputStream(inFrame, StateChangeRequest.class);
-            assertEquals("Errored", stateChangeRequest.getState());
+            UpdateStateRequest updateStateRequest = readMessageFromSockInputStream(inFrame, UpdateStateRequest.class);
+            assertEquals("Errored", updateStateRequest.getState());
 
-            LifecycleGenericResponse lifeCycleGenericResponse = LifecycleGenericResponse.builder().status(LifecycleResponseStatus.Success).build();
+            LifecycleGenericResponse lifeCycleGenericResponse =
+                    new LifecycleGenericResponse(LifecycleResponseStatus.Success, null);
             writeMessageToSockOutputStream(1, inFrame.requestId, lifeCycleGenericResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        lf.reportState("Errored");
+        lf.updateState("Errored");
         fut.get();
     }
 
     @Test
-    public void GIVEN_lifecycle_client_WHEN_listenToStateChange_THEN_called_for_each_state_change() throws Exception {
+    public void GIVEN_lifecycle_client_WHEN_subscribed_to_component_Update_THEN_called_for_each_event()
+            throws Exception {
         Lifecycle lf = new LifecycleImpl(ipc);
 
-        // validate listenToStateChanges request and respond success
+        // validate subscribe request and response
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = FrameReader.readFrame(in);
-            LifecycleListenRequest lifecycleListenRequest = readMessageFromSockInputStream(inFrame, LifecycleListenRequest.class);
-            assertEquals("me", lifecycleListenRequest.getServiceName());
+            byte[] dummypayload = readMessageFromSockInputStream(inFrame, byte[].class);
+            assertTrue(dummypayload.length == 0);
 
-            LifecycleGenericResponse successResponse = LifecycleGenericResponse.builder().status(LifecycleResponseStatus.Success).build();
+            LifecycleGenericResponse successResponse = SubscribeToComponentUpdatesResponse.builder()
+                    .responseStatus(LifecycleResponseStatus.Success).build();
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        CountDownLatch cdl = new CountDownLatch(1);
-        lf.listenToStateChanges("me", (oldState, newState) -> {
-            assertEquals("New", newState);
-            assertEquals("Old", oldState);
+        CountDownLatch cdl = new CountDownLatch(2);
+        lf.subscribeToComponentUpdate( componentUpdateEvent -> {
             cdl.countDown();
         });
         fut.get();
 
-        // Send a state STATE_TRANSITION
+        // Send a both component update events
         fut = executor.submit(() -> {
 
-            StateTransitionEvent stateTransitionEvent = StateTransitionEvent.builder()
-                    .service("me").newState("New").oldState("Old").build();
-            writeMessageToSockOutputStream(LifecycleClientOpCodes.STATE_TRANSITION.ordinal(), stateTransitionEvent, FrameReader.FrameType.REQUEST);
+            PreComponentUpdateEvent preComponentUpdateEvent = new PreComponentUpdateEvent();
+            writeMessageToSockOutputStream(LifecycleServiceOpCodes.PRE_COMPONENT_UPDATE_EVENT.ordinal(),
+                    preComponentUpdateEvent, FrameReader.FrameType.REQUEST);
             LifecycleResponseStatus ret = readMessageFromSockInputStream(FrameReader.readFrame(in), LifecycleResponseStatus.class);
+            assertEquals(LifecycleResponseStatus.Success, ret);
+
+            PostComponentUpdateEvent postComponentUpdateEvent = new PostComponentUpdateEvent();
+            writeMessageToSockOutputStream(LifecycleServiceOpCodes.POST_COMPONENT_UPDATE_EVENT.ordinal(),
+                    postComponentUpdateEvent, FrameReader.FrameType.REQUEST);
+            ret = readMessageFromSockInputStream(FrameReader.readFrame(in), LifecycleResponseStatus.class);
             assertEquals(LifecycleResponseStatus.Success, ret);
             return null;
         });
-        fut.get();
+        //fut.get();
         assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
     }
 
@@ -178,36 +186,34 @@ public class LifecycleIPCTest {
             throws Exception {
         Lifecycle lf = new LifecycleImpl(ipc);
 
+        // validate subscribe request and response
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = FrameReader.readFrame(in);
-            LifecycleListenRequest lifecycleListenRequest = readMessageFromSockInputStream(inFrame, LifecycleListenRequest.class);
-            assertEquals("me", lifecycleListenRequest.getServiceName());
+            byte[] dummypayload = readMessageFromSockInputStream(inFrame, byte[].class);
+            assertTrue(dummypayload.length == 0);
 
-            LifecycleGenericResponse successResponse = LifecycleGenericResponse.builder().status(LifecycleResponseStatus.Success).build();
+            LifecycleGenericResponse successResponse = SubscribeToComponentUpdatesResponse.builder()
+                    .responseStatus(LifecycleResponseStatus.Success).build();
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
             return null;
         });
 
-        CountDownLatch cdl = new CountDownLatch(1);
-        lf.listenToStateChanges("me", (oldState, newState) -> {
-            assertEquals("New", newState);
-            assertEquals("Old", oldState);
+        CountDownLatch cdl = new CountDownLatch(2);
+        lf.subscribeToComponentUpdate( componentUpdateEvent -> {
             cdl.countDown();
         });
         fut.get();
 
-
-        // Send a state STATE_TRANSITION
+        // Send a component update event
         fut = executor.submit(() -> {
-            StateTransitionEvent event = StateTransitionEvent.builder()
-                    .service("me").newState("New").oldState("Old").build();
-            writeMessageToSockOutputStream(LifecycleClientOpCodes.STATE_TRANSITION.ordinal(), event, FrameReader.FrameType.REQUEST);
+            PreComponentUpdateEvent preComponentUpdateEvent = new PreComponentUpdateEvent();
+            writeMessageToSockOutputStream(LifecycleServiceOpCodes.PRE_COMPONENT_UPDATE_EVENT.ordinal(),
+                    preComponentUpdateEvent, FrameReader.FrameType.REQUEST);
             LifecycleResponseStatus ret = readMessageFromSockInputStream(FrameReader.readFrame(in), LifecycleResponseStatus.class);
             assertEquals(LifecycleResponseStatus.Success, ret);
             return null;
         });
         fut.get();
-
 
         // Kill the connection to force a reconnect
         sock.close();
@@ -222,17 +228,15 @@ public class LifecycleIPCTest {
         fut = executor.submit(() -> {
             // Respond to listen request
             MessageFrame inFrame = FrameReader.readFrame(in);
-            LifecycleListenRequest lifecycleListenRequest = readMessageFromSockInputStream(inFrame, LifecycleListenRequest.class);
-            assertEquals("me", lifecycleListenRequest.getServiceName());
-
-            LifecycleGenericResponse successResponse = LifecycleGenericResponse.builder().status(LifecycleResponseStatus.Success).build();
-
+            byte[] dummypayload = readMessageFromSockInputStream(inFrame, byte[].class);
+            assertTrue(dummypayload.length == 0);
+            LifecycleGenericResponse successResponse = SubscribeToComponentUpdatesResponse.builder()
+                    .responseStatus(LifecycleResponseStatus.Success).build();
             writeMessageToSockOutputStream(1, inFrame.requestId, successResponse, FrameReader.FrameType.RESPONSE);
 
-            // Make a state STATE_TRANSITION request and send it
-            StateTransitionEvent stateTransitionEvent = StateTransitionEvent.builder()
-                    .service("me").newState("New").oldState("Old").build();
-            writeMessageToSockOutputStream(LifecycleClientOpCodes.STATE_TRANSITION.ordinal(), stateTransitionEvent, FrameReader.FrameType.REQUEST);
+            PreComponentUpdateEvent preComponentUpdateEvent = new PreComponentUpdateEvent();
+            writeMessageToSockOutputStream(LifecycleServiceOpCodes.PRE_COMPONENT_UPDATE_EVENT.ordinal(),
+                    preComponentUpdateEvent, FrameReader.FrameType.REQUEST);
             LifecycleResponseStatus ret = readMessageFromSockInputStream(FrameReader.readFrame(in), LifecycleResponseStatus.class);
             assertEquals(LifecycleResponseStatus.Success, ret);
             return null;
