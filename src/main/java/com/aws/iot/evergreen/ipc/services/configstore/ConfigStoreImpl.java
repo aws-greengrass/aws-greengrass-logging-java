@@ -108,23 +108,28 @@ public class ConfigStoreImpl implements ConfigStore {
         try {
             ApplicationMessage request = ApplicationMessage.fromBytes(message.getPayload());
             ConfigStoreResponseStatus resp = ConfigStoreResponseStatus.Success;
-            ConfigStoreServiceOpCodes opCode = ConfigStoreServiceOpCodes.values()[request.getOpCode()];
-            switch (opCode) {
-                case KEY_CHANGED:
-                    ConfigurationUpdateEvent changedEvent =
-                            IPCUtil.decode(request.getPayload(), ConfigurationUpdateEvent.class);
-                    IPCClientImpl.EXECUTOR.execute(() -> getListenersForUpdateEvent(changedEvent.getComponentName(),
-                            changedEvent.getChangedKeyPath()).forEach(f -> f.accept(changedEvent.getChangedKeyPath())));
-                    break;
-                case VALIDATION_EVENT:
-                    ValidateConfigurationUpdateEvent validateEvent =
-                            IPCUtil.decode(request.getPayload(), ValidateConfigurationUpdateEvent.class);
-                    IPCClientImpl.EXECUTOR
-                            .execute(() -> configValidationCallback.get().accept(validateEvent.getConfiguration()));
-                    break;
-                default:
-                    resp = ConfigStoreResponseStatus.InvalidRequest;
-                    break;
+            if (ConfigStoreServiceOpCodes.values().length > request.getOpCode()) {
+                ConfigStoreServiceOpCodes opCode = ConfigStoreServiceOpCodes.values()[request.getOpCode()];
+                switch (opCode) {
+                    case KEY_CHANGED:
+                        ConfigurationUpdateEvent changedEvent =
+                                IPCUtil.decode(request.getPayload(), ConfigurationUpdateEvent.class);
+                        IPCClientImpl.EXECUTOR.execute(() -> getListenersForUpdateEvent(changedEvent.getComponentName(),
+                                changedEvent.getChangedKeyPath())
+                                .forEach(f -> f.accept(changedEvent.getChangedKeyPath())));
+                        break;
+                    case VALIDATION_EVENT:
+                        ValidateConfigurationUpdateEvent validateEvent =
+                                IPCUtil.decode(request.getPayload(), ValidateConfigurationUpdateEvent.class);
+                        IPCClientImpl.EXECUTOR
+                                .execute(() -> configValidationCallback.get().accept(validateEvent.getConfiguration()));
+                        break;
+                    default:
+                        resp = ConfigStoreResponseStatus.InvalidRequest;
+                        break;
+                }
+            } else {
+                resp = ConfigStoreResponseStatus.InvalidRequest;
             }
             ApplicationMessage responseMessage =
                     ApplicationMessage.builder().version(request.getVersion()).payload(IPCUtil.encode(resp)).build();
