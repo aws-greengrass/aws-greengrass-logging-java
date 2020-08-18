@@ -6,5 +6,5 @@
 package com.aws.iot.evergreen.ipc.services.configstore;
 
 public enum ConfigStoreServiceOpCodes {
-    KEY_CHANGED;
+    KEY_CHANGED, VALIDATION_EVENT;
 }

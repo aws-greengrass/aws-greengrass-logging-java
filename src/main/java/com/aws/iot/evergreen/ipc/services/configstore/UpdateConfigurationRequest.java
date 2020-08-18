@@ -10,10 +10,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfigKeyChangedEvent {
-    private String changedKey;
+public class UpdateConfigurationRequest {
+    private String componentName;
+    private List<String> keyPath;
+    private long timestamp;
+    private Object newValue;
+    private Object currentValue;
 }

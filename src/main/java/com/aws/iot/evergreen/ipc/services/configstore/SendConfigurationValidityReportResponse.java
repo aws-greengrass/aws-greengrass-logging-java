@@ -13,16 +13,12 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@NoArgsConstructor
 @ToString(callSuper = true)
-public class ConfigStoreReadValueResponse extends ConfigStoreGenericResponse {
-    private Object value;
-
+public class SendConfigurationValidityReportResponse extends ConfigStoreGenericResponse {
     @Builder
-    public ConfigStoreReadValueResponse(ConfigStoreResponseStatus responseStatus, String errorMessage, Object value) {
+    public SendConfigurationValidityReportResponse(ConfigStoreResponseStatus responseStatus, String errorMessage) {
         super(responseStatus, errorMessage);
-        this.value = value;
     }
 }
