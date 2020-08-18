@@ -5,7 +5,12 @@
 
 package com.aws.iot.evergreen.ipc.services.configstore;
 
-public enum ConfigStoreClientOpCodes {
-    SUBSCRIBE_TO_ALL_CONFIG_UPDATES, GET_CONFIG, UPDATE_CONFIG, SUBSCRIBE_TO_CONFIG_VALIDATION,
-    SEND_CONFIG_VALIDATION_REPORT;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Builder
+@Data
+@NoArgsConstructor
+public class SubscribeToValidateConfigurationRequest {
 }

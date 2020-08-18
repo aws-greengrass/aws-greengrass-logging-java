@@ -5,12 +5,6 @@
 
 package com.aws.iot.evergreen.ipc.services.configstore;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@Builder
-@NoArgsConstructor
-public class ConfigStoreSubscribeRequest {
+public enum ConfigurationValidityStatus {
+    VALID, INVALID;
 }
