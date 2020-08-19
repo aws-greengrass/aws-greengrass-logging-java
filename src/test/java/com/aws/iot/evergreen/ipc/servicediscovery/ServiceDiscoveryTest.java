@@ -6,6 +6,7 @@
 package com.aws.iot.evergreen.ipc.servicediscovery;
 
 import com.aws.iot.evergreen.ipc.common.BaseIPCTest;
+import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceRequest;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.RegisterResourceResponse;
 import com.aws.iot.evergreen.ipc.services.servicediscovery.Resource;
@@ -42,7 +43,8 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
             RegisterResourceResponse registerResourceResponse = RegisterResourceResponse.builder()
                     .resource(Resource.builder().name("ABC").build())
                     .responseStatus(ServiceDiscoveryResponseStatus.Success).build();
-            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse, FrameType.RESPONSE);
+            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse,
+                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
             return null;
         });
 
@@ -63,7 +65,8 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
 
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = readFrame(in);
-            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse, FrameType.RESPONSE);
+            writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse,
+                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
             return null;
         });
         AlreadyRegisteredException ex = assertThrows(AlreadyRegisteredException.class, () -> sd.registerResource(req));
@@ -84,7 +87,8 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
                     .resource(Resource.builder().name("ABC").build())
                     .publishToDNSSD(true).publishToDNSSD(true).build();
 
-            writeMessageToSockOutputStream(1, inFrame.requestId, updateResourceRequest, FrameType.RESPONSE);
+            writeMessageToSockOutputStream(1, inFrame.requestId, updateResourceRequest,
+                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
             return null;
         });
 

@@ -33,13 +33,16 @@ public class BaseIPCTest {
     public DataInputStream in;
     public DataOutputStream out;
 
-    public void writeMessageToSockOutputStream(int opCode, Integer requestId, Object data, FrameReader.FrameType type)
+    public void writeMessageToSockOutputStream(int opCode,
+                                               Integer requestId,
+                                               Object data,
+                                               FrameReader.FrameType type,
+                                               int destination)
             throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
                 .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
                 .payload(IPCUtil.encode(data)).build();
 
-        int destination = BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue();
         FrameReader.Message message = new FrameReader.Message(transitionEventAppFrame.toByteArray());
         FrameReader.MessageFrame messageFrame = requestId == null ?
                 new FrameReader.MessageFrame(destination, message, type) :
