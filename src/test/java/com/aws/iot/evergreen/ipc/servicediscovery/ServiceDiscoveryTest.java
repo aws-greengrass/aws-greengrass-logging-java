@@ -44,7 +44,9 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
                     .resource(Resource.builder().name("ABC").build())
                     .responseStatus(ServiceDiscoveryResponseStatus.Success).build();
             writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse,
-                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
+                    FrameType.RESPONSE,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(),
+                    ServiceDiscoveryImpl.API_VERSION);
             return null;
         });
 
@@ -66,7 +68,9 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
         Future<?> fut = executor.submit(() -> {
             MessageFrame inFrame = readFrame(in);
             writeMessageToSockOutputStream(1, inFrame.requestId, registerResourceResponse,
-                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
+                    FrameType.RESPONSE,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(),
+                    ServiceDiscoveryImpl.API_VERSION);
             return null;
         });
         AlreadyRegisteredException ex = assertThrows(AlreadyRegisteredException.class, () -> sd.registerResource(req));
@@ -88,7 +92,9 @@ public class ServiceDiscoveryTest extends BaseIPCTest {
                     .publishToDNSSD(true).publishToDNSSD(true).build();
 
             writeMessageToSockOutputStream(1, inFrame.requestId, updateResourceRequest,
-                    FrameType.RESPONSE, BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue());
+                    FrameType.RESPONSE,
+                    BuiltInServiceDestinationCode.SERVICE_DISCOVERY.getValue(),
+                    ServiceDiscoveryImpl.API_VERSION);
             return null;
         });
 

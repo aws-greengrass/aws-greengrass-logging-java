@@ -9,6 +9,7 @@ import com.aws.iot.evergreen.ipc.common.BaseIPCTest;
 import com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode;
 import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.services.secret.exception.SecretIPCException;
+import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,7 +49,9 @@ public class SecretIPCTest extends BaseIPCTest {
                     .build();
 
             writeMessageToSockOutputStream(1, inFrame.requestId, result,
-                    FrameReader.FrameType.RESPONSE, BuiltInServiceDestinationCode.SECRET.getValue());
+                    FrameReader.FrameType.RESPONSE,
+                    BuiltInServiceDestinationCode.SECRET.getValue(),
+                    SecretImpl.API_VERSION);
             return null;
         });
 

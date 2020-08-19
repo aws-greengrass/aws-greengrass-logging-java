@@ -37,10 +37,11 @@ public class BaseIPCTest {
                                                Integer requestId,
                                                Object data,
                                                FrameReader.FrameType type,
-                                               int destination)
+                                               int destination,
+                                               int version)
             throws Exception {
         ApplicationMessage transitionEventAppFrame = ApplicationMessage.builder()
-                .version(ServiceDiscoveryImpl.API_VERSION).opCode(opCode)
+                .version(version).opCode(opCode)
                 .payload(IPCUtil.encode(data)).build();
 
         FrameReader.Message message = new FrameReader.Message(transitionEventAppFrame.toByteArray());
