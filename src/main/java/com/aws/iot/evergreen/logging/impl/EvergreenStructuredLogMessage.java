@@ -38,6 +38,11 @@ public class EvergreenStructuredLogMessage {
     private Throwable cause;
 
     @JsonIgnore
+    private static final String ANSI_RESET = "\u001B[0m";
+    @JsonIgnore
+    private static final String ANSI_RED = "\u001B[31m";
+
+    @JsonIgnore
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
@@ -98,6 +103,40 @@ public class EvergreenStructuredLogMessage {
             // Not possible
         }
         return msg;
+    }
+
+    /**
+     * Abbreviate the fully qualified name of a class only the last directory containing it and its own name.
+     *
+     * @param name the fully qualified name of class
+     * @return String
+     */
+    @JsonIgnore
+    private String abbreviate(String name) {
+        String[] splitArray = name.split("\\.");
+        return splitArray.length < 2 ? name
+                : splitArray[splitArray.length - 2] + "." + splitArray[splitArray.length - 1];
+    }
+
+    /**
+     * Get abbreviated formatted message including all fields but thread.
+     * Abbreviate loggerName. Replace full stacktrace of cause to only its message.
+     *
+     * @return String
+     */
+    @JsonIgnore
+    public String getAbbreviatedMessage() {
+        String msg = String.format("%s [%s] %s: %s",
+                // Create a new SDF every time because SDF isn't threadsafe
+                new SimpleDateFormat("yyyy-MM-dd hh:mm:ss z").format(new Date(timestamp)),
+                level,
+                loggerName != null ? abbreviate(loggerName) : null,
+                getFormattedMessage());
+
+        if (cause == null) {
+            return msg;
+        }
+        return msg + System.lineSeparator() + ANSI_RED + "Exception: " + ANSI_RESET + cause.getMessage();
     }
 
     /**

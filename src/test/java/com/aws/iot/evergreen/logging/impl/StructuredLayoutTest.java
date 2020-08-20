@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -73,5 +75,14 @@ public class StructuredLayoutTest {
             EvergreenStructuredLogMessage message = messages.get(i);
             assertEquals(message.getTextMessage(), appendedMessages[i]);
         }
+    }
+
+    @Test
+    public void GIVEN_abbreviated_text_appender_WHEN_write_log_events_THEN_events_are_patterned_as_abbreviated_text() {
+        EvergreenStructuredLogMessage message = new EvergreenStructuredLogMessage("com.aws.evergreen.Logger",
+                Level.INFO, null, "message 1", new HashMap<String, String>() {{
+            put("key", "value");
+        }}, null);
+        assertThat(message.getAbbreviatedMessage(), containsString("[INFO] evergreen.Logger: message 1. {key=value}"));
     }
 }
