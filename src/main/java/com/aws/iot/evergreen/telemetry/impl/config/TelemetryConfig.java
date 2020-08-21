@@ -3,35 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.aws.iot.evergreen.logging.impl.config;
+package com.aws.iot.evergreen.telemetry.impl.config;
 
+
+import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
+import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
 import lombok.Setter;
 
-import static com.aws.iot.evergreen.logging.impl.MetricsFactoryImpl.METRIC_LOGGER_NAME;
+import static com.aws.iot.evergreen.telemetry.impl.MetricFactory.METRIC_LOGGER_NAME;
 
 @Getter
-public class EvergreenMetricsConfig extends PersistenceConfig {
-    private static final Boolean DEFAULT_METRICS_SWITCH = true;
+public class TelemetryConfig extends PersistenceConfig {
 
-    public static final String METRICS_SWITCH_KEY = "metrics.enabled";
     public static final String CONFIG_PREFIX = "metrics";
+    public static final String METRICS_SWITCH_KEY = "metrics.enabled";
+    private static final Boolean DEFAULT_METRICS_SWITCH = true;
 
     @Setter
     private boolean enabled;
-
-    private static final EvergreenMetricsConfig INSTANCE = new EvergreenMetricsConfig();
+    private static final TelemetryConfig INSTANCE = new TelemetryConfig();
 
     /**
      * Get default metrics configurations from system properties.
      */
-    private EvergreenMetricsConfig() {
+    private TelemetryConfig() {
         super(CONFIG_PREFIX);
-        boolean enabled;
-
+        boolean enabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
-        enabled = DEFAULT_METRICS_SWITCH;
-
         if (enabledStr != null) {
             enabled = Boolean.parseBoolean(enabledStr);
         }
@@ -39,7 +38,8 @@ public class EvergreenMetricsConfig extends PersistenceConfig {
         reconfigure(EvergreenLogConfig.getInstance().getLogger(METRIC_LOGGER_NAME));
     }
 
-    public static EvergreenMetricsConfig getInstance() {
+    public static TelemetryConfig getInstance() {
         return INSTANCE;
     }
 }
+
