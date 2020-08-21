@@ -82,7 +82,8 @@ public class EvergreenStructuredLogMessage {
     @SuppressWarnings("checkstyle:emptycatchblock")
     public String getTextMessage() {
         // Create a new SDF every time because SDF isn't threadsafe
-        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ").format(new Date(timestamp)));
+        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ")
+                                              .format(new Date(timestamp)));
         // Equivalent to String.format("%s [%s] (%s) %s: %s", SDF, level, thread, loggerName, formattedMessage)
         msg.append(" [").append(level).append("] (")
                 .append(thread).append(") ")
