@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeferComponentUpdateRequest {
-    String componentName;
+    String message;
     /**
      Estimated time in milliseconds after which component will be willing to be disrupted.
      If the returned value is zero the handler is granting permission to be disrupted.

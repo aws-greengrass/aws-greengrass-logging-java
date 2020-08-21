@@ -43,11 +43,11 @@ public interface Lifecycle {
      * for recheckTimeInMs seconds and check back with another PreComponentUpdateEvent.
      * if the update can proceed, respond with recheckTimeInMs equal to zero.
      *
-     * @param componentName   component that cannot be disrupted now
+     * @param message  optional message
      * @param recheckTimeInMs time kernel will wait before sending the next PreComponentUpdateEvent
      * @throws LifecycleIPCException for any error
      */
-    void deferComponentUpdate(String componentName, long recheckTimeInMs)
+    void deferComponentUpdate(String message, long recheckTimeInMs)
             throws LifecycleIPCException;
 
 

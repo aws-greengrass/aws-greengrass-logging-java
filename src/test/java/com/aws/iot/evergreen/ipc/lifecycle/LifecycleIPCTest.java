@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.writeFrame;
@@ -156,13 +157,21 @@ public class LifecycleIPCTest {
         });
 
         CountDownLatch cdl = new CountDownLatch(2);
-        lf.subscribeToComponentUpdate( componentUpdateEvent -> {
+        AtomicBoolean sawPreComponentUpdateEvent = new AtomicBoolean();
+        AtomicBoolean sawPostComponentUpdateEvent = new AtomicBoolean();
+        lf.subscribeToComponentUpdate(componentUpdateEvent -> {
+            if (componentUpdateEvent instanceof PreComponentUpdateEvent) {
+                sawPreComponentUpdateEvent.set(true);
+            } else if (componentUpdateEvent instanceof PostComponentUpdateEvent) {
+                sawPostComponentUpdateEvent.set(true);
+            }
             cdl.countDown();
+
         });
         fut.get();
 
         // Send a both component update events
-        fut = executor.submit(() -> {
+        executor.submit(() -> {
 
             PreComponentUpdateEvent preComponentUpdateEvent = new PreComponentUpdateEvent();
             writeMessageToSockOutputStream(LifecycleServiceOpCodes.PRE_COMPONENT_UPDATE_EVENT.ordinal(),
@@ -177,8 +186,9 @@ public class LifecycleIPCTest {
             assertEquals(LifecycleResponseStatus.Success, ret);
             return null;
         });
-        //fut.get();
         assertTrue(cdl.await(500, TimeUnit.MILLISECONDS));
+        assertTrue(sawPreComponentUpdateEvent.get());
+        assertTrue(sawPostComponentUpdateEvent.get());
     }
 
     @Test

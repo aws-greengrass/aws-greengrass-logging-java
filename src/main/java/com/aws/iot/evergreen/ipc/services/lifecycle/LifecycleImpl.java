@@ -103,9 +103,9 @@ public class LifecycleImpl implements Lifecycle {
     }
 
     @Override
-    public void deferComponentUpdate(String componentName, long recheckTimeInMs) throws LifecycleIPCException {
+    public void deferComponentUpdate(String message, long recheckTimeInMs) throws LifecycleIPCException {
         sendAndReceive(LifecycleClientOpCodes.DEFER_COMPONENT_UPDATE,
-                new DeferComponentUpdateRequest(componentName, recheckTimeInMs), LifecycleGenericResponse.class);
+                new DeferComponentUpdateRequest(message, recheckTimeInMs), LifecycleGenericResponse.class);
     }
 
 
