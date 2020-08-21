@@ -17,7 +17,7 @@ public interface Lifecycle {
 
 
     /**
-     * Report that the service is in some state.
+     * Update kernel that the service is in given state.
      *
      * @param newState the state to transition into
      * @throws LifecycleIPCException for any error
