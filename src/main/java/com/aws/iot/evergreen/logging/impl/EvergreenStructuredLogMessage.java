@@ -81,23 +81,26 @@ public class EvergreenStructuredLogMessage {
     @JsonIgnore
     @SuppressWarnings("checkstyle:emptycatchblock")
     public String getTextMessage() {
-        String msg = String.format("%s [%s] (%s) %s: %s",
-                // Create a new SDF every time because SDF isn't threadsafe
-                new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ").format(new Date(timestamp)),
-                level, thread,
-                loggerName,
-                getFormattedMessage());
+        // Create a new SDF every time because SDF isn't threadsafe
+        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ").format(new Date(timestamp)));
+        // Equivalent to String.format("%s [%s] (%s) %s: %s", SDF, level, thread, loggerName, formattedMessage)
+        msg.append(" [").append(level).append("] (")
+                .append(thread).append(") ")
+                .append(loggerName).append(": ")
+                .append(getFormattedMessage());
+
         if (cause == null) {
-            return msg;
+            return msg.toString();
         }
 
         try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
             cause.printStackTrace(pw);
-            return msg + System.lineSeparator() + sw.toString();
+            msg.append(System.lineSeparator()).append(sw.toString());
+            return msg.toString();
         } catch (IOException ignore) {
             // Not possible
         }
-        return msg;
+        return msg.toString();
     }
 
     /**
