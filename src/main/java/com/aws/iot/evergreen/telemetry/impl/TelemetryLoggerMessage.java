@@ -1,4 +1,3 @@
-
 /*
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -28,7 +27,7 @@ public class TelemetryLoggerMessage {
     @JsonIgnore
     public String getJSONMessage() {
         try {
-            return OBJECT_MAPPER.writeValueAsString(this);
+            return OBJECT_MAPPER.writeValueAsString(this.metricDataPoint);
         } catch (JsonProcessingException e) {
             return "{\"error\": \"" + e.getMessage() + "\"}";
         }

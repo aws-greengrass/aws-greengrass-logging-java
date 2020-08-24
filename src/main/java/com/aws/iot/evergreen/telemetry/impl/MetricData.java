@@ -1,11 +1,20 @@
+/*
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * An implementation of {@link MetricDataBuilder} providing a fluent API to generate metrics. Not thread safe.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 public class MetricData implements MetricDataBuilder {
@@ -24,6 +33,13 @@ public class MetricData implements MetricDataBuilder {
         return this;
     }
 
+    /**
+     * Creates a metric data point with value and timestamp of the metric.
+     *
+     * @param value         the metrics logger
+     * @return
+     */
+
     @Override
     public MetricData putMetricData(Object value) {
         this.metricDataPoint.setValue(value);
@@ -32,14 +48,14 @@ public class MetricData implements MetricDataBuilder {
         return this;
     }
 
+    /**
+     * Emits the metric data point collected using the logger.
+     *
+     */
+
     @Override
     public void emit() {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(this.metricDataPoint);
         logger.logMetrics(message);
     }
-
-
-
-
-
 }

@@ -1,3 +1,8 @@
+/*
+ * Copyright Amazon.com Inc. or its affiliates.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package com.aws.iot.evergreen.telemetry.models;
 
 /**
@@ -6,12 +11,12 @@ package com.aws.iot.evergreen.telemetry.models;
  *
  */
 public enum TelemetryUnit {
-    BYTES,
-    BYTES_PER_SECOND,
-    COUNT,
-    COUNT_PER_SECOND,
-    MEGABYTES,
-    NONE,
-    PERCENT,
-    SECONDS
+    Bytes,
+    BytesPerSecond,
+    Count,
+    CountPerSecond,
+    Megabytes,
+    None,
+    Percent,
+    Seconds
 }

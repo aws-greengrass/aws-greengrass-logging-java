@@ -5,7 +5,6 @@
 
 package com.aws.iot.evergreen.telemetry.impl.config;
 
-
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
@@ -15,11 +14,9 @@ import static com.aws.iot.evergreen.telemetry.impl.MetricFactory.METRIC_LOGGER_N
 
 @Getter
 public class TelemetryConfig extends PersistenceConfig {
-
     public static final String CONFIG_PREFIX = "metrics";
     public static final String METRICS_SWITCH_KEY = "metrics.enabled";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
-
     @Setter
     private boolean enabled;
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();

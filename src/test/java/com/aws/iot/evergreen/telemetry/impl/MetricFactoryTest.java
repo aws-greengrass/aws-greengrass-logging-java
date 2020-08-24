@@ -5,12 +5,10 @@
 
 package com.aws.iot.evergreen.telemetry.impl;
 
-import com.aws.iot.evergreen.telemetry.impl.Metric;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
-import com.aws.iot.evergreen.telemetry.impl.MetricFactory;
+import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
-import com.aws.iot.evergreen.telemetry.models.TelemetryType;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -64,10 +62,10 @@ class MetricFactoryTest {
         MetricFactory mf = (MetricFactory) MetricFactory.getInstance();
         Logger loggerSpy = setupLoggerSpy(mf);
         Metric m= Metric.builder()
-                .metricNamespace(TelemetryNamespace.KERNEL)
-                .metricName(TelemetryMetricName.SystemMetrics.CPU_UTILIZATION)
-                .metricUnit(TelemetryUnit.COUNT)
-                .metricType(TelemetryType.TIME_BASED)
+                .metricNamespace(TelemetryNamespace.Kernel)
+                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         TelemetryConfig.getInstance().setEnabled(false);
@@ -81,25 +79,25 @@ class MetricFactoryTest {
         mf.addMetric(m).putMetricData(80).emit();
         verify(loggerSpy, times(1)).info(any());
 
-        assertThat(message.getValue(), containsString("CPU_UTILIZATION"));
+        assertThat(message.getValue(), containsString("CpuUsage"));
     }
 
     @Test
     void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() {
         MetricFactory mf = (MetricFactory) MetricFactory.getInstance();
         Logger loggerSpy = setupLoggerSpy(mf);
-        Metric m1= Metric.builder()
-                .metricNamespace(TelemetryNamespace.KERNEL)
-                .metricName(TelemetryMetricName.SystemMetrics.CPU_UTILIZATION)
-                .metricUnit(TelemetryUnit.COUNT)
-                .metricType(TelemetryType.TIME_BASED)
+        Metric m1 = Metric.builder()
+                .metricNamespace(TelemetryNamespace.Kernel)
+                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
-        Metric m2= Metric.builder()
-                .metricNamespace(TelemetryNamespace.KERNEL)
-                .metricName(TelemetryMetricName.SystemMetrics.CPU_UTILIZATION)
-                .metricUnit(TelemetryUnit.COUNT)
-                .metricType(TelemetryType.TIME_BASED)
+        Metric m2 = Metric.builder()
+                .metricNamespace(TelemetryNamespace.Kernel)
+                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
 
@@ -137,12 +135,11 @@ class MetricFactoryTest {
         List<String> messages = message.getAllValues();
         assertThat(messages, hasSize(4));
         Collections.sort(messages);
-        assertThat(messages.get(0),containsString("{\"metricDataPoint\":{\"metric\":{\"metricNamespace\":\"KERNEL\",\"metricName\":\"CPU_UTILIZATION\",\"metricUnit\":\"COUNT\",\"metricType\":\"TIME_BASED\",\"metricDimensions\":null},\"value\":100,\"timestamp"));
-        assertThat(messages.get(1),containsString("{\"metricDataPoint\":{\"metric\":{\"metricNamespace\":\"KERNEL\",\"metricName\":\"CPU_UTILIZATION\",\"metricUnit\":\"COUNT\",\"metricType\":\"TIME_BASED\",\"metricDimensions\":null},\"value\":120,\"timestamp"));
-        assertThat(messages.get(2),containsString("{\"metricDataPoint\":{\"metric\":{\"metricNamespace\":\"KERNEL\",\"metricName\":\"CPU_UTILIZATION\",\"metricUnit\":\"COUNT\",\"metricType\":\"TIME_BASED\",\"metricDimensions\":null},\"value\":150,\"timestamp"));
-        assertThat(messages.get(3),containsString("{\"metricDataPoint\":{\"metric\":{\"metricNamespace\":\"KERNEL\",\"metricName\":\"CPU_UTILIZATION\",\"metricUnit\":\"COUNT\",\"metricType\":\"TIME_BASED\",\"metricDimensions\":null},\"value\":180,\"timestamp"));
+        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":100,\"TS"));
+        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":120,\"TS"));
+        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":150,\"TS"));
+        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":180,\"TS"));
     }
-
     private Logger setupLoggerSpy(MetricFactory mf) {
         Logger loggerSpy = spy(mf.getLogger());
         mf.setLogger(loggerSpy);

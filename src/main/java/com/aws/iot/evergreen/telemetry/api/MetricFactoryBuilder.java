@@ -15,7 +15,7 @@ public interface MetricFactoryBuilder {
     /**
      * Entry point for fluent APIs to emit metrics.
      *
-     * @return MetricsBuilder instance
+     * @return MetricDataBuilder instance
      */
     MetricDataBuilder addMetric(Metric m);
 }
