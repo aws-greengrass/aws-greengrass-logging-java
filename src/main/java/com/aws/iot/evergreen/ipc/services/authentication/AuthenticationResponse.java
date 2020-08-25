@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.aws.iot.evergreen.ipc.services.auth;
+package com.aws.iot.evergreen.ipc.services.authentication;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,9 +12,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthRequest {
-
-    private String authToken;
+public class AuthenticationResponse {
+    private String serviceName;
+    private String clientId;
+    private String errorMessage;
 }
