@@ -7,7 +7,7 @@ import com.aws.iot.evergreen.ipc.common.FrameReader;
 import com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
-import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
+import com.aws.iot.evergreen.ipc.services.authentication.AuthenticationResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -69,12 +69,12 @@ public class AuthorizationClientTest {
                 // Read and write auth
                 MessageFrame inFrame = readFrame(in);
                 ApplicationMessage requestApplicationFrame = ApplicationMessage.fromBytes(inFrame.message.getPayload());
-                AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
+                AuthenticationResponse authResponse = AuthenticationResponse.builder().serviceName("ABC").clientId("test").build();
                 ApplicationMessage responsesAppFrame =
                         ApplicationMessage.builder().version(requestApplicationFrame.getVersion())
                                 .payload(IPCUtil.encode(authResponse)).build();
 
-                writeFrame(new MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
+                writeFrame(new MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTHENTICATION.getValue(),
                         new FrameReader.Message(responsesAppFrame.toByteArray()), FrameReader.FrameType.RESPONSE), out);
                 connectionCount++;
             }

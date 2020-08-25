@@ -4,10 +4,9 @@ import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.IPCClientImpl;
 import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
-import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
+import com.aws.iot.evergreen.ipc.services.authentication.AuthenticationResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
-import com.aws.iot.evergreen.ipc.services.servicediscovery.ServiceDiscoveryImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -62,11 +61,11 @@ public class BaseIPCTest {
             // Read and write auth
             FrameReader.MessageFrame inFrame = readFrame(in);
             ApplicationMessage request = ApplicationMessage.fromBytes(inFrame.message.getPayload());
-            AuthResponse authResponse = AuthResponse.builder().serviceName("ABC").clientId("test").build();
+            AuthenticationResponse authenticationResponse = AuthenticationResponse.builder().serviceName("ABC").clientId("test").build();
 
             ApplicationMessage response = ApplicationMessage.builder().version(request.getVersion())
-                    .payload(IPCUtil.encode(authResponse)).build();
-            writeFrame(new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTH.getValue(),
+                    .payload(IPCUtil.encode(authenticationResponse)).build();
+            writeFrame(new FrameReader.MessageFrame(inFrame.requestId, BuiltInServiceDestinationCode.AUTHENTICATION.getValue(),
                     new FrameReader.Message(response.toByteArray()), FrameReader.FrameType.RESPONSE), out);
             return null;
         });

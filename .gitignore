@@ -2,3 +2,5 @@
 *.metrics
 /target/
 .DS_Store
+*.iml
+.idea
