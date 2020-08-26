@@ -8,6 +8,8 @@ package com.aws.iot.evergreen.logging.examples;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
 
+import java.time.Instant;
+
 /**
  * A demo of using LogManager and Logger instances.
  */
@@ -16,8 +18,9 @@ public class LoggerDemo {
 
     static {
         System.setProperty("log.fmt", "JSON");
-        System.setProperty("log.file.sizeInKB", "10");
-        //System.setProperty("log.store", "CONSOLE");
+        System.setProperty("log.file.sizeInKB", "10240");
+        System.setProperty("log.file.fileSizeInKB", "1024");
+        //System.setProperty("log.store", "FILE");
         logger = LogManager.getLogger(LoggerDemo.class);
         logger.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");
     }

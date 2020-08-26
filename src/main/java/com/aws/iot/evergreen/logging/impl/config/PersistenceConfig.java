@@ -29,13 +29,13 @@ public class PersistenceConfig {
     public static final String STORAGE_TYPE_SUFFIX = ".store";
     public static final String DATA_FORMAT_SUFFIX = ".fmt";
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
-    public static final String NUM_ROLLING_FILES_SUFFIX = ".file.numRollingFiles";
+    public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
+    private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
-    private static final int DEFAULT_NUM_ROLLING_FILES = 5;
     private static final String DEFAULT_STORE_NAME = "evergreen.";
 
     protected final String prefix;
@@ -44,6 +44,7 @@ public class PersistenceConfig {
     @Setter
     protected LogFormat format;
     protected long fileSizeKB;
+    protected long totalLogStoreSizeKB;
     protected int numRollingFiles;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
@@ -77,15 +78,15 @@ public class PersistenceConfig {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
 
-        int numRollingFiles;
+        int fileSizeKB;
         try {
-            numRollingFiles = Integer.parseInt(System.getProperty(prefix + NUM_ROLLING_FILES_SUFFIX));
+            fileSizeKB = Integer.parseInt(System.getProperty(prefix + TOTAL_FILE_SIZE_SUFFIX));
         } catch (NumberFormatException e) {
-            numRollingFiles = DEFAULT_NUM_ROLLING_FILES;
+            fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
         }
-        this.numRollingFiles = numRollingFiles;
 
-        this.fileSizeKB = totalLogStoreSizeKB / numRollingFiles;
+        this.fileSizeKB = fileSizeKB;
+        this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
         initializeStoreName(prefix);
     }
@@ -215,8 +216,8 @@ public class PersistenceConfig {
             SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
-            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}_%i");
-            logFilePolicy.setMaxHistory(numRollingFiles);
+            logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
+            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH-mm}_%i");
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 
