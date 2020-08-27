@@ -45,7 +45,6 @@ public class PersistenceConfig {
     protected LogFormat format;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
-    protected int numRollingFiles;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
     private Logger logger;
@@ -113,18 +112,6 @@ public class PersistenceConfig {
             return;
         }
         this.storeName = newStoreName;
-        reconfigure();
-    }
-
-    /**
-     * Change the configured number of files to keep before deleting (only applies for file output).
-     * @param numRollingFiles how many files to keep before deleting the old ones
-     */
-    public void setNumRollingFiles(int numRollingFiles) {
-        if (Objects.equals(this.numRollingFiles, numRollingFiles)) {
-            return;
-        }
-        this.numRollingFiles = numRollingFiles;
         reconfigure();
     }
 
