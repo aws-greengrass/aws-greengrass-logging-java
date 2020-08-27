@@ -5,34 +5,57 @@
 
 package com.aws.iot.evergreen.telemetry.impl.config;
 
-import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
+import ch.qos.logback.classic.Logger;
+import com.aws.iot.evergreen.logging.impl.config.LogStore;
 import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
 import lombok.Setter;
 
-import static com.aws.iot.evergreen.telemetry.impl.MetricFactory.METRIC_LOGGER_NAME;
-
 @Getter
 public class TelemetryConfig extends PersistenceConfig {
-    public static final String CONFIG_PREFIX = "metrics";
-    public static final String METRICS_SWITCH_KEY = "metrics.enabled";
+    public static final String CONFIG_PREFIX = "log";
+    public static final String METRICS_SWITCH_KEY = "log.metricsEnabled";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
+    private static final String TELEMETRY_LOG_DIRECTORY = "Telemetry";
     @Setter
-    private boolean enabled;
+    private boolean metricsEnabled;
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
+    @Setter
+    public Logger logger;
 
     /**
      * Get default metrics configurations from system properties.
      */
-    private TelemetryConfig() {
+    public TelemetryConfig() {
         super(CONFIG_PREFIX);
-        boolean enabled = DEFAULT_METRICS_SWITCH;
+        boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
         if (enabledStr != null) {
-            enabled = Boolean.parseBoolean(enabledStr);
+            metricsEnabled = Boolean.parseBoolean(enabledStr);
         }
-        this.enabled = enabled;
-        reconfigure(EvergreenLogConfig.getInstance().getLogger(METRIC_LOGGER_NAME));
+        this.metricsEnabled = metricsEnabled;
+    }
+
+    /**
+     *  Set up logger and store name.
+     * @param logger Uses a new logger
+     * @param storeName creates a log file at the path specified
+     */
+    public void editConfig(Logger logger, String storeName) {
+        this.logger = logger;
+
+        /* Log to a file - this has to be set before setting the store path. */
+        setStoreType(LogStore.FILE);
+
+        /*
+         * Telemetry
+         *   |___ generic.log
+         *   |___ Kernel.log
+         *   |___ SystemMetrics.log
+         *   |___ ....
+         */
+        setStoreName(TELEMETRY_LOG_DIRECTORY + "/" + storeName + "." + CONFIG_PREFIX);
+        reconfigure(this.logger);
     }
 
     public static TelemetryConfig getInstance() {

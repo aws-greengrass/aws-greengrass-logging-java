@@ -5,13 +5,14 @@
 
 package com.aws.iot.evergreen.telemetry.impl;
 
+import com.aws.iot.evergreen.logging.impl.LogManager;
+import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
+import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
 import com.aws.iot.evergreen.telemetry.api.MetricFactoryBuilder;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
@@ -19,48 +20,48 @@ import org.slf4j.LoggerFactory;
 public class MetricFactory implements MetricFactoryBuilder {
     // Use a ThreadLocal for MetricsBuilder to reuse the object per thread.
     private ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
-    private static final MetricFactory instance = new MetricFactory();
+    private TelemetryConfig telemetryConfig;
     public static final String METRIC_LOGGER_NAME = "Metrics";
-    private final TelemetryConfig config;
+    public static final String GENERIC_LOG_STORE = "generic";
     @Setter
     @Getter
-    private transient Logger logger;
+    private transient Slf4jLogAdapter logger;
 
-    /**
-     * Constructor.
-     *
-     *@Initialises metric logger and evergreen telemetry config
-     */
     public MetricFactory() {
-        logger = LoggerFactory.getLogger(METRIC_LOGGER_NAME);
-        // TODO: get configurations from kernel config
-        config = TelemetryConfig.getInstance();
+        constructorHelper(null);
+    }
+
+    public MetricFactory(String storePath) {
+        constructorHelper(storePath);
     }
 
     /**
-     * Get a singleton instance of MetricsFactory.
-     *
-     * @return singleton instance of MetricsFactoryImpl
+     * Helper function for both the constructors.
+     * @param storeName Creates a log file based on the store name passed. Set to "generic" if it is null or empty.
      */
-    public static MetricFactory getInstance() {
-        return instance;
+    public void constructorHelper(String storeName) {
+        if (storeName == null || storeName.equals("")) {
+            storeName = GENERIC_LOG_STORE;
+        }
+        // TODO: get configurations from kernel config
+        String loggerName = METRIC_LOGGER_NAME + "-" + storeName;
+        this.telemetryConfig = TelemetryConfig.getInstance();
+        this.telemetryConfig.editConfig(EvergreenLogConfig.getInstance().getLogger(loggerName), storeName);
+        this.logger = (Slf4jLogAdapter) LogManager.getLogger(loggerName);
+        this.logger.setLevel("trace");
     }
 
+    /**
+     * Check if metrics are enabled. We can make it specific to a metric level.
+     *
+     * @return MetricDataBuilder to emit if metrics are enabled or NOOP otherwise.
+     */
     @Override
     public MetricDataBuilder addMetric(Metric metric) {
-        if (isMetricsEnabled()) {
+        if (this.telemetryConfig.isMetricsEnabled()) {
             return metricData.get().setLogger(this).setMetric(metric);
         }
         return MetricDataBuilder.NOOP;
-    }
-
-    /**
-     * Check if metrics are enabled.
-     *
-     * @return true if metrics are enabled, false otherwise.
-     */
-    public boolean isMetricsEnabled() {
-        return config.isEnabled();
     }
 
     /**
@@ -69,6 +70,6 @@ public class MetricFactory implements MetricFactoryBuilder {
      * @param message the EvergreenMetricsMessage to be logged
      */
     public void logMetrics(TelemetryLoggerMessage message) {
-        logger.info(message.getJSONMessage());
+        logger.trace(message.getJSONMessage());
     }
 }

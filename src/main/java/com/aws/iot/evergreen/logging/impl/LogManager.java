@@ -51,12 +51,4 @@ public class LogManager {
         return getLogger(clazz.getName());
     }
 
-    /**
-     * Return a {@link MetricFactoryBuilder} instance.
-     *
-     * @return a MetricsFactory instance
-     */
-    public static MetricFactoryBuilder getMetricsFactory() {
-        return MetricFactory.getInstance();
-    }
 }

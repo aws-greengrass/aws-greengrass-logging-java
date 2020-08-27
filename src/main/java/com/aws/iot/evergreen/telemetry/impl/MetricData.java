@@ -21,10 +21,10 @@ public class MetricData implements MetricDataBuilder {
 
     private MetricDataPoint metricDataPoint = new MetricDataPoint();
     private Metric metric;
-    private transient MetricFactory logger;
+    private transient MetricFactory metricFactory;
 
-    public MetricData setLogger(MetricFactory logger) {
-        this.logger = logger;
+    public MetricData setLogger(MetricFactory metricFactory) {
+        this.metricFactory = metricFactory;
         return this;
     }
 
@@ -36,7 +36,7 @@ public class MetricData implements MetricDataBuilder {
     /**
      * Creates a metric data point with value and timestamp of the metric.
      *
-     * @param value         the metrics logger
+     * @param value metric data value
      * @return
      */
 
@@ -56,6 +56,6 @@ public class MetricData implements MetricDataBuilder {
     @Override
     public void emit() {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(this.metricDataPoint);
-        logger.logMetrics(message);
+        metricFactory.logMetrics(message);
     }
 }
