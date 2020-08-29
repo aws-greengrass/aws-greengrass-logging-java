@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.aws.iot.evergreen.ipc.services.auth;
+package com.aws.iot.evergreen.ipc.services.authentication;
 
-public enum AuthRequestTypes {
-    Auth;
+public enum AuthenticationRequestTypes {
+    Authentication;
 }

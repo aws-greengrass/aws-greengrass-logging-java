@@ -11,9 +11,9 @@ import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.exceptions.IPCClientException;
 import com.aws.iot.evergreen.ipc.handler.InboundMessageHandler;
 import com.aws.iot.evergreen.ipc.message.MessageHandler;
-import com.aws.iot.evergreen.ipc.services.auth.Auth;
-import com.aws.iot.evergreen.ipc.services.auth.AuthRequest;
-import com.aws.iot.evergreen.ipc.services.auth.AuthResponse;
+import com.aws.iot.evergreen.ipc.services.authentication.Authentication;
+import com.aws.iot.evergreen.ipc.services.authentication.AuthenticationRequest;
+import com.aws.iot.evergreen.ipc.services.authentication.AuthenticationResponse;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
 import io.netty.bootstrap.Bootstrap;
@@ -64,7 +64,7 @@ public class IPCClientImpl implements IPCClient {
     private String serviceName = null;
     private String clientId = null;
     private volatile boolean authenticated;
-    private final Auth auth;
+    private final Authentication authentication;
 
     /**
      * Construct a client and immediately connect to the server.
@@ -90,7 +90,7 @@ public class IPCClientImpl implements IPCClient {
                         ch.pipeline().addLast(new InboundMessageHandler(messageHandler));
                     }
                 }).option(ChannelOption.SO_KEEPALIVE, true).option(ChannelOption.TCP_NODELAY, true);
-        auth = new Auth(this);
+        authentication = new Authentication(this);
         connect(config);
     }
 
@@ -122,11 +122,11 @@ public class IPCClientImpl implements IPCClient {
                 }
             });
 
-            AuthRequest request = new AuthRequest(config.getToken());
-            AuthResponse authResponse = auth.doAuth(request);
-            // Send Auth request and wait for response.
-            serviceName = authResponse.getServiceName();
-            clientId = authResponse.getClientId();
+            AuthenticationRequest request = new AuthenticationRequest(config.getToken());
+            AuthenticationResponse authenticationResponse = authentication.doAuthentication(request);
+            // Send Authentication request and wait for response.
+            serviceName = authenticationResponse.getServiceName();
+            clientId = authenticationResponse.getClientId();
             authenticated = true;
 
             log.debug("Successfully connected to {}:{}", config.getHostAddress(), config.getPort());

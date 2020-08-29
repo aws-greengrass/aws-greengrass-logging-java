@@ -7,5 +7,5 @@ package com.aws.iot.evergreen.ipc.services.lifecycle;
 
 public enum LifecycleServiceOpCodes {
 
-    REPORT_STATE, REGISTER_LISTENER
+    PRE_COMPONENT_UPDATE_EVENT, POST_COMPONENT_UPDATE_EVENT
 }
