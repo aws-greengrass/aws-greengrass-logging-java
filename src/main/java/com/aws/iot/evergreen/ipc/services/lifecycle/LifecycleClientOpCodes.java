@@ -6,5 +6,5 @@
 package com.aws.iot.evergreen.ipc.services.lifecycle;
 
 public enum LifecycleClientOpCodes {
-    STATE_TRANSITION;
+    UPDATE_STATE, SUBSCRIBE_COMPONENT_UPDATE, DEFER_COMPONENT_UPDATE;
 }

@@ -14,6 +14,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StateChangeRequest {
+public class UpdateStateRequest {
     public String state;
 }

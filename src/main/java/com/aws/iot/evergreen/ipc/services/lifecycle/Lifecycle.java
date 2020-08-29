@@ -8,33 +8,47 @@ package com.aws.iot.evergreen.ipc.services.lifecycle;
 import com.aws.iot.evergreen.ipc.services.lifecycle.exceptions.LifecycleIPCException;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Interface for Lifecycle operations.
  */
 public interface Lifecycle {
-    /**
-     * Register a handler function to run upon the service moving to "shutdown" state.
-     *
-     * @param handler handler to call
-     * @throws LifecycleIPCException if any error occurs while registering the handler
-     */
-    void onStopping(Runnable handler) throws LifecycleIPCException;
+
 
     /**
-     * Report that the service is in some state.
+     * Update kernel that the service is in given state.
      *
      * @param newState the state to transition into
      * @throws LifecycleIPCException for any error
      */
-    void reportState(String newState) throws LifecycleIPCException;
+    void updateState(String newState) throws LifecycleIPCException;
+
 
     /**
-     * Receive all state updates about a given service with a callback function.
+     * Subscribe to events PreComponentUpdateEvent and PostComponentUpdateEvent.
+     * PreComponentUpdateEvent is send when kernel has pending component updates.
+     * PostComponentUpdateEvent is send after performing component updates.
      *
-     * @param service      the service to listen to the state of
-     * @param onTransition a callback function called with the old state and the new state
+     * @param componentUpdateEventConsumer call back invoked when a component update event is received
      * @throws LifecycleIPCException for any error
      */
-    void listenToStateChanges(String service, BiConsumer<String, String> onTransition) throws LifecycleIPCException;
+    void subscribeToComponentUpdate(Consumer<ComponentUpdateEvent> componentUpdateEventConsumer)
+            throws LifecycleIPCException;
+
+
+    /**
+     * Used to acknowledge a PreComponentUpdateEvent.
+     * if the update needs to be delayed, respond back with none zero value for recheckTimeInMs. The kernel will wait
+     * for recheckTimeInMs seconds and check back with another PreComponentUpdateEvent.
+     * if the update can proceed, respond with recheckTimeInMs equal to zero.
+     *
+     * @param message  optional message
+     * @param recheckTimeInMs time kernel will wait before sending the next PreComponentUpdateEvent
+     * @throws LifecycleIPCException for any error
+     */
+    void deferComponentUpdate(String message, long recheckTimeInMs)
+            throws LifecycleIPCException;
+
+
 }

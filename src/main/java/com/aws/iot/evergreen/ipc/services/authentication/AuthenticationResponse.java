@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.aws.iot.evergreen.ipc.services.lifecycle;
+package com.aws.iot.evergreen.ipc.services.authentication;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,8 +15,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StateTransitionEvent {
-    private String oldState;
-    private String newState;
-    private String service;
+public class AuthenticationResponse {
+    private String serviceName;
+    private String clientId;
+    private String errorMessage;
 }
