@@ -7,10 +7,10 @@ package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
-import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,10 +110,9 @@ class MetricFactoryTest {
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m= Metric.builder()
-                .metricNamespace(TelemetryNamespace.Kernel)
-                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricNamespace(TelemetryNamespace.SystemMetrics)
+                .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         TelemetryConfig.getInstance().setMetricsEnabled(false);
@@ -133,17 +132,15 @@ class MetricFactoryTest {
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m1 = Metric.builder()
-                .metricNamespace(TelemetryNamespace.Kernel)
-                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricNamespace(TelemetryNamespace.SystemMetrics)
+                .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         Metric m2 = Metric.builder()
-                .metricNamespace(TelemetryNamespace.Kernel)
-                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
+                .metricNamespace(TelemetryNamespace.SystemMetrics)
+                .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         CyclicBarrier start = new CyclicBarrier(2);
@@ -178,11 +175,13 @@ class MetricFactoryTest {
         List<String> messages = message.getAllValues();
         assertThat(messages, hasSize(4));
         Collections.sort(messages);
-        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":100,\"TS"));
-        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":120,\"TS"));
-        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":150,\"TS"));
-        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"Kernel\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\",\"D\":null},\"V\":180,\"TS"));
+
+        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":100,\"TS"));
+        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":120,\"TS"));
+        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":150,\"TS"));
+        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":180,\"TS"));
     }
+
     private Slf4jLogAdapter setupLoggerSpy(MetricFactory mf) {
         Slf4jLogAdapter loggerSpy = spy(mf.getLogger());
         mf.setLogger(loggerSpy);

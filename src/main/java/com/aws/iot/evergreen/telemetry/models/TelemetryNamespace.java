@@ -6,7 +6,8 @@
 package com.aws.iot.evergreen.telemetry.models;
 
 public enum TelemetryNamespace {
-    Kernel,
+    KernelComponents,
+    KernelDeployment,
     SystemMetrics,
     Mqtt,
 }

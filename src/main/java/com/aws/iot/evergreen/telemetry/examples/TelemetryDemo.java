@@ -23,9 +23,8 @@ public class TelemetryDemo {
      */
     public static void main(String[] args) {
         Metric metric = Metric.builder()
-                .metricNamespace(TelemetryNamespace.Kernel)
-                .metricName(TelemetryMetricName.SystemMetrics.CpuUsage)
-                .metricAggregation(TelemetryAggregation.Average)
+                .metricNamespace(TelemetryNamespace.SystemMetrics)
+                .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
                 .build();
         MetricDataBuilder metricDataBuilder = new MetricFactory().addMetric(metric);
@@ -34,7 +33,7 @@ public class TelemetryDemo {
         metricDataBuilder.putMetricData(150).emit();
         metricDataBuilder.putMetricData(180).emit();
         metricDataBuilder.putMetricData(180).emit();
-        MetricDataBuilder mdb2 = new MetricFactory("testing").addMetric(metric);
+        MetricDataBuilder mdb2 = new MetricFactory("").addMetric(metric);
         mdb2.putMetricData(100).emit();
         metricDataBuilder.putMetricData(120).emit();
         metricDataBuilder.putMetricData(150).emit();

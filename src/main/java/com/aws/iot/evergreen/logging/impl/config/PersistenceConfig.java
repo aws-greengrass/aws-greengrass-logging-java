@@ -116,6 +116,7 @@ public class PersistenceConfig {
      * @param storeName new path
      */
     public void setStoreName(String storeName) {
+        storeName = getStorePath().resolve(storeName).toString();
         if (Objects.equals(this.storeName,storeName)) {
             return;
         }
@@ -243,10 +244,8 @@ public class PersistenceConfig {
             logFileAppender.setRollingPolicy(logFilePolicy);
             logFileAppender.setTriggeringPolicy(logFilePolicy);
             logFileAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
-
         }
     }
 
