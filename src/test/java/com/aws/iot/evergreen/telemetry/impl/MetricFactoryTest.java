@@ -61,18 +61,18 @@ class MetricFactoryTest {
     @Test
     void GIVEN_metricsFactory_with_null_or_empty_storePath_THEN_generic_log_file_is_created() {
         new MetricFactory("");
-        File logFile = new File(tempDir+ "/Telemetry/generic.log");
+        File logFile = new File(tempDir + "/Telemetry/generic.log");
         assertTrue(logFile.exists());
 
         new MetricFactory(null);
-        logFile = new File(tempDir+ "/Telemetry/generic.log");
+        logFile = new File(tempDir + "/Telemetry/generic.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_storeName_argument_THEN_log_file_with_storeName_is_created() {
         new MetricFactory("storePathTest");
-        File logFile = new File(tempDir + "/Telemetry/storePathTest.log");
+        File logFile = new File(tempDir  + "/Telemetry/storePathTest.log");
         assertTrue(logFile.exists());
     }
 

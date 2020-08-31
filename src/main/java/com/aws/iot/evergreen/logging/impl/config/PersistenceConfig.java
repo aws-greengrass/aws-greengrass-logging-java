@@ -116,7 +116,7 @@ public class PersistenceConfig {
      * @param storeName new path
      */
     public void setStoreName(String storeName) {
-        storeName = getStorePath().resolve(storeName).toString();
+        storeName = getStorePath().resolve(storeName).toAbsolutePath().toString();
         if (Objects.equals(this.storeName,storeName)) {
             return;
         }
