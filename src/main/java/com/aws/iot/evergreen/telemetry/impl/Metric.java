@@ -10,11 +10,14 @@ import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -33,9 +36,4 @@ public class Metric {
     @NonNull
     @JsonProperty("U")
     private TelemetryUnit metricUnit;
-    @NonNull
-    @JsonProperty("A")
-    private TelemetryAggregation metricAggregation;
-    @JsonProperty("D")
-    private Map<String, String> metricDimensions;
 }

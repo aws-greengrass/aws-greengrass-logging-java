@@ -6,8 +6,6 @@
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
-import com.aws.iot.evergreen.telemetry.api.MetricFactoryBuilder;
-import com.aws.iot.evergreen.telemetry.impl.MetricFactory;
 import lombok.Getter;
 import org.slf4j.Logger;
 
@@ -15,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * LogManager instances manufacture {@link com.aws.iot.evergreen.logging.api.Logger} and {@link MetricFactory}
+ * LogManager instances manufacture {@link com.aws.iot.evergreen.logging.api.Logger}
  * instances by name.
  */
 public class LogManager {
@@ -49,14 +47,5 @@ public class LogManager {
      */
     public static com.aws.iot.evergreen.logging.api.Logger getLogger(Class<?> clazz) {
         return getLogger(clazz.getName());
-    }
-
-    /**
-     * Return a {@link MetricFactoryBuilder} instance.
-     *
-     * @return a MetricsFactory instance
-     */
-    public static MetricFactoryBuilder getMetricsFactory() {
-        return MetricFactory.getInstance();
     }
 }

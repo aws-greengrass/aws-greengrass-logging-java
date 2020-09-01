@@ -21,6 +21,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
+import static com.aws.iot.evergreen.telemetry.impl.MetricFactory.METRIC_LOGGER_NAME;
+
 /**
  * PersistenceConfig groups the persistence configuration for monitoring data.
  */
@@ -43,7 +45,7 @@ public class PersistenceConfig {
     protected String storeName;
     @Setter
     protected LogFormat format;
-    protected long fileSizeKB;
+    protected long totalLogStoreSizeKB;
     protected int numRollingFiles;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
@@ -54,40 +56,48 @@ public class PersistenceConfig {
      */
     public PersistenceConfig(String prefix) {
         this.prefix = prefix;
+
+        // Set store type - FILE, CONSOLE
         LogStore store;
         try {
             store = LogStore.valueOf(System.getProperty(prefix + STORAGE_TYPE_SUFFIX, DEFAULT_STORAGE_TYPE));
         } catch (IllegalArgumentException e) {
             store = LogStore.FILE;
         }
-        this.store = store;
+        setStoreType(store);
 
+        // Set log format - JSON, TEXT
         LogFormat format;
         try {
             format = LogFormat.valueOf(System.getProperty(prefix + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
         } catch (IllegalArgumentException e) {
             format = LogFormat.JSON;
         }
-        this.format = format;
+        setFormat(format);
 
+        // Set total log store size.
         long totalLogStoreSizeKB;
         try {
             totalLogStoreSizeKB = Long.parseLong(System.getProperty(prefix + TOTAL_STORE_SIZE_SUFFIX));
         } catch (NumberFormatException e) {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
+        setTotalLogStoreSizeKB(totalLogStoreSizeKB);
 
+        // Set number of rolling files
         int numRollingFiles;
         try {
             numRollingFiles = Integer.parseInt(System.getProperty(prefix + NUM_ROLLING_FILES_SUFFIX));
         } catch (NumberFormatException e) {
             numRollingFiles = DEFAULT_NUM_ROLLING_FILES;
         }
-        this.numRollingFiles = numRollingFiles;
+        setNumRollingFiles(numRollingFiles);
 
-        this.fileSizeKB = totalLogStoreSizeKB / numRollingFiles;
-
-        initializeStoreName(prefix);
+        //Set store name
+        Path storePath = getStorePath();
+        String storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
+                storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
+        setStoreName(storeName);
     }
 
     /**
@@ -99,20 +109,18 @@ public class PersistenceConfig {
             return;
         }
         this.store = store;
-        reconfigure();
     }
 
     /**
      * Change the configured store path (only applies for file output).
-     * @param path new path
+     * @param newStoreName new path
      */
-    public void setStorePath(Path path) {
-        String newStoreName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
-        if (Objects.equals(this.storeName, newStoreName)) {
+    public void setStoreName(String newStoreName) {
+        newStoreName = getStorePath().resolve(newStoreName).toAbsolutePath().toString();
+        if (Objects.equals(this.storeName,newStoreName)) {
             return;
         }
         this.storeName = newStoreName;
-        reconfigure();
     }
 
     /**
@@ -124,26 +132,25 @@ public class PersistenceConfig {
             return;
         }
         this.numRollingFiles = numRollingFiles;
-        reconfigure();
     }
 
     /**
-     * Change the configured max file size in KB before rolling over (only applies for file output).
-     * @param fileSizeKB new file size in KB
+     * Change the configured total store size.
+     * @param totalLogStoreSizeKB new file size in KB
      */
-    public void setFileSizeKB(long fileSizeKB) {
-        if (Objects.equals(this.fileSizeKB, fileSizeKB)) {
+    public void setTotalLogStoreSizeKB(long totalLogStoreSizeKB) {
+        if (Objects.equals(this.totalLogStoreSizeKB, totalLogStoreSizeKB)) {
             return;
         }
-        this.fileSizeKB = fileSizeKB;
-        reconfigure();
+        this.totalLogStoreSizeKB = totalLogStoreSizeKB;
     }
 
-    private void initializeStoreName(String prefix) {
+    /**
+     * Helper function to get the path.
+     */
+    private Path getStorePath() {
         Path storePath;
-
         String rootPathStr = System.getProperty("root");
-
         if (rootPathStr != null) {
             // if root is set, use root as store path
             storePath = Paths.get(rootPathStr);
@@ -151,8 +158,7 @@ public class PersistenceConfig {
             // if root is not set, use working directory as store path
             storePath = Paths.get(System.getProperty("user.dir"));
         }
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
+        return storePath;
     }
 
     protected void reconfigure() {
@@ -163,6 +169,7 @@ public class PersistenceConfig {
         Objects.requireNonNull(loggerToConfigure);
 
         logger = loggerToConfigure;
+        long fileSizeKB = this.totalLogStoreSizeKB / this.numRollingFiles;
         LoggerContext logCtx = loggerToConfigure.getLoggerContext();
 
         BasicEncoder basicEncoder = new BasicEncoder();
@@ -180,7 +187,6 @@ public class PersistenceConfig {
                 a.stop();
             }
         });
-
         if (LogStore.CONSOLE.equals(store)) {
             final ConsoleAppender<ILoggingEvent> originalAppender = logConsoleAppender;
             final RollingFileAppender<ILoggingEvent> fileAppender = logFileAppender;
@@ -204,10 +210,25 @@ public class PersistenceConfig {
         } else if (LogStore.FILE.equals(store)) {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
-
+            String fileAppenderName = "eg-file";
+            String loggerName = loggerToConfigure.getName();
+            if (loggerName.contains(METRIC_LOGGER_NAME + "-")) {
+                loggerToConfigure.detachAndStopAllAppenders();
+                fileAppenderName = loggerName.substring(METRIC_LOGGER_NAME.length() + 1);
+            } else {
+                // Remove the original. These aren't atomic, but we won't be losing any logs
+                if (originalAppender != null) {
+                    loggerToConfigure.detachAppender(originalAppender);
+                    originalAppender.stop();
+                }
+                if (consoleAppender != null) {
+                    loggerToConfigure.detachAppender(consoleAppender);
+                    consoleAppender.stop();
+                }
+            }
             logFileAppender = new RollingFileAppender<>();
             logFileAppender.setContext(logCtx);
-            logFileAppender.setName("eg-file");
+            logFileAppender.setName(fileAppenderName);
             logFileAppender.setAppend(true);
             logFileAppender.setFile(storeName);
             logFileAppender.setEncoder(basicEncoder);
@@ -223,18 +244,8 @@ public class PersistenceConfig {
             logFileAppender.setRollingPolicy(logFilePolicy);
             logFileAppender.setTriggeringPolicy(logFilePolicy);
             logFileAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
-            // Remove the original. These aren't atomic, but we won't be losing any logs
-            if (originalAppender != null) {
-                loggerToConfigure.detachAppender(originalAppender);
-                originalAppender.stop();
-            }
-            if (consoleAppender != null) {
-                loggerToConfigure.detachAppender(consoleAppender);
-                consoleAppender.stop();
-            }
         }
     }
 
