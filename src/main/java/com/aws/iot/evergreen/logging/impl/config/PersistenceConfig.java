@@ -113,14 +113,14 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
-     * @param storeName new path
+     * @param newStoreName new path
      */
-    public void setStoreName(String storeName) {
-        storeName = getStorePath().resolve(storeName).toAbsolutePath().toString();
-        if (Objects.equals(this.storeName,storeName)) {
+    public void setStoreName(String newStoreName) {
+        newStoreName = getStorePath().resolve(newStoreName).toAbsolutePath().toString();
+        if (Objects.equals(this.storeName,newStoreName)) {
             return;
         }
-        this.storeName = storeName;
+        this.storeName = newStoreName;
     }
 
     /**
@@ -148,7 +148,7 @@ public class PersistenceConfig {
     /**
      * Helper function to get the path.
      */
-    public Path getStorePath() {
+    private Path getStorePath() {
         Path storePath;
         String rootPathStr = System.getProperty("root");
         if (rootPathStr != null) {

@@ -20,6 +20,7 @@ import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -126,7 +127,7 @@ class MetricFactoryTest {
     }
 
     @Test
-    void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() {
+    void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() throws Exception {
         MetricFactory mf = new MetricFactory("EmitMetricsWithThreads");
         Slf4jLogAdapter loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
@@ -163,12 +164,9 @@ class MetricFactoryTest {
             mf.addMetric(m1).putMetricData(150).emit();
             mf.addMetric(m2).putMetricData(180).emit();
         });
-        try {
-            future1.get(5, TimeUnit.SECONDS);
-            future2.get(5, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            fail("Error waiting for child threads to finish", e);
-        }
+        future1.get(5, TimeUnit.SECONDS);
+        future2.get(5, TimeUnit.SECONDS);
+
         ses.shutdown();
         verify(loggerSpy, times(4)).trace(any());
 

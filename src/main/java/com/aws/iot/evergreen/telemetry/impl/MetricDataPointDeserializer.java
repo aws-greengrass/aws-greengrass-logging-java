@@ -11,15 +11,15 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
 
-public class MetricDataPointSerializer extends StdDeserializer {
+public class MetricDataPointDeserializer extends StdDeserializer {
     private static final long serialVersionUID = 0L;
 
-    public MetricDataPointSerializer() {
+    public MetricDataPointDeserializer() {
         this(null);
     }
 
-    protected MetricDataPointSerializer(Class vc) {
-        super(vc);
+    protected MetricDataPointDeserializer(Class mdp) {
+        super(mdp);
     }
 
     @Override

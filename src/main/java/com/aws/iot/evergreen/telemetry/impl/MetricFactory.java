@@ -39,7 +39,7 @@ public class MetricFactory implements MetricFactoryBuilder {
      * Helper function for both the constructors.
      * @param storeName Creates a log file based on the store name passed. Set to "generic" if it is null or empty.
      */
-    public void constructorHelper(String storeName) {
+    private void constructorHelper(String storeName) {
         if (storeName == null || storeName.equals("")) {
             storeName = GENERIC_LOG_STORE;
         }
