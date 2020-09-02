@@ -6,7 +6,6 @@
 package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 

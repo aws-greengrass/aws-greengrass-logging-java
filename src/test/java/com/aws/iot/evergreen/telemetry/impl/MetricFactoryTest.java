@@ -7,80 +7,55 @@ package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
+import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MetricFactoryTest {
-
-    @TempDir
-    static Path tempDir;
-
-    @BeforeAll
-    static void beforeAll() {
-        System.setProperty("root", tempDir.toAbsolutePath().toString());
-    }
-
     @Captor
     ArgumentCaptor<String> message;
 
     @Test
     void GIVEN_metricsFactory_with_null_or_empty_storePath_THEN_generic_log_file_is_created() {
         new MetricFactory("");
-        File logFile = new File(tempDir + "/Telemetry/generic.log");
+        File logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
         assertTrue(logFile.exists());
 
         new MetricFactory(null);
-        logFile = new File(tempDir + "/Telemetry/generic.log");
+        logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_storeName_argument_THEN_log_file_with_storeName_is_created() {
         new MetricFactory("storePathTest");
-        File logFile = new File(tempDir  + "/Telemetry/storePathTest.log");
+        File logFile = new File(System.getProperty("user.dir")  + "/Telemetry/storePathTest.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_no_argument_THEN_generic_log_file_is_created() {
         new MetricFactory();
-        File logFile = new File(tempDir + "/Telemetry/generic.log");
+        File logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
         assertTrue(logFile.exists());
     }
 
@@ -114,6 +89,7 @@ class MetricFactoryTest {
                 .metricNamespace(TelemetryNamespace.SystemMetrics)
                 .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         TelemetryConfig.getInstance().setMetricsEnabled(false);
@@ -136,12 +112,14 @@ class MetricFactoryTest {
                 .metricNamespace(TelemetryNamespace.SystemMetrics)
                 .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         Metric m2 = Metric.builder()
                 .metricNamespace(TelemetryNamespace.SystemMetrics)
                 .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
+                .metricAggregation(TelemetryAggregation.Average)
                 .build();
 
         CyclicBarrier start = new CyclicBarrier(2);
@@ -174,10 +152,10 @@ class MetricFactoryTest {
         assertThat(messages, hasSize(4));
         Collections.sort(messages);
 
-        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":100,\"TS"));
-        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":120,\"TS"));
-        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":150,\"TS"));
-        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\"},\"V\":180,\"TS"));
+        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":100,\"TS"));
+        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":120,\"TS"));
+        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":150,\"TS"));
+        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":180,\"TS"));
     }
 
     private Slf4jLogAdapter setupLoggerSpy(MetricFactory mf) {
