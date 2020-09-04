@@ -7,8 +7,11 @@ package com.aws.iot.evergreen.logging.examples;
 
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
+import com.aws.iot.evergreen.logging.impl.config.LogStore;
 
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A demo of using LogManager and Logger instances.
@@ -21,8 +24,8 @@ public class LoggerDemo {
         System.setProperty("log.file.sizeInKB", "10240");
         System.setProperty("log.file.fileSizeInKB", "1024");
         //System.setProperty("log.store", "FILE");
+        //System.setProperty("log.rollOverTimeInMinutes", "2");
         logger = LogManager.getLogger(LoggerDemo.class);
-        logger.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");
     }
 
     /**
@@ -43,7 +46,7 @@ public class LoggerDemo {
      *   ,"eventType":"error-event","level":"ERROR","loggerName":"com.aws.iot.evergreen.logging.examples.LoggerDemo",
      *   "message":"test error","timestamp":1581380225631}
      */
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws InterruptedException {
         Runnable runnable1 = () -> {
             logger.atInfo().setEventType("th1-event").log("test th1 info");
             logger.atDebug().addKeyValue("component", "th1-override").log("test th1 debug");
@@ -60,5 +63,10 @@ public class LoggerDemo {
         logger.atInfo().log("test main info");
         logger.atError().setCause(new Exception("some error")).setEventType("error-event").addKeyValue("key2", "value2")
                 .log("test error");
+
+        while (true) {
+            logger.atInfo().log("test main info");
+            TimeUnit.SECONDS.sleep(5);
+        }
     }
 }

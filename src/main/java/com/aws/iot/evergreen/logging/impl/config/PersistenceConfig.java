@@ -31,9 +31,11 @@ public class PersistenceConfig {
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
+    public static final String FILE_ROLLOVER_TIME_MINS_SUFFIX = ".rollOverTimeInMinutes";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
+    private static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
     private static final String DEFAULT_STORE_NAME = "evergreen.";
@@ -45,6 +47,7 @@ public class PersistenceConfig {
     protected LogFormat format;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
+    protected int rollOverTimeInMinutes;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
     private Logger logger;
@@ -84,6 +87,14 @@ public class PersistenceConfig {
             fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
         }
 
+        int rollOverTimeInMinutes;
+        try {
+            rollOverTimeInMinutes = Integer.parseInt(System.getProperty(prefix + FILE_ROLLOVER_TIME_MINS_SUFFIX));
+        } catch (NumberFormatException e) {
+            rollOverTimeInMinutes = DEFAULT_FILE_ROLLOVER_TIME_MINS;
+        }
+
+        this.rollOverTimeInMinutes = rollOverTimeInMinutes;
         this.fileSizeKB = fileSizeKB;
         this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
@@ -124,6 +135,18 @@ public class PersistenceConfig {
             return;
         }
         this.fileSizeKB = fileSizeKB;
+        reconfigure();
+    }
+
+    /**
+     * Change the configured max file size in KB before rolling over (only applies for file output).
+     * @param rollOverTimeInMinutes new file size in KB
+     */
+    public void setRollOverTimeInMinutes(int rollOverTimeInMinutes) {
+        if (Objects.equals(this.rollOverTimeInMinutes, rollOverTimeInMinutes)) {
+            return;
+        }
+        this.rollOverTimeInMinutes = rollOverTimeInMinutes;
         reconfigure();
     }
 
@@ -193,7 +216,7 @@ public class PersistenceConfig {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
 
-            logFileAppender = new RollingFileAppender<>();
+            logFileAppender = new CustomMinuteRollingFileAppender<>(rollOverTimeInMinutes);
             logFileAppender.setContext(logCtx);
             logFileAppender.setName("eg-file");
             logFileAppender.setAppend(true);
