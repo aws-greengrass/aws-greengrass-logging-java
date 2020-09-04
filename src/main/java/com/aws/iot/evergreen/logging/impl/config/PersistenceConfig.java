@@ -236,7 +236,7 @@ public class PersistenceConfig {
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
             logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.setFileNamePattern(fileName + "_%d{yyyy-MM-dd_HH-mm}_%i" + "." + prefix);
+            logFilePolicy.setFileNamePattern(fileName + "_%d{yyyy-MM-dd_HH}_%i" + "." + prefix);
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 

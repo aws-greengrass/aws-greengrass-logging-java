@@ -7,13 +7,9 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.MetricsFactory;
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
-import com.aws.iot.evergreen.logging.impl.config.LogStore;
 import lombok.Getter;
 import org.slf4j.Logger;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -61,18 +57,5 @@ public class LogManager {
      */
     public static MetricsFactory getMetricsFactory() {
         return MetricsFactoryImpl.getInstance();
-    }
-
-    /**
-     * Gets the directory path where the logs are located for the logger.
-     *
-     * @return directory path containing the log files.
-     * */
-    public static Optional<Path> getLoggerDirectoryPath() {
-        if (LogStore.FILE.equals(config.getStore())) {
-            Path path = Paths.get(config.getLogFileAppender().getRollingPolicy().getActiveFileName());
-            return Optional.of(path.getParent());
-        }
-        return Optional.empty();
     }
 }
