@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * PersistenceConfig groups the persistence configuration for monitoring data.
@@ -29,22 +30,24 @@ public class PersistenceConfig {
     public static final String STORAGE_TYPE_SUFFIX = ".store";
     public static final String DATA_FORMAT_SUFFIX = ".fmt";
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
-    public static final String NUM_ROLLING_FILES_SUFFIX = ".file.numRollingFiles";
+    public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
+    private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
+    private static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
-    private static final int DEFAULT_NUM_ROLLING_FILES = 5;
     private static final String DEFAULT_STORE_NAME = "evergreen.";
 
     protected final String prefix;
     protected LogStore store;
     protected String storeName;
+    protected String fileName;
     @Setter
     protected LogFormat format;
     protected long fileSizeKB;
-    protected int numRollingFiles;
+    protected long totalLogStoreSizeKB;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
     private Logger logger;
@@ -77,21 +80,22 @@ public class PersistenceConfig {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
 
-        int numRollingFiles;
+        int fileSizeKB;
         try {
-            numRollingFiles = Integer.parseInt(System.getProperty(prefix + NUM_ROLLING_FILES_SUFFIX));
+            fileSizeKB = Integer.parseInt(System.getProperty(prefix + TOTAL_FILE_SIZE_SUFFIX));
         } catch (NumberFormatException e) {
-            numRollingFiles = DEFAULT_NUM_ROLLING_FILES;
+            fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
         }
-        this.numRollingFiles = numRollingFiles;
 
-        this.fileSizeKB = totalLogStoreSizeKB / numRollingFiles;
+        this.fileSizeKB = fileSizeKB;
+        this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
         initializeStoreName(prefix);
     }
 
     /**
      * Change the configured store type.
+     *
      * @param store new store type
      */
     public void setStoreType(LogStore store) {
@@ -104,6 +108,7 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
+     *
      * @param path new path
      */
     public void setStorePath(Path path) {
@@ -112,23 +117,13 @@ public class PersistenceConfig {
             return;
         }
         this.storeName = newStoreName;
-        reconfigure();
-    }
-
-    /**
-     * Change the configured number of files to keep before deleting (only applies for file output).
-     * @param numRollingFiles how many files to keep before deleting the old ones
-     */
-    public void setNumRollingFiles(int numRollingFiles) {
-        if (Objects.equals(this.numRollingFiles, numRollingFiles)) {
-            return;
-        }
-        this.numRollingFiles = numRollingFiles;
+        getFileNameFromStoreName();
         reconfigure();
     }
 
     /**
      * Change the configured max file size in KB before rolling over (only applies for file output).
+     *
      * @param fileSizeKB new file size in KB
      */
     public void setFileSizeKB(long fileSizeKB) {
@@ -152,7 +147,31 @@ public class PersistenceConfig {
             storePath = Paths.get(System.getProperty("user.dir"));
         }
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
+                storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
+        getFileNameFromStoreName();
+    }
+
+    private void getFileNameFromStoreName() {
+        Path fullFileName = Paths.get(this.storeName).getFileName();
+        if (this.storeName != null && fullFileName != null) {
+            Optional<String> fileNameWithoutExtension = stripExtension(fullFileName.toString());
+            this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
+        }
+    }
+
+    private Optional<String> stripExtension(String fileName) {
+        // Handle null case specially.
+        if (fileName == null) {
+            return Optional.empty();
+        }
+        // Get position of last '.'.
+        int pos = fileName.lastIndexOf(".");
+        // If there wasn't any '.' just return the string as is.
+        if (pos == -1) {
+            return Optional.of(fileName);
+        }
+        // Otherwise return the string, up to the dot.
+        return Optional.of(fileName.substring(0, pos));
     }
 
     protected void reconfigure() {
@@ -212,11 +231,12 @@ public class PersistenceConfig {
             logFileAppender.setFile(storeName);
             logFileAppender.setEncoder(basicEncoder);
 
+            //TODO: Check how to make it rotate per x minutes.
             SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
-            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}_%i");
-            logFilePolicy.setMaxHistory(numRollingFiles);
+            logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
+            logFilePolicy.setFileNamePattern(fileName + "_%d{yyyy-MM-dd_HH-mm}_%i" + "." + prefix);
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 

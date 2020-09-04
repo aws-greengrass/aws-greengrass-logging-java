@@ -16,8 +16,9 @@ public class LoggerDemo {
 
     static {
         System.setProperty("log.fmt", "JSON");
-        System.setProperty("log.file.sizeInKB", "10");
-        //System.setProperty("log.store", "CONSOLE");
+        System.setProperty("log.file.sizeInKB", "10240");
+        System.setProperty("log.file.fileSizeInKB", "1024");
+        //System.setProperty("log.store", "FILE");
         logger = LogManager.getLogger(LoggerDemo.class);
         logger.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");
     }
@@ -40,7 +41,7 @@ public class LoggerDemo {
      *   ,"eventType":"error-event","level":"ERROR","loggerName":"com.aws.iot.evergreen.logging.examples.LoggerDemo",
      *   "message":"test error","timestamp":1581380225631}
      */
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws InterruptedException {
         Runnable runnable1 = () -> {
             logger.atInfo().setEventType("th1-event").log("test th1 info");
             logger.atDebug().addKeyValue("component", "th1-override").log("test th1 debug");
