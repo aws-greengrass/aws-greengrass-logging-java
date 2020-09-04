@@ -7,12 +7,6 @@ package com.aws.iot.evergreen.logging.examples;
 
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
-import com.aws.iot.evergreen.logging.impl.config.LogStore;
-
-import java.nio.file.Paths;
-import java.time.Instant;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A demo of using LogManager and Logger instances.
@@ -26,6 +20,7 @@ public class LoggerDemo {
         System.setProperty("log.file.fileSizeInKB", "1024");
         //System.setProperty("log.store", "FILE");
         logger = LogManager.getLogger(LoggerDemo.class);
+        logger.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");
     }
 
     /**
@@ -63,19 +58,5 @@ public class LoggerDemo {
         logger.atInfo().log("test main info");
         logger.atError().setCause(new Exception("some error")).setEventType("error-event").addKeyValue("key2", "value2")
                 .log("test error");
-
-        while (true) {
-            int leftLimit = 97; // letter 'a'
-            int rightLimit = 122; // letter 'z'
-            int targetStringLength = 1024;
-            Random random = new Random();
-
-            String generatedString = random.ints(leftLimit, rightLimit + 1)
-                    .limit(targetStringLength)
-                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                    .toString();
-            logger.atInfo().log(generatedString);
-            TimeUnit.SECONDS.sleep(1);
-        }
     }
 }

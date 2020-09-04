@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * PersistenceConfig groups the persistence configuration for monitoring data.
@@ -31,7 +32,6 @@ public class PersistenceConfig {
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
-    public static final String FILE_ROLLOVER_TIME_MINS_SUFFIX = ".rollOverTimeInMinutes";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
@@ -48,7 +48,6 @@ public class PersistenceConfig {
     protected LogFormat format;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
-    protected int rollOverTimeInMinutes;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
     private Logger logger;
@@ -88,14 +87,6 @@ public class PersistenceConfig {
             fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
         }
 
-        int rollOverTimeInMinutes;
-        try {
-            rollOverTimeInMinutes = Integer.parseInt(System.getProperty(prefix + FILE_ROLLOVER_TIME_MINS_SUFFIX));
-        } catch (NumberFormatException e) {
-            rollOverTimeInMinutes = DEFAULT_FILE_ROLLOVER_TIME_MINS;
-        }
-
-        this.rollOverTimeInMinutes = rollOverTimeInMinutes;
         this.fileSizeKB = fileSizeKB;
         this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
@@ -104,6 +95,7 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store type.
+     *
      * @param store new store type
      */
     public void setStoreType(LogStore store) {
@@ -116,6 +108,7 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
+     *
      * @param path new path
      */
     public void setStorePath(Path path) {
@@ -124,11 +117,13 @@ public class PersistenceConfig {
             return;
         }
         this.storeName = newStoreName;
+        getFileNameFromStoreName();
         reconfigure();
     }
 
     /**
      * Change the configured max file size in KB before rolling over (only applies for file output).
+     *
      * @param fileSizeKB new file size in KB
      */
     public void setFileSizeKB(long fileSizeKB) {
@@ -136,18 +131,6 @@ public class PersistenceConfig {
             return;
         }
         this.fileSizeKB = fileSizeKB;
-        reconfigure();
-    }
-
-    /**
-     * Change the configured max file size in KB before rolling over (only applies for file output).
-     * @param rollOverTimeInMinutes new file size in KB
-     */
-    public void setRollOverTimeInMinutes(int rollOverTimeInMinutes) {
-        if (Objects.equals(this.rollOverTimeInMinutes, rollOverTimeInMinutes)) {
-            return;
-        }
-        this.rollOverTimeInMinutes = rollOverTimeInMinutes;
         reconfigure();
     }
 
@@ -165,18 +148,30 @@ public class PersistenceConfig {
         }
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
                 storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
-        this.fileName = stripExtension(Paths.get(this.storeName).getFileName().toString());
+        getFileNameFromStoreName();
     }
 
-    String stripExtension (String fileName) {
+    private void getFileNameFromStoreName() {
+        Path fullFileName = Paths.get(this.storeName).getFileName();
+        if (this.storeName != null && fullFileName != null) {
+            Optional<String> fileNameWithoutExtension = stripExtension(fullFileName.toString());
+            this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
+        }
+    }
+
+    private Optional<String> stripExtension(String fileName) {
         // Handle null case specially.
-        if (fileName == null) return null;
+        if (fileName == null) {
+            return Optional.empty();
+        }
         // Get position of last '.'.
         int pos = fileName.lastIndexOf(".");
         // If there wasn't any '.' just return the string as is.
-        if (pos == -1) return fileName;
+        if (pos == -1) {
+            return Optional.of(fileName);
+        }
         // Otherwise return the string, up to the dot.
-        return fileName.substring(0, pos);
+        return Optional.of(fileName.substring(0, pos));
     }
 
     protected void reconfigure() {
