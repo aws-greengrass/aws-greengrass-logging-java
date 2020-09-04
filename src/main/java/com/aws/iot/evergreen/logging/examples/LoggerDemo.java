@@ -11,6 +11,7 @@ import com.aws.iot.evergreen.logging.impl.config.LogStore;
 
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -24,7 +25,6 @@ public class LoggerDemo {
         System.setProperty("log.file.sizeInKB", "10240");
         System.setProperty("log.file.fileSizeInKB", "1024");
         //System.setProperty("log.store", "FILE");
-        //System.setProperty("log.rollOverTimeInMinutes", "2");
         logger = LogManager.getLogger(LoggerDemo.class);
     }
 
@@ -65,8 +65,17 @@ public class LoggerDemo {
                 .log("test error");
 
         while (true) {
-            logger.atInfo().log("test main info");
-            TimeUnit.SECONDS.sleep(5);
+            int leftLimit = 97; // letter 'a'
+            int rightLimit = 122; // letter 'z'
+            int targetStringLength = 1024;
+            Random random = new Random();
+
+            String generatedString = random.ints(leftLimit, rightLimit + 1)
+                    .limit(targetStringLength)
+                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                    .toString();
+            logger.atInfo().log(generatedString);
+            TimeUnit.SECONDS.sleep(1);
         }
     }
 }

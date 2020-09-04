@@ -43,6 +43,7 @@ public class PersistenceConfig {
     protected final String prefix;
     protected LogStore store;
     protected String storeName;
+    protected String fileName;
     @Setter
     protected LogFormat format;
     protected long fileSizeKB;
@@ -163,7 +164,19 @@ public class PersistenceConfig {
             storePath = Paths.get(System.getProperty("user.dir"));
         }
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                storePath.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString());
+                storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
+        this.fileName = stripExtension(Paths.get(this.storeName).getFileName().toString());
+    }
+
+    String stripExtension (String fileName) {
+        // Handle null case specially.
+        if (fileName == null) return null;
+        // Get position of last '.'.
+        int pos = fileName.lastIndexOf(".");
+        // If there wasn't any '.' just return the string as is.
+        if (pos == -1) return fileName;
+        // Otherwise return the string, up to the dot.
+        return fileName.substring(0, pos);
     }
 
     protected void reconfigure() {
@@ -216,18 +229,19 @@ public class PersistenceConfig {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
 
-            logFileAppender = new CustomMinuteRollingFileAppender<>(rollOverTimeInMinutes);
+            logFileAppender = new RollingFileAppender<>();
             logFileAppender.setContext(logCtx);
             logFileAppender.setName("eg-file");
             logFileAppender.setAppend(true);
             logFileAppender.setFile(storeName);
             logFileAppender.setEncoder(basicEncoder);
 
+            //TODO: Check how to make it rotate per x minutes.
             SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
             logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH-mm}_%i");
+            logFilePolicy.setFileNamePattern(fileName + "_%d{yyyy-MM-dd_HH-mm}_%i" + "." + prefix);
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 
