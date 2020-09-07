@@ -11,51 +11,71 @@ import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class MetricFactoryTest {
     @Captor
     ArgumentCaptor<String> message;
+    @TempDir
+    protected Path tempRootDir;
+
+    @BeforeEach
+    public void setup() {
+        System.setProperty("root",tempRootDir.toAbsolutePath().toString());
+    }
 
     @Test
     void GIVEN_metricsFactory_with_null_or_empty_storePath_THEN_generic_log_file_is_created() {
         new MetricFactory("");
-        File logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
+        File logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
 
         new MetricFactory(null);
-        logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
+        logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_storeName_argument_THEN_log_file_with_storeName_is_created() {
-        new MetricFactory("storePathTest");
-        File logFile = new File(System.getProperty("user.dir")  + "/Telemetry/storePathTest.log");
+        MetricFactory mf = new MetricFactory("storePathTest");
+        File logFile = new File(MetricFactory.getTelemetryDirectory()  + "/storePathTest.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_no_argument_THEN_generic_log_file_is_created() {
         new MetricFactory();
-        File logFile = new File(System.getProperty("user.dir") + "/Telemetry/generic.log");
+        File logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
     }
 

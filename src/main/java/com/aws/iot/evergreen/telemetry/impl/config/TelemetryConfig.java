@@ -11,6 +11,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
+import com.aws.iot.evergreen.logging.impl.config.LogFormat;
 import com.aws.iot.evergreen.logging.impl.config.LogStore;
 import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
@@ -34,7 +35,7 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Get default metrics configurations from system properties.
      */
-    public TelemetryConfig() {
+    protected TelemetryConfig() {
         super(CONFIG_PREFIX);
         boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
@@ -54,6 +55,7 @@ public class TelemetryConfig extends PersistenceConfig {
 
         /* Log to a file - this has to be set before setting the store path. */
         this.setStoreType(LogStore.FILE);
+        this.setFormat(LogFormat.JSON);
 
         /*
          * Telemetry
@@ -65,56 +67,43 @@ public class TelemetryConfig extends PersistenceConfig {
         this.setStoreName(TELEMETRY_LOG_DIRECTORY + "/" + storeName + "." + CONFIG_PREFIX);
     }
 
-    /**
-     * Overriding this function to keep the Telemetry logs at user.dir level irrespective of the system properties
-     * @param newStoreName new store name
-     */
     @Override
-    public void setStoreName(String newStoreName) {
-        if (Objects.equals(this.storeName,newStoreName)) {
-            return;
-        }
-        this.storeName = newStoreName;
-    }
-
-    @Override
-    public void reconfigure(Logger loggerToConfigure) {
+    protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
+            this.logger = loggerToConfigure;
+            LoggerContext logCtx = loggerToConfigure.getLoggerContext();
 
-        logger = loggerToConfigure;
-        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
+            BasicEncoder basicEncoder = new BasicEncoder();
+            basicEncoder.setContext(logCtx);
+            basicEncoder.start();
 
-        BasicEncoder basicEncoder = new BasicEncoder();
-        basicEncoder.setContext(logCtx);
-        basicEncoder.start();
+            // Set sub-loggers to inherit this config
+            loggerToConfigure.setAdditive(true);
+            // set backend logger level to trace because we'll be filtering it in the frontend
+            loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
+            loggerToConfigure.detachAndStopAllAppenders();
 
-        // Set sub-loggers to inherit this config
-        loggerToConfigure.setAdditive(true);
-        // set backend logger level to trace because we'll be filtering it in the frontend
-        loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
-        loggerToConfigure.detachAndStopAllAppenders();
+            String fileAppenderName = this.getLogger().getName().substring(METRIC_LOGGER_NAME.length() + 1);
+            logFileAppender = new RollingFileAppender<>();
+            logFileAppender.setContext(logCtx);
+            logFileAppender.setName(fileAppenderName);
+            logFileAppender.setAppend(true);
+            logFileAppender.setFile(storeName);
+            logFileAppender.setEncoder(basicEncoder);
 
-        String fileAppenderName = this.getLogger().getName().substring(METRIC_LOGGER_NAME.length() + 1);
-        logFileAppender = new RollingFileAppender<>();
-        logFileAppender.setContext(logCtx);
-        logFileAppender.setName(fileAppenderName);
-        logFileAppender.setAppend(true);
-        logFileAppender.setFile(storeName);
-        logFileAppender.setEncoder(basicEncoder);
+            SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
+            logFilePolicy.setContext(logCtx);
+            logFilePolicy.setParent(logFileAppender);
+            logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}_%i");
+            logFilePolicy.setMaxHistory(numRollingFiles);
+            logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
+            logFilePolicy.start();
 
-        SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
-        logFilePolicy.setContext(logCtx);
-        logFilePolicy.setParent(logFileAppender);
-        logFilePolicy.setFileNamePattern(storeName + "_%d{yyyy-MM-dd_HH}_%i");
-        logFilePolicy.setMaxHistory(numRollingFiles);
-        logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
-        logFilePolicy.start();
-
-        logFileAppender.setRollingPolicy(logFilePolicy);
-        logFileAppender.setTriggeringPolicy(logFilePolicy);
-        logFileAppender.start();
-        // Add the replacement
-        loggerToConfigure.addAppender(logFileAppender);
+            logFileAppender.setRollingPolicy(logFilePolicy);
+            logFileAppender.setTriggeringPolicy(logFilePolicy);
+            logFileAppender.start();
+            // Add the replacement
+            loggerToConfigure.addAppender(logFileAppender);
     }
 
     public static TelemetryConfig getInstance() {

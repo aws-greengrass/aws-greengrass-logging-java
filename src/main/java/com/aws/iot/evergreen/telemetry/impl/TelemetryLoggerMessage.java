@@ -13,9 +13,9 @@ import lombok.Data;
 @Data
 public class TelemetryLoggerMessage {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private MetricDataPoint metricDataPoint;
+    private Object metricDataPoint;
 
-    public TelemetryLoggerMessage(MetricDataPoint metricDataPoint) {
+    public TelemetryLoggerMessage(Object metricDataPoint) {
         this.metricDataPoint = metricDataPoint;
     }
 

@@ -161,7 +161,7 @@ public class PersistenceConfig {
         return storePath;
     }
 
-    protected void reconfigure() {
+    private void reconfigure() {
         reconfigure(logger);
     }
 
@@ -229,7 +229,6 @@ public class PersistenceConfig {
             logFileAppender.setRollingPolicy(logFilePolicy);
             logFileAppender.setTriggeringPolicy(logFilePolicy);
             logFileAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs

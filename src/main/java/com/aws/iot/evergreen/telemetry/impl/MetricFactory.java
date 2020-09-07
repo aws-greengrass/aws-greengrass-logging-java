@@ -14,6 +14,9 @@ import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
  */
@@ -22,7 +25,7 @@ public class MetricFactory implements MetricFactoryBuilder {
     private ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
     private TelemetryConfig telemetryConfig;
     public static final String METRIC_LOGGER_NAME = "Metrics";
-    public static final String GENERIC_LOG_STORE = "generic";
+    private static final String GENERIC_LOG_STORE = "generic";
     @Setter
     @Getter
     private transient Slf4jLogAdapter logger;
@@ -71,5 +74,9 @@ public class MetricFactory implements MetricFactoryBuilder {
      */
     public void logMetrics(TelemetryLoggerMessage message) {
         logger.trace(message.getJSONMessage());
+    }
+
+    public static Path getTelemetryDirectory() {
+        return Paths.get(TelemetryConfig.getInstance().getStoreName()).getParent();
     }
 }
