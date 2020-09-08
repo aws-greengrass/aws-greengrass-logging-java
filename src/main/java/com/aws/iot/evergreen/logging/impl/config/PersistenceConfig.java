@@ -43,6 +43,7 @@ public class PersistenceConfig {
     protected final String prefix;
     protected LogStore store;
     protected String storeName;
+    protected Path storeDirectory;
     protected String fileName;
     @Setter
     protected LogFormat format;
@@ -118,6 +119,7 @@ public class PersistenceConfig {
         }
         this.storeName = newStoreName;
         getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
         reconfigure();
     }
 
@@ -149,6 +151,7 @@ public class PersistenceConfig {
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
                 storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
         getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
     }
 
     private void getFileNameFromStoreName() {
@@ -156,6 +159,15 @@ public class PersistenceConfig {
         if (this.storeName != null && fullFileName != null) {
             Optional<String> fileNameWithoutExtension = stripExtension(fullFileName.toString());
             this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
+        }
+    }
+
+    private void getStoreDirectoryFromStoreName() {
+        if (this.storeName != null) {
+            Path storeDirectoryPath = Paths.get(this.storeName).getParent();
+            if (storeDirectoryPath != null) {
+                this.storeDirectory = storeDirectoryPath.toAbsolutePath();
+            }
         }
     }
 
@@ -236,7 +248,8 @@ public class PersistenceConfig {
             logFilePolicy.setContext(logCtx);
             logFilePolicy.setParent(logFileAppender);
             logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.setFileNamePattern(fileName + "_%d{yyyy-MM-dd_HH}_%i" + "." + prefix);
+            logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
+                    .toString());
             logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
             logFilePolicy.start();
 
