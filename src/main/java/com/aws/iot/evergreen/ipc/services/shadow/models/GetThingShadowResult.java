@@ -3,7 +3,7 @@ package com.aws.iot.evergreen.ipc.services.shadow.models;
 import java.nio.ByteBuffer;
 
 /**
- * Result for the get thing shadow request.
+ * Result for getting a thing shadow.
  */
 public class GetThingShadowResult {
     /**

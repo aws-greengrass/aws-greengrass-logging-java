@@ -1,16 +1,51 @@
 package com.aws.iot.evergreen.ipc.services.shadow;
 
+import com.aws.iot.evergreen.ipc.IPCClient;
+import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
+import com.aws.iot.evergreen.ipc.services.shadow.exception.ShadowIPCException;
 import com.aws.iot.evergreen.ipc.services.shadow.models.GetThingShadowRequest;
 import com.aws.iot.evergreen.ipc.services.shadow.models.GetThingShadowResult;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import com.aws.iot.evergreen.ipc.services.shadow.models.ShadowGenericResponse;
+import com.aws.iot.evergreen.ipc.services.shadow.models.ShadowResponseStatus;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+import static com.aws.iot.evergreen.ipc.common.BuiltInServiceDestinationCode.SHADOW;
 
 public class ShadowImpl implements  Shadow {
-    @Override
-    public GetThingShadowResult getThingShadow(GetThingShadowRequest request) {
-        String thingName = request.getThingName();
+    public static final int API_VERSION = 1;
+    private final IPCClient ipc;
 
-        GetThingShadowResult result = new GetThingShadowResult();
-        throw new NotImplementedException();
+    public ShadowImpl(IPCClient ipc) {
+        this.ipc = ipc;
+    }
+
+    @Override
+    public GetThingShadowResult getThingShadow(GetThingShadowRequest request) throws ShadowIPCException {
+        final GetThingShadowResult result = new GetThingShadowResult();
+        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.GET_THING_SHADOW, request,
+                ShadowGenericResponse.class);
+        result.setPayload(response.getPayload());
+        return result;
+    }
+
+    private <T extends ShadowGenericResponse> T sendAndReceive(ShadowClientOpCodes opCode,
+                                                               Object request,
+                                                               final Class<T> returnTypeClass)
+            throws ShadowIPCException {
+        try {
+            CompletableFuture<T> responseFuture =
+                    IPCUtil.sendAndReceive(ipc, SHADOW.getValue(), API_VERSION, opCode.ordinal(), request,
+                            returnTypeClass);
+            ShadowGenericResponse response = (ShadowGenericResponse) responseFuture.get();
+            if (!ShadowResponseStatus.Success.equals(response.getStatus())) {
+                throw new ShadowIPCException(response.getErrorMessage());
+            }
+            return responseFuture.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ShadowIPCException(e);
+        }
     }
 
 }
