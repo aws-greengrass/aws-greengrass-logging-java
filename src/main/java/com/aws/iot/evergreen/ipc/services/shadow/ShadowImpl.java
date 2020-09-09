@@ -3,10 +3,14 @@ package com.aws.iot.evergreen.ipc.services.shadow;
 import com.aws.iot.evergreen.ipc.IPCClient;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
 import com.aws.iot.evergreen.ipc.services.shadow.exception.ShadowIPCException;
+import com.aws.iot.evergreen.ipc.services.shadow.models.DeleteThingShadowRequest;
+import com.aws.iot.evergreen.ipc.services.shadow.models.DeleteThingShadowResult;
 import com.aws.iot.evergreen.ipc.services.shadow.models.GetThingShadowRequest;
 import com.aws.iot.evergreen.ipc.services.shadow.models.GetThingShadowResult;
 import com.aws.iot.evergreen.ipc.services.shadow.models.ShadowGenericResponse;
 import com.aws.iot.evergreen.ipc.services.shadow.models.ShadowResponseStatus;
+import com.aws.iot.evergreen.ipc.services.shadow.models.UpdateThingShadowRequest;
+import com.aws.iot.evergreen.ipc.services.shadow.models.UpdateThingShadowResult;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +34,24 @@ public class ShadowImpl implements  Shadow {
         return result;
     }
 
+    @Override
+    public UpdateThingShadowResult updateThingShadow(UpdateThingShadowRequest request) throws ShadowIPCException {
+        final UpdateThingShadowResult result = new UpdateThingShadowResult();
+        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.UPDATE_THING_SHADOW, request,
+                ShadowGenericResponse.class);
+        result.setPayload(response.getPayload());
+        return result;
+    }
+
+    @Override
+    public DeleteThingShadowResult deleteThingShadow(DeleteThingShadowRequest request) throws ShadowIPCException {
+        final DeleteThingShadowResult result = new DeleteThingShadowResult();
+        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.DELETE_THING_SHADOW, request,
+                ShadowGenericResponse.class);
+        result.setPayload(response.getPayload());
+        return result;
+    }
+
     private <T extends ShadowGenericResponse> T sendAndReceive(ShadowClientOpCodes opCode,
                                                                Object request,
                                                                final Class<T> returnTypeClass)
@@ -38,7 +60,7 @@ public class ShadowImpl implements  Shadow {
             CompletableFuture<T> responseFuture =
                     IPCUtil.sendAndReceive(ipc, SHADOW.getValue(), API_VERSION, opCode.ordinal(), request,
                             returnTypeClass);
-            ShadowGenericResponse response = (ShadowGenericResponse) responseFuture.get();
+            ShadowGenericResponse response = responseFuture.get();
             if (!ShadowResponseStatus.Success.equals(response.getStatus())) {
                 throw new ShadowIPCException(response.getErrorMessage());
             }
