@@ -7,8 +7,8 @@ package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.api.LogEventBuilder;
 import com.aws.iot.evergreen.logging.api.Logger;
-import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import com.aws.iot.evergreen.logging.impl.config.LogFormat;
+import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import org.slf4j.event.Level;
 
 import java.util.Collections;
@@ -29,7 +29,7 @@ public class Slf4jLogAdapter implements Logger {
     private transient org.slf4j.Logger logger;
     private final String name;
     private final Map<String, Object> loggerContextData = new ConcurrentHashMap<>();
-    private final EvergreenLogConfig config;
+    private final PersistenceConfig config;
     private Level individualLevel = null;
 
     /**
@@ -38,11 +38,11 @@ public class Slf4jLogAdapter implements Logger {
      * @param logger logger implementation
      * @param config configuration for this logger
      */
-    public Slf4jLogAdapter(org.slf4j.Logger logger, EvergreenLogConfig config) {
+    public Slf4jLogAdapter(org.slf4j.Logger logger, PersistenceConfig config) {
         this(logger, config, null);
     }
 
-    private Slf4jLogAdapter(org.slf4j.Logger logger, EvergreenLogConfig config, Slf4jLogAdapter slf4jLogAdapter) {
+    private Slf4jLogAdapter(org.slf4j.Logger logger, PersistenceConfig config, Slf4jLogAdapter slf4jLogAdapter) {
         this.logger = logger;
         this.name = logger.getName();
         this.config = config;

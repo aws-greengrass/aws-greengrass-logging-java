@@ -5,7 +5,7 @@
 
 package com.aws.iot.evergreen.telemetry.impl;
 
-import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
+import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
@@ -57,32 +57,32 @@ class MetricFactoryTest {
     @Test
     void GIVEN_metricsFactory_with_null_or_empty_storePath_THEN_generic_log_file_is_created() {
         new MetricFactory("");
-        File logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
+        File logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
 
         new MetricFactory(null);
-        logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
+        logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_storeName_argument_THEN_log_file_with_storeName_is_created() {
-        MetricFactory mf = new MetricFactory("storePathTest");
-        File logFile = new File(MetricFactory.getTelemetryDirectory()  + "/storePathTest.log");
+        new MetricFactory("storePathTest");
+        File logFile = new File(TelemetryConfig.getTelemetryDirectory()  + "/storePathTest.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_no_argument_THEN_generic_log_file_is_created() {
         new MetricFactory();
-        File logFile = new File(MetricFactory.getTelemetryDirectory() + "/generic.log");
+        File logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
     }
 
     @Test
     void GIVEN_metricsFactory_with_some_storePath_THEN_metrics_logger_specific_to_the_storePath_is_created() {
         MetricFactory mf = new MetricFactory();
-        Slf4jLogAdapter loggerSpy = setupLoggerSpy(mf);
+        Logger loggerSpy = setupLoggerSpy(mf);
         assertEquals(loggerSpy.getName(),"Metrics-generic");
 
         mf = new MetricFactory(null);
@@ -102,7 +102,7 @@ class MetricFactoryTest {
     @Test
     void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() {
         MetricFactory mf = new MetricFactory("EnableMetricsTests");
-        Slf4jLogAdapter loggerSpy = setupLoggerSpy(mf);
+        Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m= Metric.builder()
@@ -125,7 +125,7 @@ class MetricFactoryTest {
     @Test
     void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() throws Exception {
         MetricFactory mf = new MetricFactory("EmitMetricsWithThreads");
-        Slf4jLogAdapter loggerSpy = setupLoggerSpy(mf);
+        Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m1 = Metric.builder()
@@ -178,8 +178,8 @@ class MetricFactoryTest {
         assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":180,\"TS"));
     }
 
-    private Slf4jLogAdapter setupLoggerSpy(MetricFactory mf) {
-        Slf4jLogAdapter loggerSpy = spy(mf.getLogger());
+    private Logger setupLoggerSpy(MetricFactory mf) {
+        Logger loggerSpy = spy(mf.getLogger());
         mf.setLogger(loggerSpy);
         return loggerSpy;
     }

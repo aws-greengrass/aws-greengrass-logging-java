@@ -5,17 +5,13 @@
 
 package com.aws.iot.evergreen.telemetry.impl;
 
+import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
-import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
-import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
 import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
 import com.aws.iot.evergreen.telemetry.api.MetricFactoryBuilder;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
@@ -28,14 +24,14 @@ public class MetricFactory implements MetricFactoryBuilder {
     private static final String GENERIC_LOG_STORE = "generic";
     @Setter
     @Getter
-    private transient Slf4jLogAdapter logger;
+    private transient Logger logger;
 
     public MetricFactory() {
         constructorHelper(null);
     }
 
-    public MetricFactory(String storePath) {
-        constructorHelper(storePath);
+    public MetricFactory(String storeName) {
+        constructorHelper(storeName);
     }
 
     /**
@@ -49,9 +45,8 @@ public class MetricFactory implements MetricFactoryBuilder {
         // TODO: get configurations from kernel config
         String loggerName = METRIC_LOGGER_NAME + "-" + storeName;
         this.telemetryConfig = TelemetryConfig.getInstance();
-        this.telemetryConfig.editConfig(EvergreenLogConfig.getInstance().getLogger(loggerName), storeName);
-        this.logger = (Slf4jLogAdapter) LogManager.getLogger(loggerName);
-        this.logger.setLevel("trace");
+        this.telemetryConfig.editConfig(loggerName, storeName);
+        this.logger = LogManager.getTelemetryLogger(loggerName);
     }
 
     /**
@@ -74,9 +69,5 @@ public class MetricFactory implements MetricFactoryBuilder {
      */
     public void logMetrics(TelemetryLoggerMessage message) {
         logger.trace(message.getJSONMessage());
-    }
-
-    public static Path getTelemetryDirectory() {
-        return Paths.get(TelemetryConfig.getInstance().getStoreName()).getParent();
     }
 }

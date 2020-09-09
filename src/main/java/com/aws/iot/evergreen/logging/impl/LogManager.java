@@ -6,6 +6,7 @@
 package com.aws.iot.evergreen.logging.impl;
 
 import com.aws.iot.evergreen.logging.impl.config.EvergreenLogConfig;
+import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
 
@@ -23,6 +24,8 @@ public class LogManager {
             new ConcurrentHashMap<>();
     @Getter
     private static final EvergreenLogConfig config = EvergreenLogConfig.getInstance();
+    @Getter
+    private static final TelemetryConfig telemetryConfig = TelemetryConfig.getInstance();
 
     /**
      * Return an appropriate {@link com.aws.iot.evergreen.logging.api.Logger} instance as specified by the name
@@ -48,4 +51,19 @@ public class LogManager {
     public static com.aws.iot.evergreen.logging.api.Logger getLogger(Class<?> clazz) {
         return getLogger(clazz.getName());
     }
+
+    /**
+     * Return an appropriate {@link com.aws.iot.evergreen.logging.api.Logger} instance as specified by the name
+     * parameter.
+     *
+     * @param name the name of the Telemetry Logger to return
+     * @return a telemetry Logger instance
+     */
+    public static com.aws.iot.evergreen.logging.api.Logger getTelemetryLogger(String name) {
+        return loggerMap.computeIfAbsent(name, n -> {
+            Logger logger = telemetryConfig.getLogger(name);
+            return new Slf4jLogAdapter(logger, telemetryConfig);
+        });
+    }
+
 }

@@ -15,6 +15,7 @@ import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.event.Level;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ public class PersistenceConfig {
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
+    public static final String LOG_LEVEL_SUFFIX = ".level";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
@@ -39,19 +41,23 @@ public class PersistenceConfig {
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
     private static final String DEFAULT_STORE_NAME = "evergreen.";
+    private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
 
     protected final String prefix;
     protected LogStore store;
     protected String storeName;
     protected Path storeDirectory;
+    @Setter
     protected String fileName;
     @Setter
     protected LogFormat format;
+    @Setter
+    protected Level level;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
-    private Logger logger;
+    protected Logger logger;
 
     /**
      * Get default PersistenceConfig from system properties.
@@ -80,6 +86,15 @@ public class PersistenceConfig {
         } catch (NumberFormatException e) {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
+
+        Level level;
+        try {
+            level = Level.valueOf(System.getProperty(prefix + LOG_LEVEL_SUFFIX, DEFAULT_LOG_LEVEL));
+        } catch (NumberFormatException e) {
+            level = Level.INFO;
+        }
+
+        this.level = level;
 
         int fileSizeKB;
         try {
@@ -113,7 +128,7 @@ public class PersistenceConfig {
      * @param path new path
      */
     public void setStorePath(Path path) {
-        String newStoreName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
+        String newStoreName = getRootStorePath().resolve(path).toAbsolutePath().toString();
         if (Objects.equals(this.storeName, newStoreName)) {
             return;
         }
@@ -137,10 +152,18 @@ public class PersistenceConfig {
     }
 
     private void initializeStoreName(String prefix) {
+        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
+                getRootStorePath().resolve(DEFAULT_STORE_NAME + prefix).toString());
+        getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
+    }
+
+    /**
+     * Helper function to get the path.
+     */
+    private Path getRootStorePath() {
         Path storePath;
-
         String rootPathStr = System.getProperty("root");
-
         if (rootPathStr != null) {
             // if root is set, use root as store path
             storePath = Paths.get(rootPathStr);
@@ -148,10 +171,7 @@ public class PersistenceConfig {
             // if root is not set, use working directory as store path
             storePath = Paths.get(System.getProperty("user.dir"));
         }
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
-        getFileNameFromStoreName();
-        getStoreDirectoryFromStoreName();
+        return storePath.toAbsolutePath();
     }
 
     private void getFileNameFromStoreName() {
@@ -271,7 +291,7 @@ public class PersistenceConfig {
         }
     }
 
-    private static class BasicEncoder extends EncoderBase<ILoggingEvent> {
+    public static class BasicEncoder extends EncoderBase<ILoggingEvent> {
         @Override
         public byte[] headerBytes() {
             return new byte[0];
