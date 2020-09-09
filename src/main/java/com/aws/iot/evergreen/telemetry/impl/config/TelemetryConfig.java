@@ -71,7 +71,7 @@ public class TelemetryConfig extends PersistenceConfig {
     }
 
     /**
-     * NOTE : Calling this method from elsewhere will not reconfigure the logger.
+     * NOTE : Calling this method from elsewhere will NOT reconfigure the logger.
      * This method is called only once from the setStorePath(..); This is used only once from the MetricFactory
      * when we construct a metric to write metrics to a specific file.
      */
