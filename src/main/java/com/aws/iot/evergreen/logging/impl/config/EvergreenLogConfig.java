@@ -13,7 +13,6 @@ import org.slf4j.event.Level;
 @Getter
 public class EvergreenLogConfig extends PersistenceConfig {
     // TODO: Replace the default log level from Kernel Configuration.
-    private static final String DEFAULT_LOG_LEVEL = "INFO";
     public static final String CONFIG_PREFIX = "log";
     private static final LoggerContext context = new LoggerContext();
 
@@ -29,7 +28,6 @@ public class EvergreenLogConfig extends PersistenceConfig {
      */
     protected EvergreenLogConfig() {
         super(CONFIG_PREFIX);
-        this.setLevel(Level.valueOf(DEFAULT_LOG_LEVEL));
         reconfigure(context.getLogger(Logger.ROOT_LOGGER_NAME));
     }
 

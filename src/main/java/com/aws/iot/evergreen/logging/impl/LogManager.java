@@ -22,6 +22,9 @@ public class LogManager {
     // key: name (String), value: a Logger;
     private static final ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> loggerMap =
             new ConcurrentHashMap<>();
+    // key: name (String), value: a Logger;
+    private static final ConcurrentMap<String, com.aws.iot.evergreen.logging.api.Logger> telemetryLoggerMap =
+            new ConcurrentHashMap<>();
     @Getter
     private static final EvergreenLogConfig config = EvergreenLogConfig.getInstance();
     @Getter
@@ -60,7 +63,7 @@ public class LogManager {
      * @return a telemetry Logger instance
      */
     public static com.aws.iot.evergreen.logging.api.Logger getTelemetryLogger(String name) {
-        return loggerMap.computeIfAbsent(name, n -> {
+        return telemetryLoggerMap.computeIfAbsent(name, n -> {
             Logger logger = telemetryConfig.getLogger(name);
             return new Slf4jLogAdapter(logger, telemetryConfig);
         });

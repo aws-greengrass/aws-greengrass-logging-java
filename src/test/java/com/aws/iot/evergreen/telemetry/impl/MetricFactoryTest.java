@@ -44,14 +44,14 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class MetricFactoryTest {
-    @Captor
-    ArgumentCaptor<String> message;
     @TempDir
     protected Path tempRootDir;
+    @Captor
+    ArgumentCaptor<String> message;
 
     @BeforeEach
     public void setup() {
-        System.setProperty("root",tempRootDir.toAbsolutePath().toString());
+        System.setProperty("root", tempRootDir.toAbsolutePath().toString());
     }
 
     @Test
@@ -68,7 +68,7 @@ class MetricFactoryTest {
     @Test
     void GIVEN_metricsFactory_with_storeName_argument_THEN_log_file_with_storeName_is_created() {
         new MetricFactory("storePathTest");
-        File logFile = new File(TelemetryConfig.getTelemetryDirectory()  + "/storePathTest.log");
+        File logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/storePathTest.log");
         assertTrue(logFile.exists());
     }
 
@@ -83,20 +83,19 @@ class MetricFactoryTest {
     void GIVEN_metricsFactory_with_some_storePath_THEN_metrics_logger_specific_to_the_storePath_is_created() {
         MetricFactory mf = new MetricFactory();
         Logger loggerSpy = setupLoggerSpy(mf);
-        assertEquals(loggerSpy.getName(),"Metrics-generic");
+        assertEquals(loggerSpy.getName(), "Metrics-generic");
 
         mf = new MetricFactory(null);
         loggerSpy = setupLoggerSpy(mf);
-        assertEquals(loggerSpy.getName(),"Metrics-generic");
-
+        assertEquals(loggerSpy.getName(), "Metrics-generic");
 
         mf = new MetricFactory("");
         loggerSpy = setupLoggerSpy(mf);
-        assertEquals(loggerSpy.getName(),"Metrics-generic");
+        assertEquals(loggerSpy.getName(), "Metrics-generic");
 
         mf = new MetricFactory("MetricLoggerTest");
         loggerSpy = setupLoggerSpy(mf);
-        assertEquals(loggerSpy.getName(),"Metrics-MetricLoggerTest");
+        assertEquals(loggerSpy.getName(), "Metrics-MetricLoggerTest");
     }
 
     @Test
@@ -105,7 +104,7 @@ class MetricFactoryTest {
         Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
-        Metric m= Metric.builder()
+        Metric m = Metric.builder()
                 .metricNamespace(TelemetryNamespace.SystemMetrics)
                 .metricName(TelemetryMetricName.CpuUsage)
                 .metricUnit(TelemetryUnit.Percent)
