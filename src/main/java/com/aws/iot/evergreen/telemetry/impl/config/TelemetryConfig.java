@@ -34,8 +34,7 @@ public class TelemetryConfig extends PersistenceConfig {
     @Setter
     private boolean metricsEnabled;
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
-    private RollingFileAppender<ILoggingEvent> logFileAppender = null;
-    private static final LoggerContext context = new LoggerContext();
+    private final LoggerContext context = new LoggerContext();
     private String loggerName;
 
     /**
@@ -53,7 +52,7 @@ public class TelemetryConfig extends PersistenceConfig {
     }
 
     /**
-     *  Set up logger and store name.
+     * Set up logger and store name.
      * @param loggerName Uses a new logger
      * @param storeName creates a log file at the path specified
      */
@@ -71,6 +70,11 @@ public class TelemetryConfig extends PersistenceConfig {
         this.setStorePath(Paths.get(TELEMETRY_LOG_DIRECTORY, storeName + "." + CONFIG_PREFIX));
     }
 
+    /**
+     * NOTE : Calling this method from elsewhere will not reconfigure the logger.
+     * This method is called only once from the setStorePath(..); This is used only once from the MetricFactory
+     * when we construct a metric to write metrics to a specific file.
+     */
     @Override
     protected void reconfigure() {
         reconfigure(getLogger(loggerName));
@@ -79,9 +83,7 @@ public class TelemetryConfig extends PersistenceConfig {
     @Override
     protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
-        logger = loggerToConfigure;
         LoggerContext logCtx = loggerToConfigure.getLoggerContext();
-
         BasicEncoder basicEncoder = new BasicEncoder();
         basicEncoder.setContext(logCtx);
         basicEncoder.start();
@@ -91,8 +93,8 @@ public class TelemetryConfig extends PersistenceConfig {
         // set backend logger level to trace because we'll be filtering it in the frontend
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
 
-        String fileAppenderName = this.getLogger().getName().substring(METRIC_LOGGER_NAME.length() + 1);
-        logFileAppender = new RollingFileAppender<>();
+        String fileAppenderName = loggerToConfigure.getName().substring(METRIC_LOGGER_NAME.length() + 1);
+        RollingFileAppender<ILoggingEvent> logFileAppender = new RollingFileAppender<>();
         logFileAppender.setContext(logCtx);
         logFileAppender.setName(fileAppenderName);
         logFileAppender.setAppend(true);
@@ -128,6 +130,5 @@ public class TelemetryConfig extends PersistenceConfig {
     public static Path getTelemetryDirectory() {
         return Paths.get(INSTANCE.getStoreDirectory().toString());
     }
-
 }
 

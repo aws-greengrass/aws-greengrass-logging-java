@@ -90,7 +90,7 @@ public class PersistenceConfig {
         Level level;
         try {
             level = Level.valueOf(System.getProperty(prefix + LOG_LEVEL_SUFFIX, DEFAULT_LOG_LEVEL));
-        } catch (NumberFormatException e) {
+        } catch (IllegalArgumentException e) {
             level = Level.INFO;
         }
 
