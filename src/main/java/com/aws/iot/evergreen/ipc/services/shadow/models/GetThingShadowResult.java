@@ -13,7 +13,6 @@ public class GetThingShadowResult {
 
     /**
      * Getter for the payload.
-     *
      * Warning: ByteBuffers returned by the SDK are mutable. Changes to the content of the byte buffer will
      * be seen by all objects that have a reference to this object. It is recommended to call
      * ByteBuffer.asReadOnlyBuffer() before using or reading from the buffer.
@@ -26,7 +25,6 @@ public class GetThingShadowResult {
 
     /**
      * Setter for the payload.
-     *
      * Warning: ByteBuffers returned by the SDK are mutable. Changes to the content of the byte buffer will
      * be seen by all objects that have a reference to this object. It is recommended to call
      * ByteBuffer.asReadOnlyBuffer() before using or reading from the buffer.
