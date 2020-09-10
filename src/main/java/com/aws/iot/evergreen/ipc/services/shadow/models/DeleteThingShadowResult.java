@@ -12,6 +12,14 @@ public class DeleteThingShadowResult {
     private ByteBuffer payload;
 
     /**
+     * Creates a DeleteThingShadowResult.
+     * Defaults payload to null
+     */
+    public DeleteThingShadowResult() {
+        payload = null;
+    }
+
+    /**
      * Getter for the payload.
      * Warning: ByteBuffers returned by the SDK are mutable. Changes to the content of the byte buffer will
      * be seen by all objects that have a reference to this object. It is recommended to call
