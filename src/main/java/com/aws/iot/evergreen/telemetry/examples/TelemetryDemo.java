@@ -23,10 +23,10 @@ public class TelemetryDemo {
      */
     public static void main(String[] args) {
         Metric metric = Metric.builder()
-                .metricNamespace(TelemetryNamespace.SystemMetrics)
-                .metricName(TelemetryMetricName.CpuUsage)
-                .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
+                .namespace(TelemetryNamespace.SystemMetrics)
+                .name(TelemetryMetricName.CpuUsage)
+                .unit(TelemetryUnit.Percent)
+                .aggregation(TelemetryAggregation.Average)
                 .build();
         MetricDataBuilder metricDataBuilder = new MetricFactory().addMetric(metric);
         metricDataBuilder.putMetricData(100).emit();

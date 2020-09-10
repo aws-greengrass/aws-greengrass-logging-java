@@ -23,7 +23,6 @@ public class TelemetryLoggerMessage {
      * Get JSON encoded metric.
      * @return String
      */
-
     @JsonIgnore
     public String getJSONMessage() {
         try {

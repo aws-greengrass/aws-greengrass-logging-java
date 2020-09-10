@@ -124,8 +124,7 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
-     *
-     * @param path new path
+     * @param path The path passed in must contain the file name to which the logs will be written.
      */
     public void setStorePath(Path path) {
         String newStoreName = getRootStorePath().resolve(path).toAbsolutePath().toString();

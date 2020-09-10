@@ -52,9 +52,9 @@ public class TelemetryConfig extends PersistenceConfig {
     }
 
     /**
-     * Set up logger and store name.
-     * @param loggerName Uses a new logger
-     * @param storeName creates a log file at the path specified
+     * Sets up logger name and store name.
+     * @param loggerName This is used as the name of the telemetry logger.
+     * @param storeName The storeName passed will be the name of the log file created at the path shown below.
      */
     public void editConfig(String loggerName, String storeName) {
         this.loggerName = loggerName;
@@ -84,7 +84,7 @@ public class TelemetryConfig extends PersistenceConfig {
     protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
         LoggerContext logCtx = loggerToConfigure.getLoggerContext();
-        BasicEncoder basicEncoder = new BasicEncoder();
+        PersistenceConfig.BasicEncoder basicEncoder = new BasicEncoder();
         basicEncoder.setContext(logCtx);
         basicEncoder.start();
 

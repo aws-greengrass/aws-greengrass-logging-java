@@ -28,14 +28,14 @@ import lombok.Setter;
 public class Metric {
     @NonNull
     @JsonProperty("NS")
-    private TelemetryNamespace metricNamespace;
+    private TelemetryNamespace namespace;
     @NonNull
     @JsonProperty("N")
-    private TelemetryMetricName metricName;
+    private TelemetryMetricName name;
     @NonNull
     @JsonProperty("U")
-    private TelemetryUnit metricUnit;
+    private TelemetryUnit unit;
     @NonNull
     @JsonProperty("A")
-    private TelemetryAggregation metricAggregation;
+    private TelemetryAggregation aggregation;
 }

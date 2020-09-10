@@ -11,6 +11,8 @@ import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
 import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
 import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,20 +22,27 @@ import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,10 +114,10 @@ class MetricFactoryTest {
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m = Metric.builder()
-                .metricNamespace(TelemetryNamespace.SystemMetrics)
-                .metricName(TelemetryMetricName.CpuUsage)
-                .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
+                .namespace(TelemetryNamespace.SystemMetrics)
+                .name(TelemetryMetricName.CpuUsage)
+                .unit(TelemetryUnit.Percent)
+                .aggregation(TelemetryAggregation.Average)
                 .build();
 
         TelemetryConfig.getInstance().setMetricsEnabled(false);
@@ -122,23 +131,24 @@ class MetricFactoryTest {
     }
 
     @Test
-    void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics() throws Exception {
+    void GIVEN_metricsFactory_WHEN_used_by_2_threads_THEN_both_threads_should_emit_metrics_AND_write_to_correct_files()
+            throws InterruptedException, ExecutionException, TimeoutException, IOException {
         MetricFactory mf = new MetricFactory("EmitMetricsWithThreads");
         Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m1 = Metric.builder()
-                .metricNamespace(TelemetryNamespace.SystemMetrics)
-                .metricName(TelemetryMetricName.CpuUsage)
-                .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
+                .namespace(TelemetryNamespace.SystemMetrics)
+                .name(TelemetryMetricName.CpuUsage)
+                .unit(TelemetryUnit.Percent)
+                .aggregation(TelemetryAggregation.Average)
                 .build();
 
         Metric m2 = Metric.builder()
-                .metricNamespace(TelemetryNamespace.SystemMetrics)
-                .metricName(TelemetryMetricName.CpuUsage)
-                .metricUnit(TelemetryUnit.Percent)
-                .metricAggregation(TelemetryAggregation.Average)
+                .namespace(TelemetryNamespace.KernelComponents)
+                .name(TelemetryMetricName.NumberOfComponentsInstalled)
+                .unit(TelemetryUnit.Count)
+                .aggregation(TelemetryAggregation.Average)
                 .build();
 
         CyclicBarrier start = new CyclicBarrier(2);
@@ -149,8 +159,8 @@ class MetricFactoryTest {
             } catch (InterruptedException | BrokenBarrierException e) {
                 fail("Error starting thread1 in sync", e);
             }
-            mf.addMetric(m1).putMetricData(100).emit();
-            mf.addMetric(m1).putMetricData(120).emit();
+            mf.addMetric(m1).putMetricData(400).emit();
+            mf.addMetric(m2).putMetricData(200).emit();
         });
         Future future2 = ses.submit(() -> {
             try {
@@ -158,23 +168,54 @@ class MetricFactoryTest {
             } catch (InterruptedException | BrokenBarrierException e) {
                 fail("Error starting thread2 in sync", e);
             }
-            mf.addMetric(m1).putMetricData(150).emit();
-            mf.addMetric(m2).putMetricData(180).emit();
+            mf.addMetric(m1).putMetricData(300).emit();
+            mf.addMetric(m2).putMetricData(100).emit();
         });
         future1.get(5, TimeUnit.SECONDS);
         future2.get(5, TimeUnit.SECONDS);
-
         ses.shutdown();
-        verify(loggerSpy, times(4)).trace(any());
 
-        List<String> messages = message.getAllValues();
+        // all the metric messages are logged as trace messages
+        verify(loggerSpy, times(4)).trace(any());
+        String path = TelemetryConfig.getTelemetryDirectory() + "/EmitMetricsWithThreads.log";
+        File logFile = new File(path);
+        // file exists
+        assertTrue(logFile.exists());
+        ObjectMapper mapper = new ObjectMapper();
+        List<String> messages = new ArrayList<>();
+        Files
+                .lines(Paths.get(path))
+                .forEach(s -> {
+                    try {
+                        //get only the message part of the log that contains metric info
+                        messages.add(mapper.readTree(s).get("message").asText());
+                    } catch (JsonProcessingException e) {
+                        fail("Unable to parse the log.");
+                    }
+                });
+
+        // file has four entries of the emitted metrics
         assertThat(messages, hasSize(4));
         Collections.sort(messages);
+        List<MetricDataPoint> mdp = new ArrayList<>();
+        for (String s : messages) {
+            mdp.add(mapper.readValue(s, MetricDataPoint.class));
+        }
+        // assert the values of the metric
+        assertEquals((Integer) mdp.get(0).getValue(), 100);
+        assertEquals((Integer) mdp.get(1).getValue(), 200);
+        assertEquals((Integer) mdp.get(2).getValue(), 300);
+        assertEquals((Integer) mdp.get(3).getValue(), 400);
+        // assert the metric attributes in order
+        assertEquals(mdp.get(0).getMetric().getNamespace(), TelemetryNamespace.KernelComponents);
+        assertEquals(mdp.get(1).getMetric().getAggregation(), TelemetryAggregation.Average);
+        assertEquals(mdp.get(2).getMetric().getName(), TelemetryMetricName.CpuUsage);
+        assertEquals(mdp.get(3).getMetric().getUnit(), TelemetryUnit.Percent);
 
-        assertThat(messages.get(0), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":100,\"TS"));
-        assertThat(messages.get(1), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":120,\"TS"));
-        assertThat(messages.get(2), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":150,\"TS"));
-        assertThat(messages.get(3), containsString("{\"M\":{\"NS\":\"SystemMetrics\",\"N\":\"CpuUsage\",\"U\":\"Percent\",\"A\":\"Average\"},\"V\":180,\"TS"));
+        logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/evergreen.log");
+        // evergreen.log file does not exist
+        assertFalse(logFile.exists());
+
     }
 
     private Logger setupLoggerSpy(MetricFactory mf) {

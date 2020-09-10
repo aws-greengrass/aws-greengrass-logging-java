@@ -19,7 +19,6 @@ import java.time.Instant;
 public class MetricData implements MetricDataBuilder {
 
     private MetricDataPoint metricDataPoint = new MetricDataPoint();
-    private Metric metric;
     private transient MetricFactory metricFactory;
 
     public MetricData setLogger(MetricFactory metricFactory) {
@@ -28,7 +27,7 @@ public class MetricData implements MetricDataBuilder {
     }
 
     public MetricData setMetric(Metric metric) {
-        this.metric = metric;
+        this.metricDataPoint.setMetric(metric);
         return this;
     }
 
@@ -38,12 +37,10 @@ public class MetricData implements MetricDataBuilder {
      * @param value metric data value
      * @return
      */
-
     @Override
     public MetricData putMetricData(Object value) {
         this.metricDataPoint.setValue(value);
         this.metricDataPoint.setTimestamp(Instant.now().toEpochMilli());
-        this.metricDataPoint.setMetric(this.metric);
         return this;
     }
 
@@ -51,7 +48,6 @@ public class MetricData implements MetricDataBuilder {
      * Emits the metric data point collected using the logger.
      *
      */
-
     @Override
     public void emit() {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(this.metricDataPoint);
