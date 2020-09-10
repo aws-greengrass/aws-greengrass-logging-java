@@ -27,7 +27,9 @@ public class ShadowImpl implements  Shadow {
 
     @Override
     public GetThingShadowResult getThingShadow(GetThingShadowRequest request) throws ShadowIPCException {
+        checkRequiredParameter(request.getThingName(), "Thing Name");
         final GetThingShadowResult result = new GetThingShadowResult();
+
         final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.GET_THING_SHADOW, request,
                 ShadowGenericResponse.class);
         result.setPayload(response.getPayload());
@@ -36,6 +38,8 @@ public class ShadowImpl implements  Shadow {
 
     @Override
     public UpdateThingShadowResult updateThingShadow(UpdateThingShadowRequest request) throws ShadowIPCException {
+        checkRequiredParameter(request.getThingName(), "Thing Name");
+        checkRequiredParameter(request.getPayload(), "Payload");
         final UpdateThingShadowResult result = new UpdateThingShadowResult();
         final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.UPDATE_THING_SHADOW, request,
                 ShadowGenericResponse.class);
@@ -45,6 +49,7 @@ public class ShadowImpl implements  Shadow {
 
     @Override
     public DeleteThingShadowResult deleteThingShadow(DeleteThingShadowRequest request) throws ShadowIPCException {
+        checkRequiredParameter(request.getThingName(), "Thing Name");
         final DeleteThingShadowResult result = new DeleteThingShadowResult();
         final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.DELETE_THING_SHADOW, request,
                 ShadowGenericResponse.class);
@@ -67,6 +72,19 @@ public class ShadowImpl implements  Shadow {
             return responseFuture.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new ShadowIPCException(e);
+        }
+    }
+
+    /**
+     * Helper function for checking existence of required parameter.
+     * @param param required parameter
+     * @param paramName the name of the parameter
+     * @throws ShadowIPCException thrown when required parameter does not exist
+     */
+    private void checkRequiredParameter(final Object param, final String paramName)
+            throws ShadowIPCException {
+        if (param == null || param instanceof String && ((String) param).isEmpty()) {
+            throw new ShadowIPCException(String.format("%s is a required parameter", paramName));
         }
     }
 
