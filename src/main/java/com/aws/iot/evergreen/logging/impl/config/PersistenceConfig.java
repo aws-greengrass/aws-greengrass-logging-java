@@ -13,6 +13,7 @@ import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -47,9 +48,8 @@ public class PersistenceConfig {
     protected LogStore store;
     protected String storeName;
     protected Path storeDirectory;
-    @Setter
-    protected String fileName;
-    @Setter
+    private String fileName;
+    @Setter(AccessLevel.PROTECTED)
     protected LogFormat format;
     @Setter
     protected Level level;
@@ -211,14 +211,7 @@ public class PersistenceConfig {
 
     protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
-
         logger = loggerToConfigure;
-        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
-
-        BasicEncoder basicEncoder = new BasicEncoder();
-        basicEncoder.setContext(logCtx);
-        basicEncoder.start();
-
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
         // set backend logger level to trace because we'll be filtering it in the frontend
@@ -230,16 +223,11 @@ public class PersistenceConfig {
                 a.stop();
             }
         });
-
         if (LogStore.CONSOLE.equals(store)) {
             final ConsoleAppender<ILoggingEvent> originalAppender = logConsoleAppender;
             final RollingFileAppender<ILoggingEvent> fileAppender = logFileAppender;
-            logConsoleAppender = new ConsoleAppender<>();
-            logConsoleAppender.setContext(logCtx);
-            logConsoleAppender.setName("eg-console");
-            logConsoleAppender.setEncoder(basicEncoder);
+            logConsoleAppender = getAppenderForConsole(loggerToConfigure, "eg-console");
             logConsoleAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logConsoleAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
@@ -254,28 +242,8 @@ public class PersistenceConfig {
         } else if (LogStore.FILE.equals(store)) {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
-
-            logFileAppender = new RollingFileAppender<>();
-            logFileAppender.setContext(logCtx);
-            logFileAppender.setName("eg-file");
-            logFileAppender.setAppend(true);
-            logFileAppender.setFile(storeName);
-            logFileAppender.setEncoder(basicEncoder);
-
-            //TODO: Check how to make it rotate per x minutes.
-            SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
-            logFilePolicy.setContext(logCtx);
-            logFilePolicy.setParent(logFileAppender);
-            logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
-                    .toString());
-            logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.start();
-
-            logFileAppender.setRollingPolicy(logFilePolicy);
-            logFileAppender.setTriggeringPolicy(logFilePolicy);
+            logFileAppender = getAppenderForFile(loggerToConfigure,"eg-file");
             logFileAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
@@ -290,7 +258,47 @@ public class PersistenceConfig {
         }
     }
 
-    public static class BasicEncoder extends EncoderBase<ILoggingEvent> {
+    protected RollingFileAppender<ILoggingEvent> getAppenderForFile(Logger loggerToConfigure, String appenderName) {
+        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
+        BasicEncoder basicEncoder = new BasicEncoder();
+        basicEncoder.setContext(logCtx);
+        basicEncoder.start();
+        RollingFileAppender<ILoggingEvent> fileAppender = new RollingFileAppender<>();
+        fileAppender.setContext(logCtx);
+        fileAppender.setName(appenderName);
+        fileAppender.setAppend(true);
+        fileAppender.setFile(storeName);
+        fileAppender.setEncoder(basicEncoder);
+
+        //TODO: Check how to make it rotate per x minutes.
+
+        SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
+        logFilePolicy.setContext(logCtx);
+        logFilePolicy.setParent(fileAppender);
+        logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
+        logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
+                .toString());
+        logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
+        logFilePolicy.start();
+
+        fileAppender.setRollingPolicy(logFilePolicy);
+        fileAppender.setTriggeringPolicy(logFilePolicy);
+        return fileAppender;
+    }
+
+    protected ConsoleAppender<ILoggingEvent> getAppenderForConsole(Logger loggerToConfigure, String appenderName) {
+        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
+        BasicEncoder basicEncoder = new BasicEncoder();
+        basicEncoder.setContext(logCtx);
+        basicEncoder.start();
+        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
+        consoleAppender.setContext(logCtx);
+        consoleAppender.setName(appenderName);
+        consoleAppender.setEncoder(basicEncoder);
+        return consoleAppender;
+    }
+
+    private static class BasicEncoder extends EncoderBase<ILoggingEvent> {
         @Override
         public byte[] headerBytes() {
             return new byte[0];
