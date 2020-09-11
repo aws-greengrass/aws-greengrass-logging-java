@@ -13,7 +13,6 @@ import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -48,16 +47,16 @@ public class PersistenceConfig {
     protected LogStore store;
     protected String storeName;
     protected Path storeDirectory;
-    private String fileName;
-    @Setter(AccessLevel.PROTECTED)
+    @Setter
     protected LogFormat format;
     @Setter
     protected Level level;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
+    protected Logger logger;
+    private String fileName;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
-    protected Logger logger;
 
     /**
      * Get default PersistenceConfig from system properties.
@@ -124,6 +123,7 @@ public class PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
+     *
      * @param path The path passed in must contain the file name to which the logs will be written.
      */
     public void setStorePath(Path path) {
@@ -242,7 +242,7 @@ public class PersistenceConfig {
         } else if (LogStore.FILE.equals(store)) {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
-            logFileAppender = getAppenderForFile(loggerToConfigure,"eg-file");
+            logFileAppender = getAppenderForFile(loggerToConfigure, "eg-file");
             logFileAppender.start();
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
