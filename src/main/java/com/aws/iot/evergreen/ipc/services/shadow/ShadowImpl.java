@@ -39,7 +39,12 @@ public class ShadowImpl implements  Shadow {
     @Override
     public UpdateThingShadowResult updateThingShadow(UpdateThingShadowRequest request) throws ShadowIPCException {
         checkRequiredParameter(request.getThingName(), "Thing Name");
-        checkRequiredParameter(request.getPayload(), "Payload");
+        try {
+            request.getPayload();
+        } catch (NullPointerException e) {
+            throw new ShadowIPCException("Payload is a required parameter and cannot be null");
+        }
+
         final UpdateThingShadowResult result = new UpdateThingShadowResult();
         final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.UPDATE_THING_SHADOW, request,
                 ShadowGenericResponse.class);
