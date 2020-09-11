@@ -60,7 +60,7 @@ public class TelemetryConfig extends PersistenceConfig {
         /*
          * Telemetry
          *   |___ generic.log
-         *   |___ Kernel.log
+         *   |___ KernelComponents.log
          *   |___ SystemMetrics.log
          *   |___ ....
          */

@@ -17,7 +17,7 @@ import lombok.Setter;
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
  */
 public class MetricFactory implements MetricFactoryBuilder {
-    // Use a ThreadLocal for MetricsBuilder to reuse the object per thread.
+    // Use a ThreadLocal for MetricDataBuilder to reuse the object per thread.
     private ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
     private TelemetryConfig telemetryConfig;
     public static final String METRIC_LOGGER_NAME = "Metrics";
