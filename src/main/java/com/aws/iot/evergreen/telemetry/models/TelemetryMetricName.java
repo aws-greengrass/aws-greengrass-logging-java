@@ -5,9 +5,6 @@
 
 package com.aws.iot.evergreen.telemetry.models;
 
-import lombok.Builder;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,19 +41,16 @@ public enum TelemetryMetricName {
 
     /**
      * This returns the list of metric names that belong to the given namespace.
-     * @param telemetryNamespace TelemetryNamespace enum
+     * @param namespace TelemetryNamespace enum
      * @return List of enums
      */
-    public static List<TelemetryMetricName> getMetricNamesOf(TelemetryNamespace telemetryNamespace) {
+    public static List<TelemetryMetricName> getMetricNamesOf(TelemetryNamespace namespace) {
         List<TelemetryMetricName> ns = new ArrayList<>();
-        for (TelemetryMetricName n : TelemetryMetricName.values()) {
-            if (n.telemetryNamespace == telemetryNamespace) {
-                ns.add(n);
+        for (TelemetryMetricName name : TelemetryMetricName.values()) {
+            if (name.belongsTo(namespace)) {
+                ns.add(name);
             }
         }
         return ns;
     }
-
-
-
 }

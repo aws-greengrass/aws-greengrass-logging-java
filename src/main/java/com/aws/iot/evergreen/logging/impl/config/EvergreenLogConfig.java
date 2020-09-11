@@ -8,7 +8,6 @@ package com.aws.iot.evergreen.logging.impl.config;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import lombok.Getter;
-import org.slf4j.event.Level;
 
 @Getter
 public class EvergreenLogConfig extends PersistenceConfig {

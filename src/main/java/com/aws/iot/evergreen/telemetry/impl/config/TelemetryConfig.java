@@ -9,8 +9,6 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
-import ch.qos.logback.core.util.FileSize;
 import com.aws.iot.evergreen.logging.impl.config.LogFormat;
 import com.aws.iot.evergreen.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
@@ -83,36 +81,12 @@ public class TelemetryConfig extends PersistenceConfig {
     @Override
     protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
-        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
-        PersistenceConfig.BasicEncoder basicEncoder = new BasicEncoder();
-        basicEncoder.setContext(logCtx);
-        basicEncoder.start();
-
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
-        // set backend logger level to trace because we'll be filtering it in the frontend
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
 
         String fileAppenderName = loggerToConfigure.getName().substring(METRIC_LOGGER_NAME.length() + 1);
-        RollingFileAppender<ILoggingEvent> logFileAppender = new RollingFileAppender<>();
-        logFileAppender.setContext(logCtx);
-        logFileAppender.setName(fileAppenderName);
-        logFileAppender.setAppend(true);
-        logFileAppender.setFile(storeName);
-        logFileAppender.setEncoder(basicEncoder);
-
-        //TODO: Check how to make it rotate per x minutes.
-        SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
-        logFilePolicy.setContext(logCtx);
-        logFilePolicy.setParent(logFileAppender);
-        logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
-                .toString());
-        logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-        logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
-        logFilePolicy.start();
-
-        logFileAppender.setRollingPolicy(logFilePolicy);
-        logFileAppender.setTriggeringPolicy(logFilePolicy);
+        RollingFileAppender<ILoggingEvent> logFileAppender = getAppenderForFile(loggerToConfigure, fileAppenderName);
         logFileAppender.start();
         // Add the replacement
         loggerToConfigure.detachAndStopAllAppenders();
