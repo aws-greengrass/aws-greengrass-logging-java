@@ -18,7 +18,7 @@ import lombok.Setter;
  */
 public class MetricFactory implements MetricFactoryBuilder {
     // Use a ThreadLocal for MetricDataBuilder to reuse the object per thread.
-    private ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
+    private ThreadLocal<MetricData> metricData;
     private TelemetryConfig telemetryConfig;
     public static final String METRIC_LOGGER_NAME = "Metrics";
     private static final String GENERIC_LOG_STORE = "generic";
@@ -57,6 +57,7 @@ public class MetricFactory implements MetricFactoryBuilder {
     @Override
     public MetricDataBuilder addMetric(Metric metric) {
         if (this.telemetryConfig.isMetricsEnabled()) {
+            metricData = ThreadLocal.withInitial(MetricData::new);
             return metricData.get().setLogger(this).setMetric(metric);
         }
         return MetricDataBuilder.NOOP;

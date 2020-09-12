@@ -34,13 +34,14 @@ public class TelemetryDemo {
         metricDataBuilder.putMetricData(150).emit();
         metricDataBuilder.putMetricData(180).emit();
         metricDataBuilder.putMetricData(180).emit();
-        MetricDataBuilder mdb2 = new MetricFactory("french fries").addMetric(metric);
+        MetricFactory mf = new MetricFactory("french fries");
+        MetricDataBuilder mdb2 = mf.addMetric(metric);
         mdb2.putMetricData(100).emit();
         metricDataBuilder.putMetricData(120).emit();
         metricDataBuilder.putMetricData(150).emit();
         metricDataBuilder.putMetricData(180).emit();
         mdb2.putMetricData(180).emit();
-        MetricDataBuilder mdb3 = new MetricFactory("french fries").addMetric(metric);
+        MetricDataBuilder mdb3 = mf.addMetric(metric);
         mdb3.putMetricData(123).emit();
     }
 }
