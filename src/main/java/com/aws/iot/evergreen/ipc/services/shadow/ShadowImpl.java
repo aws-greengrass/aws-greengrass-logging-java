@@ -27,26 +27,17 @@ public class ShadowImpl implements  Shadow {
 
     @Override
     public GetThingShadowResult getThingShadow(GetThingShadowRequest request) throws ShadowIPCException {
-        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.GET_THING_SHADOW, request,
-                ShadowGenericResponse.class);
-
-        return new GetThingShadowResult(response.getPayload());
+        return sendAndReceive(ShadowClientOpCodes.GET_THING_SHADOW, request, GetThingShadowResult.class);
     }
 
     @Override
     public UpdateThingShadowResult updateThingShadow(UpdateThingShadowRequest request) throws ShadowIPCException {
-        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.UPDATE_THING_SHADOW, request,
-                ShadowGenericResponse.class);
-
-        return new UpdateThingShadowResult(response.getPayload());
+        return sendAndReceive(ShadowClientOpCodes.UPDATE_THING_SHADOW, request, UpdateThingShadowResult.class);
     }
 
     @Override
     public DeleteThingShadowResult deleteThingShadow(DeleteThingShadowRequest request) throws ShadowIPCException {
-        final ShadowGenericResponse response = sendAndReceive(ShadowClientOpCodes.DELETE_THING_SHADOW, request,
-                ShadowGenericResponse.class);
-
-        return new DeleteThingShadowResult(response.getPayload());
+        return sendAndReceive(ShadowClientOpCodes.DELETE_THING_SHADOW, request, DeleteThingShadowResult.class);
     }
 
     private <T extends ShadowGenericResponse> T sendAndReceive(ShadowClientOpCodes opCode,
@@ -57,7 +48,7 @@ public class ShadowImpl implements  Shadow {
             CompletableFuture<T> responseFuture =
                     IPCUtil.sendAndReceive(ipc, SHADOW.getValue(), API_VERSION, opCode.ordinal(), request,
                             returnTypeClass);
-            ShadowGenericResponse response = responseFuture.get();
+            ShadowGenericResponse response = (ShadowGenericResponse) responseFuture.get();
             if (!ShadowResponseStatus.Success.equals(response.getStatus())) {
                 throw new ShadowIPCException(response.getErrorMessage());
             }

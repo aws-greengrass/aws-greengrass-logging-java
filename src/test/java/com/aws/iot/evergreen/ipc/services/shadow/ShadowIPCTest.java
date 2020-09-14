@@ -55,9 +55,10 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);
-            ShadowGenericResponse response = new ShadowGenericResponse();
-            response.setStatus(ShadowResponseStatus.Success);
-            response.setPayload(PAYLOAD);
+            GetThingShadowResult response = GetThingShadowResult.builder()
+                    .responseStatus(ShadowResponseStatus.Success)
+                    .payload(PAYLOAD)
+                    .build();
 
             writeMessageToSockOutputStream(1, inFrame.requestId, response,
                     FrameReader.FrameType.RESPONSE,
@@ -90,9 +91,10 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);
-            ShadowGenericResponse response = new ShadowGenericResponse();
-            response.setStatus(ShadowResponseStatus.Success);
-            response.setPayload(PAYLOAD);
+            UpdateThingShadowResult response = UpdateThingShadowResult.builder()
+                    .responseStatus(ShadowResponseStatus.Success)
+                    .payload(PAYLOAD)
+                    .build();
 
             writeMessageToSockOutputStream(1, inFrame.requestId, response,
                     FrameReader.FrameType.RESPONSE,
@@ -132,9 +134,10 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);
-            ShadowGenericResponse response = new ShadowGenericResponse();
-            response.setStatus(ShadowResponseStatus.Success);
-            response.setPayload(PAYLOAD);
+            DeleteThingShadowResult response = DeleteThingShadowResult.builder()
+                    .responseStatus(ShadowResponseStatus.Success)
+                    .payload(PAYLOAD)
+                    .build();
 
             writeMessageToSockOutputStream(1, inFrame.requestId, response,
                     FrameReader.FrameType.RESPONSE,

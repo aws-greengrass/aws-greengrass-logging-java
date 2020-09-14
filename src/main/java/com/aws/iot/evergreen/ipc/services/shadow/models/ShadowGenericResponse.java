@@ -11,6 +11,4 @@ public class ShadowGenericResponse {
     private ShadowResponseStatus status;
 
     private String errorMessage;
-
-    private byte[] payload;
 }
