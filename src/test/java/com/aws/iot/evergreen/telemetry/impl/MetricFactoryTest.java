@@ -29,8 +29,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -121,11 +119,11 @@ class MetricFactoryTest {
                 .build();
 
         TelemetryConfig.getInstance().setMetricsEnabled(false);
-        mf.addMetric(m).putMetricData(80).emit();
+        mf.putMetricData(m, 80);
         verify(loggerSpy, times(0)).trace(any());
 
         TelemetryConfig.getInstance().setMetricsEnabled(true);
-        mf.addMetric(m).putMetricData(80).emit();
+        mf.putMetricData(m, 80);
         verify(loggerSpy, times(1)).trace(any());
         assertThat(message.getValue(), containsString("CpuUsage"));
     }
@@ -150,26 +148,14 @@ class MetricFactoryTest {
                 .unit(TelemetryUnit.Count)
                 .aggregation(TelemetryAggregation.Average)
                 .build();
-
-        CyclicBarrier start = new CyclicBarrier(2);
         ExecutorService ses = Executors.newFixedThreadPool(2);
         Future future1 = ses.submit(() -> {
-            try {
-                start.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                fail("Error starting thread1 in sync", e);
-            }
-            mf.addMetric(m1).putMetricData(400).emit();
-            mf.addMetric(m2).putMetricData(200).emit();
+            mf.putMetricData(m1, 400);
+            mf.putMetricData(m2, 200);
         });
         Future future2 = ses.submit(() -> {
-            try {
-                start.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                fail("Error starting thread2 in sync", e);
-            }
-            mf.addMetric(m1).putMetricData(300).emit();
-            mf.addMetric(m2).putMetricData(100).emit();
+            mf.putMetricData(m1, 300);
+            mf.putMetricData(m2, 100);
         });
         future1.get(5, TimeUnit.SECONDS);
         future2.get(5, TimeUnit.SECONDS);
@@ -197,9 +183,10 @@ class MetricFactoryTest {
         // file has four entries of the emitted metrics
         assertThat(messages, hasSize(4));
         Collections.sort(messages);
-        List<MetricDataPoint> mdp = new ArrayList<>();
+        List<Metric> mdp = new ArrayList<>();
         for (String s : messages) {
-            mdp.add(mapper.readValue(s, MetricDataPoint.class));
+            System.out.println(s);
+            mdp.add(mapper.readValue(s, Metric.class));
         }
         // assert the values of the metric
         assertEquals((Integer) mdp.get(0).getValue(), 100);
@@ -207,15 +194,14 @@ class MetricFactoryTest {
         assertEquals((Integer) mdp.get(2).getValue(), 300);
         assertEquals((Integer) mdp.get(3).getValue(), 400);
         // assert the metric attributes in order
-        assertEquals(mdp.get(0).getMetric().getNamespace(), TelemetryNamespace.KernelComponents);
-        assertEquals(mdp.get(1).getMetric().getAggregation(), TelemetryAggregation.Average);
-        assertEquals(mdp.get(2).getMetric().getName(), TelemetryMetricName.CpuUsage);
-        assertEquals(mdp.get(3).getMetric().getUnit(), TelemetryUnit.Percent);
+        assertEquals(mdp.get(0).getNamespace(), TelemetryNamespace.KernelComponents);
+        assertEquals(mdp.get(1).getAggregation(), TelemetryAggregation.Average);
+        assertEquals(mdp.get(2).getName(), TelemetryMetricName.CpuUsage);
+        assertEquals(mdp.get(3).getUnit(), TelemetryUnit.Percent);
 
         logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/evergreen.log");
         // evergreen.log file does not exist
         assertFalse(logFile.exists());
-
     }
 
     private Logger setupLoggerSpy(MetricFactory mf) {

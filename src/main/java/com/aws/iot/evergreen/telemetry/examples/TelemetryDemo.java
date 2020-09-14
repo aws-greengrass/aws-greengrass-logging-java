@@ -5,7 +5,6 @@
 
 package com.aws.iot.evergreen.telemetry.examples;
 
-import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
 import com.aws.iot.evergreen.telemetry.impl.Metric;
 import com.aws.iot.evergreen.telemetry.impl.MetricFactory;
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
@@ -28,20 +27,8 @@ public class TelemetryDemo {
                 .unit(TelemetryUnit.Percent)
                 .aggregation(TelemetryAggregation.Average)
                 .build();
-        MetricDataBuilder metricDataBuilder = new MetricFactory().addMetric(metric);
-        metricDataBuilder.putMetricData(100).emit();
-        metricDataBuilder.putMetricData(120).emit();
-        metricDataBuilder.putMetricData(150).emit();
-        metricDataBuilder.putMetricData(180).emit();
-        metricDataBuilder.putMetricData(180).emit();
-        MetricFactory mf = new MetricFactory("french fries");
-        MetricDataBuilder mdb2 = mf.addMetric(metric);
-        mdb2.putMetricData(100).emit();
-        metricDataBuilder.putMetricData(120).emit();
-        metricDataBuilder.putMetricData(150).emit();
-        metricDataBuilder.putMetricData(180).emit();
-        mdb2.putMetricData(180).emit();
-        MetricDataBuilder mdb3 = mf.addMetric(metric);
-        mdb3.putMetricData(123).emit();
+        MetricFactory mf = new MetricFactory("Test");
+        mf.putMetricData(metric, 10);
+        mf.putMetricData(metric, 230);
     }
 }

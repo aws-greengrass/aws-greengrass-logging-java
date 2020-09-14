@@ -7,12 +7,14 @@ package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.logging.impl.LogManager;
-import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
 import com.aws.iot.evergreen.telemetry.api.MetricFactoryBuilder;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.Instant;
+import java.util.Objects;
 
 /**
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
@@ -50,17 +52,19 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * Check if metrics are enabled. We can make it specific to a metric level.
+     * Assign data to the metric.
      *
-     * @return MetricDataBuilder to emit if metrics are enabled or NOOP otherwise.
+     * @param metric the metric to which the value has to be assigned
+     * @param value  data value that has to be emitted.
      */
-    @Override
-    public MetricDataBuilder addMetric(Metric metric) {
+    public void putMetricData(Metric metric, Object value) {
         if (telemetryConfig.isMetricsEnabled()) {
-            ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
-            return metricData.get().setLogger(this).setMetric(metric);
+            Objects.requireNonNull(metric);
+            metric.setValue(value);
+            metric.setTimestamp(Instant.now().toEpochMilli());
+            TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
+            logMetrics(message);
         }
-        return MetricDataBuilder.NOOP;
     }
 
     /**
