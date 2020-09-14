@@ -110,15 +110,12 @@ public class IPCClientImpl implements IPCClient {
             this.channel = channelFuture.channel();
 
             // If the channel gets closed, then reconnect automatically
+
             channel.closeFuture().addListener((ChannelFutureListener) future -> {
-                // Keep retrying to connect (forever)
-                while (true) {
-                    try {
-                        connect(config);
-                        break;
-                    } catch (Throwable t) {
-                        log.atError().setCause(t).log("Error while reconnecting IPC client. Will continue to retry...");
-                    }
+                try {
+                    connect(config);
+                } catch (Throwable t) {
+                    log.atError().setCause(t).log("Error while reconnecting IPC client. Giving up!");
                 }
             });
 
