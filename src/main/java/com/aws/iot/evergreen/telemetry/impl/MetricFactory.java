@@ -10,6 +10,7 @@ import com.aws.iot.evergreen.logging.impl.LogManager;
 import com.aws.iot.evergreen.telemetry.api.MetricDataBuilder;
 import com.aws.iot.evergreen.telemetry.api.MetricFactoryBuilder;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,13 +18,11 @@ import lombok.Setter;
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
  */
 public class MetricFactory implements MetricFactoryBuilder {
-    // Use a ThreadLocal for MetricDataBuilder to reuse the object per thread.
-    private ThreadLocal<MetricData> metricData;
-    private TelemetryConfig telemetryConfig;
     public static final String METRIC_LOGGER_NAME = "Metrics";
     private static final String GENERIC_LOG_STORE = "generic";
-    @Setter
-    @Getter
+    private TelemetryConfig telemetryConfig;
+    @Setter(AccessLevel.PACKAGE)
+    @Getter(AccessLevel.PACKAGE)
     private transient Logger logger;
 
     public MetricFactory() {
@@ -36,6 +35,7 @@ public class MetricFactory implements MetricFactoryBuilder {
 
     /**
      * Helper function for both the constructors.
+     *
      * @param storeName Creates a log file based on the store name passed. Set to "generic" if it is null or empty.
      */
     private void constructorHelper(String storeName) {
@@ -56,8 +56,8 @@ public class MetricFactory implements MetricFactoryBuilder {
      */
     @Override
     public MetricDataBuilder addMetric(Metric metric) {
-        if (this.telemetryConfig.isMetricsEnabled()) {
-            metricData = ThreadLocal.withInitial(MetricData::new);
+        if (telemetryConfig.isMetricsEnabled()) {
+            ThreadLocal<MetricData> metricData = ThreadLocal.withInitial(MetricData::new);
             return metricData.get().setLogger(this).setMetric(metric);
         }
         return MetricDataBuilder.NOOP;
