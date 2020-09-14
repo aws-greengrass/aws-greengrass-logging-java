@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -28,16 +27,16 @@ import java.util.concurrent.TimeoutException;
 import static com.aws.iot.evergreen.ipc.common.FrameReader.readFrame;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class ShadowIPCTest extends BaseIPCTest {
 
     private static final String THING_NAME = "testThing";
-    private static final ByteBuffer PAYLOAD =  ByteBuffer.wrap("{\"id\": 1, \"name\": \"The Beatles\"}".getBytes());
+    private static final byte[] PAYLOAD =  "{\"id\": 1, \"name\": \"The Beatles\"}".getBytes();
     private Shadow shadow;
 
     private static final String ERROR_MESSAGE_FOR_NO_THING_NAME = "thingName is marked non-null but is null";
-    private static final String ERROR_MESSAGE_FOR_EMPTY_THING_NAME = "thingName cannot be empty";
     private static final String ERROR_MESSAGE_FOR_NO_PAYLOAD = "payload is marked non-null but is null";
 
     @Override
@@ -69,7 +68,7 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         GetThingShadowResult result = shadow.getThingShadow(request);
         fut.get(1L, TimeUnit.SECONDS);
-        assertEquals(PAYLOAD, result.getPayload());
+        assertArrayEquals(PAYLOAD, result.getPayload());
     }
 
     @Test
@@ -79,13 +78,6 @@ public class ShadowIPCTest extends BaseIPCTest {
                 .build());
 
         assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
-
-        exception = assertThrows(IllegalArgumentException.class, () -> GetThingShadowRequest
-                .builder()
-                .thingName("")
-                .build());
-
-        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
     }
 
     @Test
@@ -111,7 +103,7 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         UpdateThingShadowResult result = shadow.updateThingShadow(request);
         fut.get(1L, TimeUnit.SECONDS);
-        assertEquals(PAYLOAD, result.getPayload());
+        assertArrayEquals(PAYLOAD, result.getPayload());
     }
 
     @Test
@@ -122,14 +114,6 @@ public class ShadowIPCTest extends BaseIPCTest {
                 .build());
 
         assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
-
-        exception = assertThrows(IllegalArgumentException.class, () -> UpdateThingShadowRequest
-                .builder()
-                .thingName("")
-                .payload(PAYLOAD)
-                .build());
-
-        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
 
         exception = assertThrows(NullPointerException.class, () -> UpdateThingShadowRequest
                 .builder()
@@ -161,7 +145,7 @@ public class ShadowIPCTest extends BaseIPCTest {
 
         DeleteThingShadowResult result = shadow.deleteThingShadow(request);
         fut.get(1L, TimeUnit.SECONDS);
-        assertEquals(PAYLOAD, result.getPayload());
+        assertArrayEquals(PAYLOAD, result.getPayload());
     }
 
     @Test
@@ -171,13 +155,6 @@ public class ShadowIPCTest extends BaseIPCTest {
                 .build());
 
         assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
-
-        exception = assertThrows(IllegalArgumentException.class, () -> DeleteThingShadowRequest
-                .builder()
-                .thingName("")
-                .build());
-
-        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
     }
 
 

@@ -1,5 +1,6 @@
 package com.aws.iot.evergreen.ipc.services.shadow.models;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
@@ -9,17 +10,11 @@ import lombok.NonNull;
  */
 @Builder
 @Data
+@AllArgsConstructor
 public class DeleteThingShadowRequest {
     /**
      * The name of the thing.
      */
     @NonNull
     String thingName;
-
-    private DeleteThingShadowRequest(@NonNull final String thingName) {
-        if (thingName.isEmpty()) {
-            throw new IllegalArgumentException("thingName cannot be empty");
-        }
-        setThingName(thingName);
-    }
 }

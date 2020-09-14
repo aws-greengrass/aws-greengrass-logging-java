@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.nio.ByteBuffer;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,5 +12,5 @@ public class ShadowGenericResponse {
 
     private String errorMessage;
 
-    private ByteBuffer payload;
+    private byte[] payload;
 }
