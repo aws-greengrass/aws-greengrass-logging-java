@@ -1,5 +1,7 @@
 package com.aws.iot.evergreen.ipc.services.shadow.models;
 
+import lombok.NonNull;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -12,11 +14,11 @@ public class GetThingShadowResult {
     private ByteBuffer payload;
 
     /**
-     * Creates a GetThingShadowResult.
-     * Defaults payload to null
+     * Creates a GetThingShadowResult with the retrieved shadow document.
+     * @param payload The retrieved shadow document
      */
-    public GetThingShadowResult() {
-        payload = null;
+    public GetThingShadowResult(@NonNull final ByteBuffer payload) {
+        setPayload(payload);
     }
 
     /**
@@ -39,7 +41,7 @@ public class GetThingShadowResult {
      *
      * @param payload the payload byte
      */
-    public void setPayload(final ByteBuffer payload) {
+    public void setPayload(@NonNull final ByteBuffer payload) {
         this.payload = ByteBuffer.wrap(payload.array());
     }
 }

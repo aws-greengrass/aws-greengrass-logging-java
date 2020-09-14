@@ -1,9 +1,8 @@
 package com.aws.iot.evergreen.ipc.services.shadow.models;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.Setter;
 
 import java.nio.ByteBuffer;
@@ -12,16 +11,24 @@ import java.nio.ByteBuffer;
  * Request for updating a thing shadow.
  */
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UpdateThingShadowRequest {
     @Getter
     @Setter
+    @NonNull
     String thingName;
+
+    private UpdateThingShadowRequest(@NonNull final String thingName, @NonNull final ByteBuffer payload) {
+        if (thingName.isEmpty()) {
+            throw new IllegalArgumentException("thingName cannot be empty");
+        }
+        setThingName(thingName);
+        setPayload(payload);
+    }
 
     /**
      * The payload byte.
      */
+    @NonNull
     private ByteBuffer payload;
 
     /**
@@ -44,7 +51,7 @@ public class UpdateThingShadowRequest {
      *
      * @param payload the payload byte in JSON
      */
-    public void setPayload(final ByteBuffer payload) {
+    public void setPayload(@NonNull final ByteBuffer payload) {
         this.payload = ByteBuffer.wrap(payload.array());
     }
 }

@@ -36,6 +36,10 @@ public class ShadowIPCTest extends BaseIPCTest {
     private static final ByteBuffer PAYLOAD =  ByteBuffer.wrap("{\"id\": 1, \"name\": \"The Beatles\"}".getBytes());
     private Shadow shadow;
 
+    private static final String ERROR_MESSAGE_FOR_NO_THING_NAME = "thingName is marked non-null but is null";
+    private static final String ERROR_MESSAGE_FOR_EMPTY_THING_NAME = "thingName cannot be empty";
+    private static final String ERROR_MESSAGE_FOR_NO_PAYLOAD = "payload is marked non-null but is null";
+
     @Override
     @BeforeEach
     public void before() throws IOException, InterruptedException, ExecutionException, IPCClientException {
@@ -69,17 +73,19 @@ public class ShadowIPCTest extends BaseIPCTest {
     }
 
     @Test
-    public void testGetThingShadowWithNoThingName() {
-        final String expectedErrorMessage = "Thing Name is a required parameter";
-        GetThingShadowRequest request = GetThingShadowRequest
+    public void testGetThingShadowRequestCreation() {
+        Exception exception = assertThrows(NullPointerException.class, () -> GetThingShadowRequest
                 .builder()
-                .build();
+                .build());
 
-        Exception exception = assertThrows(ShadowIPCException.class, () -> {
-            GetThingShadowResult result = shadow.getThingShadow(request);
-        });
+        assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
 
-        assertEquals(expectedErrorMessage, exception.getMessage());
+        exception = assertThrows(IllegalArgumentException.class, () -> GetThingShadowRequest
+                .builder()
+                .thingName("")
+                .build());
+
+        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
     }
 
     @Test
@@ -109,35 +115,28 @@ public class ShadowIPCTest extends BaseIPCTest {
     }
 
     @Test
-    public void testUpdateThingShadowWithNoThingName() {
-        final String expectedErrorMessage = "Thing Name is a required parameter";
-
-        UpdateThingShadowRequest request = UpdateThingShadowRequest
+    public void testUpdateThingShadowRequestCreation() {
+        Exception exception = assertThrows(NullPointerException.class, () -> UpdateThingShadowRequest
                 .builder()
                 .payload(PAYLOAD)
-                .build();
+                .build());
 
-        Exception exception = assertThrows(ShadowIPCException.class, () -> {
-            UpdateThingShadowResult result = shadow.updateThingShadow(request);
-        });
+        assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
 
-        assertEquals(expectedErrorMessage, exception.getMessage());
-    }
+        exception = assertThrows(IllegalArgumentException.class, () -> UpdateThingShadowRequest
+                .builder()
+                .thingName("")
+                .payload(PAYLOAD)
+                .build());
 
-    @Test
-    public void testUpdateThingShadowWithNoPayload() {
-        final String expectedErrorMessage = "Payload is a required parameter and cannot be null";
+        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
 
-        UpdateThingShadowRequest request = UpdateThingShadowRequest
+        exception = assertThrows(NullPointerException.class, () -> UpdateThingShadowRequest
                 .builder()
                 .thingName(THING_NAME)
-                .build();
+                .build());
 
-        Exception exception = assertThrows(ShadowIPCException.class, () -> {
-            UpdateThingShadowResult result = shadow.updateThingShadow(request);
-        });
-
-        assertEquals(expectedErrorMessage, exception.getMessage());
+        assertEquals(ERROR_MESSAGE_FOR_NO_PAYLOAD, exception.getMessage());
     }
 
     @Test
@@ -166,18 +165,19 @@ public class ShadowIPCTest extends BaseIPCTest {
     }
 
     @Test
-    public void testDeleteThingShadowWithNoThingName() {
-        final String expectedErrorMessage = "Thing Name is a required parameter";
-
-        DeleteThingShadowRequest request = DeleteThingShadowRequest
+    public void testDeleteThingShadowRequestCreation() {
+        Exception exception = assertThrows(NullPointerException.class, () -> DeleteThingShadowRequest
                 .builder()
-                .build();
+                .build());
 
-        Exception exception = assertThrows(ShadowIPCException.class, () -> {
-            DeleteThingShadowResult result = shadow.deleteThingShadow(request);
-        });
+        assertEquals(ERROR_MESSAGE_FOR_NO_THING_NAME, exception.getMessage());
 
-        assertEquals(expectedErrorMessage, exception.getMessage());
+        exception = assertThrows(IllegalArgumentException.class, () -> DeleteThingShadowRequest
+                .builder()
+                .thingName("")
+                .build());
+
+        assertEquals(ERROR_MESSAGE_FOR_EMPTY_THING_NAME, exception.getMessage());
     }
 
 

@@ -1,5 +1,7 @@
 package com.aws.iot.evergreen.ipc.services.shadow.models;
 
+import lombok.NonNull;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -12,11 +14,11 @@ public class DeleteThingShadowResult {
     private ByteBuffer payload;
 
     /**
-     * Creates a DeleteThingShadowResult.
-     * Defaults payload to null
+     * Creates a DeleteThingShadowResult with the deleted shadow document.
+     * @param payload The deleted shadow document
      */
-    public DeleteThingShadowResult() {
-        payload = null;
+    public DeleteThingShadowResult(@NonNull final ByteBuffer payload) {
+        setPayload(payload);
     }
 
     /**
@@ -39,7 +41,7 @@ public class DeleteThingShadowResult {
      *
      * @param payload the payload byte
      */
-    public void setPayload(final ByteBuffer payload) {
+    public void setPayload(@NonNull final ByteBuffer payload) {
         this.payload = ByteBuffer.wrap(payload.array());
     }
 }
