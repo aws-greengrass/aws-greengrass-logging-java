@@ -25,7 +25,7 @@ public class MetricFactory implements MetricFactoryBuilder {
     private TelemetryConfig telemetryConfig;
     @Setter(AccessLevel.PACKAGE)
     @Getter(AccessLevel.PACKAGE)
-    public transient Logger logger;
+    private transient Logger logger;
 
     public MetricFactory() {
         constructorHelper(null);
