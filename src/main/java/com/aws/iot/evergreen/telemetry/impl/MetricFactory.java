@@ -61,10 +61,19 @@ public class MetricFactory implements MetricFactoryBuilder {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             metric.setValue(value);
-            metric.setTimestamp(Instant.now().toEpochMilli());
-            TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
-            logMetrics(message);
+            putMetricData(metric);
         }
+    }
+
+    /**
+     * Emit the metric after assigning the value.
+     *
+     * @param metric emit the metric which has the value assigned to it.
+     */
+    public void putMetricData(Metric metric) {
+        metric.setTimestamp(Instant.now().toEpochMilli());
+        TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
+        logMetrics(message);
     }
 
     /**
