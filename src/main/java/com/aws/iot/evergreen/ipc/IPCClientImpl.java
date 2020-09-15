@@ -29,6 +29,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -52,6 +53,8 @@ import static com.aws.iot.evergreen.ipc.common.FrameReader.MessageFrame;
 public class IPCClientImpl implements IPCClient {
 
     public static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    public static final int MAX_CONNECTION_ATTEMPTS = 3;
+    private static final long WAIT_TIME_MS_BEFORE_RECONNECTING = 1000;
     private final MessageHandler messageHandler;
     private final EventLoopGroup eventLoopGroup;
     private final Bootstrap clientBootstrap;
@@ -65,6 +68,8 @@ public class IPCClientImpl implements IPCClient {
     private String clientId = null;
     private volatile boolean authenticated;
     private final Authentication authentication;
+    private int connectAttempts;
+
 
     /**
      * Construct a client and immediately connect to the server.
@@ -105,7 +110,23 @@ public class IPCClientImpl implements IPCClient {
             authenticated = false;
 
             // Connect to listening server
-            ChannelFuture channelFuture = clientBootstrap.connect(config.getHostAddress(), config.getPort()).sync();
+            ChannelFuture channelFuture = clientBootstrap.connect(config.getHostAddress(), config.getPort());
+            try {
+                channelFuture.sync();
+                connectAttempts = 0; //reset
+            } catch (Exception e) {
+                log.atWarn().setCause(e).log("Caught an exception while connecting to server");
+                //connect does not throw ConnectException as checked exception
+                // Issue discussed here - https://github.com/netty/netty/issues/2597
+                if (e instanceof ConnectException && connectAttempts < MAX_CONNECTION_ATTEMPTS) {
+                    connectAttempts++;
+                    log.atWarn().log("Retrying to connect");
+                    Thread.sleep(WAIT_TIME_MS_BEFORE_RECONNECTING);
+                    connect(config);
+                } else {
+                    throw e;
+                }
+            }
 
             this.channel = channelFuture.channel();
 
