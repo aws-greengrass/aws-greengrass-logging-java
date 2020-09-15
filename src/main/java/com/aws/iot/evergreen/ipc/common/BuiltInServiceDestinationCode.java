@@ -8,7 +8,7 @@ package com.aws.iot.evergreen.ipc.common;
 public enum BuiltInServiceDestinationCode {
 
     AUTHENTICATION(0), LIFECYCLE(1), SERVICE_DISCOVERY(2), CONFIG_STORE(3), PUBSUB(4), SECRET(5),
-    AUTHORIZATION(6), CLI(7), ERROR(255);
+    AUTHORIZATION(6), CLI(7), SHADOW(8), ERROR(255);
 
     private final int value;
 
