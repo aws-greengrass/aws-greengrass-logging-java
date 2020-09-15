@@ -52,7 +52,7 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * Assign data to the metric.
+     * The value provided will be assigned to the metric along with the current timestamp.
      *
      * @param metric the metric to which the value has to be assigned
      * @param value  data value that has to be emitted.
@@ -61,17 +61,17 @@ public class MetricFactory implements MetricFactoryBuilder {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             metric.setValue(value);
+            metric.setTimestamp(Instant.now().toEpochMilli());
             putMetricData(metric);
         }
     }
 
     /**
-     * Emit the metric after assigning the value.
+     * The metric passed in must have the value and timestamp assigned.
      *
      * @param metric emit the metric which has the value assigned to it.
      */
     public void putMetricData(Metric metric) {
-        metric.setTimestamp(Instant.now().toEpochMilli());
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
         logMetrics(message);
     }
