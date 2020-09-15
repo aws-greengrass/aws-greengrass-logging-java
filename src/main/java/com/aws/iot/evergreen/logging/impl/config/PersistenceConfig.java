@@ -15,6 +15,7 @@ import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
 import lombok.Getter;
 import lombok.Setter;
+import org.slf4j.event.Level;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ public class PersistenceConfig {
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
     public static final String STORE_NAME_SUFFIX = ".storeName";
+    public static final String LOG_LEVEL_SUFFIX = ".level";
 
     private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10; // set 10 MB to be the default max size
     private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
@@ -39,19 +41,22 @@ public class PersistenceConfig {
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
     private static final String DEFAULT_STORE_NAME = "evergreen.";
+    private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
 
     protected final String prefix;
     protected LogStore store;
     protected String storeName;
     protected Path storeDirectory;
-    protected String fileName;
     @Setter
     protected LogFormat format;
+    @Setter
+    protected Level level;
     protected long fileSizeKB;
     protected long totalLogStoreSizeKB;
+    protected Logger logger;
+    private String fileName;
     private RollingFileAppender<ILoggingEvent> logFileAppender = null;
     private ConsoleAppender<ILoggingEvent> logConsoleAppender = null;
-    private Logger logger;
 
     /**
      * Get default PersistenceConfig from system properties.
@@ -80,6 +85,15 @@ public class PersistenceConfig {
         } catch (NumberFormatException e) {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
+
+        Level level;
+        try {
+            level = Level.valueOf(System.getProperty(prefix + LOG_LEVEL_SUFFIX, DEFAULT_LOG_LEVEL));
+        } catch (IllegalArgumentException e) {
+            level = Level.INFO;
+        }
+
+        this.level = level;
 
         int fileSizeKB;
         try {
@@ -110,10 +124,10 @@ public class PersistenceConfig {
     /**
      * Change the configured store path (only applies for file output).
      *
-     * @param path new path
+     * @param path The path passed in must contain the file name to which the logs will be written.
      */
     public void setStorePath(Path path) {
-        String newStoreName = path.resolve(DEFAULT_STORE_NAME + prefix).toAbsolutePath().toString();
+        String newStoreName = getRootStorePath().resolve(path).toAbsolutePath().toString();
         if (Objects.equals(this.storeName, newStoreName)) {
             return;
         }
@@ -137,10 +151,18 @@ public class PersistenceConfig {
     }
 
     private void initializeStoreName(String prefix) {
+        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
+                getRootStorePath().resolve(DEFAULT_STORE_NAME + prefix).toString());
+        getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
+    }
+
+    /**
+     * Helper function to get the path.
+     */
+    private Path getRootStorePath() {
         Path storePath;
-
         String rootPathStr = System.getProperty("root");
-
         if (rootPathStr != null) {
             // if root is set, use root as store path
             storePath = Paths.get(rootPathStr);
@@ -148,10 +170,7 @@ public class PersistenceConfig {
             // if root is not set, use working directory as store path
             storePath = Paths.get(System.getProperty("user.dir"));
         }
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                storePath.resolve(DEFAULT_STORE_NAME + prefix).toString());
-        getFileNameFromStoreName();
-        getStoreDirectoryFromStoreName();
+        return storePath.toAbsolutePath();
     }
 
     private void getFileNameFromStoreName() {
@@ -192,14 +211,7 @@ public class PersistenceConfig {
 
     protected void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
-
         logger = loggerToConfigure;
-        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
-
-        BasicEncoder basicEncoder = new BasicEncoder();
-        basicEncoder.setContext(logCtx);
-        basicEncoder.start();
-
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
         // set backend logger level to trace because we'll be filtering it in the frontend
@@ -211,16 +223,11 @@ public class PersistenceConfig {
                 a.stop();
             }
         });
-
         if (LogStore.CONSOLE.equals(store)) {
             final ConsoleAppender<ILoggingEvent> originalAppender = logConsoleAppender;
             final RollingFileAppender<ILoggingEvent> fileAppender = logFileAppender;
-            logConsoleAppender = new ConsoleAppender<>();
-            logConsoleAppender.setContext(logCtx);
-            logConsoleAppender.setName("eg-console");
-            logConsoleAppender.setEncoder(basicEncoder);
+            logConsoleAppender = getAppenderForConsole(loggerToConfigure, "eg-console");
             logConsoleAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logConsoleAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
@@ -235,28 +242,8 @@ public class PersistenceConfig {
         } else if (LogStore.FILE.equals(store)) {
             final RollingFileAppender<ILoggingEvent> originalAppender = logFileAppender;
             final ConsoleAppender<ILoggingEvent> consoleAppender = logConsoleAppender;
-
-            logFileAppender = new RollingFileAppender<>();
-            logFileAppender.setContext(logCtx);
-            logFileAppender.setName("eg-file");
-            logFileAppender.setAppend(true);
-            logFileAppender.setFile(storeName);
-            logFileAppender.setEncoder(basicEncoder);
-
-            //TODO: Check how to make it rotate per x minutes.
-            SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
-            logFilePolicy.setContext(logCtx);
-            logFilePolicy.setParent(logFileAppender);
-            logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
-                    .toString());
-            logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
-            logFilePolicy.start();
-
-            logFileAppender.setRollingPolicy(logFilePolicy);
-            logFileAppender.setTriggeringPolicy(logFilePolicy);
+            logFileAppender = getAppenderForFile(loggerToConfigure, "eg-file");
             logFileAppender.start();
-
             // Add the replacement
             loggerToConfigure.addAppender(logFileAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
@@ -269,6 +256,46 @@ public class PersistenceConfig {
                 consoleAppender.stop();
             }
         }
+    }
+
+    protected RollingFileAppender<ILoggingEvent> getAppenderForFile(Logger loggerToConfigure, String appenderName) {
+        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
+        BasicEncoder basicEncoder = new BasicEncoder();
+        basicEncoder.setContext(logCtx);
+        basicEncoder.start();
+        RollingFileAppender<ILoggingEvent> fileAppender = new RollingFileAppender<>();
+        fileAppender.setContext(logCtx);
+        fileAppender.setName(appenderName);
+        fileAppender.setAppend(true);
+        fileAppender.setFile(storeName);
+        fileAppender.setEncoder(basicEncoder);
+
+        //TODO: Check how to make it rotate per x minutes.
+
+        SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
+        logFilePolicy.setContext(logCtx);
+        logFilePolicy.setParent(fileAppender);
+        logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
+        logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
+                .toString());
+        logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
+        logFilePolicy.start();
+
+        fileAppender.setRollingPolicy(logFilePolicy);
+        fileAppender.setTriggeringPolicy(logFilePolicy);
+        return fileAppender;
+    }
+
+    protected ConsoleAppender<ILoggingEvent> getAppenderForConsole(Logger loggerToConfigure, String appenderName) {
+        LoggerContext logCtx = loggerToConfigure.getLoggerContext();
+        BasicEncoder basicEncoder = new BasicEncoder();
+        basicEncoder.setContext(logCtx);
+        basicEncoder.start();
+        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
+        consoleAppender.setContext(logCtx);
+        consoleAppender.setName(appenderName);
+        consoleAppender.setEncoder(basicEncoder);
+        return consoleAppender;
     }
 
     private static class BasicEncoder extends EncoderBase<ILoggingEvent> {
