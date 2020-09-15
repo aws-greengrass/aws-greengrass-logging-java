@@ -11,6 +11,7 @@ import com.aws.iot.evergreen.ipc.config.KernelIPCClientConfig;
 import com.aws.iot.evergreen.ipc.services.authentication.AuthenticationResponse;
 import com.aws.iot.evergreen.ipc.services.common.ApplicationMessage;
 import com.aws.iot.evergreen.ipc.services.common.IPCUtil;
+import com.aws.iot.evergreen.logging.impl.Slf4jLogAdapter;
 import org.junit.jupiter.api.Test;
 
 import java.io.DataInputStream;
@@ -18,14 +19,17 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.aws.iot.evergreen.ipc.IPCClientImpl.MAX_CONNECTION_ATTEMPTS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IPCReconnectTest {
     private ExecutorService executor = Executors.newCachedThreadPool();
@@ -118,8 +122,14 @@ class IPCReconnectTest {
     void GIVEN_unconnected_ipc_client_WHEN_connect_fails_THEN_client_fails_to_connect() throws Exception {
         server = new ServerSocket(0);
         server.close();
-
+        CountDownLatch reconnectLatch = new CountDownLatch(MAX_CONNECTION_ATTEMPTS);
+        Slf4jLogAdapter.addGlobalListener(logEvent->{
+            if (logEvent.getMessage().equals("Retrying to connect")) {
+                reconnectLatch.countDown();
+            }
+        });
         assertThrows(IOException.class,
                 () -> new IPCClientImpl(KernelIPCClientConfig.builder().port(server.getLocalPort()).build()));
+        assertTrue(reconnectLatch.await(2, TimeUnit.SECONDS));
     }
 }
