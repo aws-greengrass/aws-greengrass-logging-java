@@ -19,6 +19,7 @@ public class GetSecretValueResult extends SecretGenericResponse {
     private String versionId;
     private List<String> versionStages;
     private String secretString;
+    private byte[] secretBinary;
 
     /**
      * Builder.
@@ -28,6 +29,7 @@ public class GetSecretValueResult extends SecretGenericResponse {
      * @param versionId      version Id of the secret
      * @param versionStages  version stages attached with this version of secret
      * @param secretString   secret value in string
+     * @param secretBinary   secret value as bytes
      */
     @Builder
     public GetSecretValueResult(SecretResponseStatus responseStatus,
@@ -35,11 +37,13 @@ public class GetSecretValueResult extends SecretGenericResponse {
                                 String secretId,
                                 String versionId,
                                 List<String> versionStages,
-                                String secretString) {
+                                String secretString,
+                                byte[] secretBinary) {
         super(responseStatus, errorMessage);
         this.secretId = secretId;
         this.versionId = versionId;
         this.versionStages = versionStages;
         this.secretString = secretString;
+        this.secretBinary = secretBinary;
     }
 }
