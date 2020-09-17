@@ -80,6 +80,7 @@ public class TelemetryConfig extends PersistenceConfig {
 
     @Override
     protected void reconfigure(Logger loggerToConfigure) {
+        context.start();
         Objects.requireNonNull(loggerToConfigure);
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
@@ -103,6 +104,10 @@ public class TelemetryConfig extends PersistenceConfig {
 
     public static Path getTelemetryDirectory() {
         return Paths.get(INSTANCE.getStoreDirectory().toString());
+    }
+
+    public void close() {
+        context.stop();
     }
 }
 
