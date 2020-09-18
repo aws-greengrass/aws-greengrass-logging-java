@@ -272,6 +272,9 @@ public class PersistenceConfig {
 
         //TODO: Check how to make it rotate per x minutes.
 
+        // Max History is needed along with total cap size.
+        int maxHistory = Math.toIntExact((totalLogStoreSizeKB * FileSize.KB_COEFFICIENT)
+                / (fileSizeKB * FileSize.KB_COEFFICIENT));
         SizeAndTimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new SizeAndTimeBasedRollingPolicy<>();
         logFilePolicy.setContext(logCtx);
         logFilePolicy.setParent(fileAppender);
@@ -279,6 +282,7 @@ public class PersistenceConfig {
         logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
                 .toString());
         logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
+        logFilePolicy.setMaxHistory(maxHistory);
         logFilePolicy.start();
 
         fileAppender.setRollingPolicy(logFilePolicy);
