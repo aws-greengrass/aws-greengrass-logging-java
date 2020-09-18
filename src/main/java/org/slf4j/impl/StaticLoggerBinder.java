@@ -5,7 +5,7 @@
 
 package org.slf4j.impl;
 
-import com.aws.iot.evergreen.logging.impl.Slf4jFactory;
+import com.aws.greengrass.logging.impl.Slf4jFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.LoggerFactory;
