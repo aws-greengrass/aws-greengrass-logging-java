@@ -52,12 +52,13 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * The value provided will be assigned to the metric along with the current timestamp.
+     * The value provided will be assigned to the metric along with the current timestamp. This will throw an exception
+     * if namespace orname of the metric is not set.
      *
      * @param metric the metric to which the value has to be assigned
      * @param value  data value that has to be emitted.
      */
-    public void putMetricData(Metric metric, Object value) {
+    public void putMetricData(Metric metric, Object value) throws InvalidMetricException {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             metric.setValue(value);
@@ -67,13 +68,24 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * The metric passed in must have the value and timestamp assigned.
+     * The metric passed in must have the value and timestamp assigned. This will throw an exception if namespace or
+     * name of the metric is not set.
      *
      * @param metric emit the metric which has the value assigned to it.
      */
-    public void putMetricData(Metric metric) {
+    public void putMetricData(Metric metric) throws InvalidMetricException {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
+        if (!valid(metric.getName())) {
+            throw new InvalidMetricException("Metric name cannot be null or empty." + message.getJSONMessage());
+        }
+        if (!valid(metric.getNamespace())) {
+            throw new InvalidMetricException("Metric namespace cannot be null or empty." + message.getJSONMessage());
+        }
         logMetrics(message);
+    }
+
+    private boolean valid(String name) {
+        return name != null && !name.isEmpty();
     }
 
     /**

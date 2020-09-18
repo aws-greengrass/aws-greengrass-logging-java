@@ -160,7 +160,7 @@ public class PersistenceConfig {
     /**
      * Helper function to get the path.
      */
-    private Path getRootStorePath() {
+    protected static Path getRootStorePath() {
         Path storePath;
         String rootPathStr = System.getProperty("root");
         if (rootPathStr != null) {
@@ -173,7 +173,7 @@ public class PersistenceConfig {
         return storePath.toAbsolutePath();
     }
 
-    private void getFileNameFromStoreName() {
+    protected void getFileNameFromStoreName() {
         Path fullFileName = Paths.get(this.storeName).getFileName();
         if (this.storeName != null && fullFileName != null) {
             Optional<String> fileNameWithoutExtension = stripExtension(fullFileName.toString());
@@ -181,7 +181,7 @@ public class PersistenceConfig {
         }
     }
 
-    private void getStoreDirectoryFromStoreName() {
+    protected void getStoreDirectoryFromStoreName() {
         if (this.storeName != null) {
             Path storeDirectoryPath = Paths.get(this.storeName).getParent();
             if (storeDirectoryPath != null) {

@@ -27,12 +27,13 @@ public class TelemetryConfig extends PersistenceConfig {
     public static final String CONFIG_PREFIX = "log";
     public static final String METRICS_SWITCH_KEY = "log.metricsEnabled";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
-    private static final String TELEMETRY_LOG_DIRECTORY = "Telemetry";
     private static final String DEFAULT_TELEMETRY_LOG_LEVEL = "TRACE";
+    private static final TelemetryConfig INSTANCE = new TelemetryConfig();
+    @Setter
+    private static Path root = getRootStorePath();
+    private final LoggerContext context = new LoggerContext();
     @Setter
     private boolean metricsEnabled;
-    private static final TelemetryConfig INSTANCE = new TelemetryConfig();
-    private final LoggerContext context = new LoggerContext();
     private String loggerName;
 
     /**
@@ -49,23 +50,49 @@ public class TelemetryConfig extends PersistenceConfig {
         this.setLevel(Level.valueOf(DEFAULT_TELEMETRY_LOG_LEVEL));
     }
 
+    public static TelemetryConfig getInstance() {
+        return INSTANCE;
+    }
+
+    public static Path getTelemetryDirectory() {
+        return root;
+    }
+
     /**
      * Sets up logger name and store name.
+     *
      * @param loggerName This is used as the name of the telemetry logger.
-     * @param storeName The storeName passed will be the name of the log file created at the path shown below.
+     * @param storeName  The storeName passed will be the name of the log file created at the path shown below.
      */
     public void editConfig(String loggerName, String storeName) {
         this.loggerName = loggerName;
 
         /*
-         * Telemetry
+         * telemetry
          *   |___ generic.log
          *   |___ KernelComponents.log
          *   |___ SystemMetrics.log
          *   |___ ....
          */
         this.setFormat(LogFormat.JSON);
-        this.setStorePath(Paths.get(TELEMETRY_LOG_DIRECTORY, storeName + "." + CONFIG_PREFIX));
+        this.setStorePath(Paths.get(storeName + "." + CONFIG_PREFIX));
+    }
+
+    /**
+     * Change the configured store path (only applies for file output).
+     *
+     * @param path The path passed in must contain the file name to which the logs will be written.
+     */
+    @Override
+    public void setStorePath(Path path) {
+        String newStoreName = root.resolve(path).toAbsolutePath().toString();
+        if (Objects.equals(this.storeName, newStoreName)) {
+            return;
+        }
+        this.storeName = newStoreName;
+        getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
+        reconfigure();
     }
 
     /**
@@ -94,16 +121,8 @@ public class TelemetryConfig extends PersistenceConfig {
         loggerToConfigure.addAppender(logFileAppender);
     }
 
-    public static TelemetryConfig getInstance() {
-        return INSTANCE;
-    }
-
     public Logger getLogger(String name) {
         return context.getLogger(name);
-    }
-
-    public static Path getTelemetryDirectory() {
-        return Paths.get(INSTANCE.getStoreDirectory().toString());
     }
 
     public void close() {

@@ -5,11 +5,10 @@
 
 package com.aws.iot.evergreen.telemetry.examples;
 
+import com.aws.iot.evergreen.telemetry.impl.InvalidMetricException;
 import com.aws.iot.evergreen.telemetry.impl.Metric;
 import com.aws.iot.evergreen.telemetry.impl.MetricFactory;
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
-import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
-import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
 
 /**
@@ -22,13 +21,18 @@ public class TelemetryDemo {
      */
     public static void main(String[] args) {
         Metric metric = Metric.builder()
-                .namespace(TelemetryNamespace.SystemMetrics)
-                .name(TelemetryMetricName.CpuUsage)
+                .namespace("SystemMetrics")
+                .name("CpuUsage")
                 .unit(TelemetryUnit.Percent)
                 .aggregation(TelemetryAggregation.Average)
                 .build();
         MetricFactory mf = new MetricFactory("Test");
-        mf.putMetricData(metric, 10);
-        mf.putMetricData(metric, 230);
+        try {
+            mf.putMetricData(metric, 10);
+            mf.putMetricData(metric, 230);
+        } catch (InvalidMetricException e) {
+            System.out.println(e);
+        }
+
     }
 }

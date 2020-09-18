@@ -8,11 +8,10 @@ package com.aws.iot.evergreen.telemetry.impl;
 import com.aws.iot.evergreen.logging.api.Logger;
 import com.aws.iot.evergreen.telemetry.impl.config.TelemetryConfig;
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
-import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
-import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,11 +57,17 @@ class MetricFactoryTest {
 
     @BeforeEach
     public void setup() {
-        System.setProperty("root", tempRootDir.toAbsolutePath().toString());
+        TelemetryConfig.setRoot(tempRootDir);
+    }
+
+    @AfterEach
+    public void cleanup() {
+        TelemetryConfig.getInstance().close();
     }
 
     @Test
     void GIVEN_metricsFactory_with_null_or_empty_storePath_THEN_generic_log_file_is_created() {
+        System.out.println(TelemetryConfig.getTelemetryDirectory());
         new MetricFactory("");
         File logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/generic.log");
         assertTrue(logFile.exists());
@@ -106,14 +111,14 @@ class MetricFactoryTest {
     }
 
     @Test
-    void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() {
+    void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() throws InvalidMetricException {
         MetricFactory mf = new MetricFactory("EnableMetricsTests");
         Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
 
         Metric m = Metric.builder()
-                .namespace(TelemetryNamespace.SystemMetrics)
-                .name(TelemetryMetricName.CpuUsage)
+                .namespace("SystemMetrics")
+                .name("CpuUsage")
                 .unit(TelemetryUnit.Percent)
                 .aggregation(TelemetryAggregation.Average)
                 .build();
@@ -134,33 +139,32 @@ class MetricFactoryTest {
         MetricFactory mf = new MetricFactory("EmitMetricsWithThreads");
         Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
-
-        Metric m1 = Metric.builder()
-                .namespace(TelemetryNamespace.SystemMetrics)
-                .name(TelemetryMetricName.CpuUsage)
-                .unit(TelemetryUnit.Percent)
-                .aggregation(TelemetryAggregation.Average)
-                .build();
-
-        Metric m2 = Metric.builder()
-                .namespace(TelemetryNamespace.KernelComponents)
-                .name(TelemetryMetricName.NumberOfComponentsInstalled)
-                .unit(TelemetryUnit.Count)
-                .aggregation(TelemetryAggregation.Average)
-                .build();
         ExecutorService ses = Executors.newFixedThreadPool(2);
         Future future1 = ses.submit(() -> {
-            mf.putMetricData(m1, 400);
-            mf.putMetricData(m2, 200);
+            try {
+                Metric m1 = new Metric("SystemMetrics", "CpuUsage", TelemetryUnit.Percent, TelemetryAggregation.Average);
+                Metric m2 = new Metric("KernelComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
+                        TelemetryAggregation.Average);
+                mf.putMetricData(m1, 400);
+                mf.putMetricData(m2, 200);
+            } catch (InvalidMetricException e) {
+                fail("No invalid metric", e);
+            }
         });
         Future future2 = ses.submit(() -> {
-            mf.putMetricData(m1, 300);
-            mf.putMetricData(m2, 100);
+            try {
+                Metric m1 = new Metric("SystemMetrics", "CpuUsage", TelemetryUnit.Percent, TelemetryAggregation.Average);
+                Metric m2 = new Metric("KernelComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
+                        TelemetryAggregation.Average);
+                mf.putMetricData(m1, 300);
+                mf.putMetricData(m2, 100);
+            } catch (InvalidMetricException e) {
+                fail("No invalid metric", e);
+            }
         });
         future1.get(5, TimeUnit.SECONDS);
         future2.get(5, TimeUnit.SECONDS);
         ses.shutdown();
-
         // all the metric messages are logged as trace messages
         verify(loggerSpy, times(4)).trace(any());
         String path = TelemetryConfig.getTelemetryDirectory() + "/EmitMetricsWithThreads.log";
@@ -185,7 +189,6 @@ class MetricFactoryTest {
         Collections.sort(messages);
         List<Metric> mdp = new ArrayList<>();
         for (String s : messages) {
-            System.out.println(s);
             mdp.add(mapper.readValue(s, Metric.class));
         }
         // assert the values of the metric
@@ -194,14 +197,43 @@ class MetricFactoryTest {
         assertEquals((Integer) mdp.get(2).getValue(), 300);
         assertEquals((Integer) mdp.get(3).getValue(), 400);
         // assert the metric attributes in order
-        assertEquals(mdp.get(0).getNamespace(), TelemetryNamespace.KernelComponents);
+        assertEquals(mdp.get(0).getNamespace(), "KernelComponents");
         assertEquals(mdp.get(1).getAggregation(), TelemetryAggregation.Average);
-        assertEquals(mdp.get(2).getName(), TelemetryMetricName.CpuUsage);
+        assertEquals(mdp.get(2).getName(), "CpuUsage");
         assertEquals(mdp.get(3).getUnit(), TelemetryUnit.Percent);
 
         logFile = new File(TelemetryConfig.getTelemetryDirectory() + "/evergreen.log");
         // evergreen.log file does not exist
         assertFalse(logFile.exists());
+    }
+
+    @Test
+    void GIVEN_Metrics_Factory_WHEN_invalid_metric_is_passed_THEN_throw_exception() {
+        MetricFactory mf = new MetricFactory("EnableMetricsTests");
+        Metric m = Metric.builder()
+                .namespace("")
+                .name("CpuUsage")
+                .unit(TelemetryUnit.Percent)
+                .aggregation(TelemetryAggregation.Average)
+                .build();
+        try {
+            mf.putMetricData(m, 80);
+        } catch (Exception e) {
+            assertEquals(e.getMessage(), "Metric namespace cannot be null or empty."
+                    + new TelemetryLoggerMessage(m).getJSONMessage());
+        }
+        m = Metric.builder()
+                .namespace("SystemMetrics")
+                .name("")
+                .unit(TelemetryUnit.Percent)
+                .aggregation(TelemetryAggregation.Average)
+                .build();
+        try {
+            mf.putMetricData(m, 80);
+        } catch (Exception e) {
+            assertEquals(e.getMessage(), "Metric name cannot be null or empty."
+                    + new TelemetryLoggerMessage(m).getJSONMessage());
+        }
     }
 
     private Logger setupLoggerSpy(MetricFactory mf) {

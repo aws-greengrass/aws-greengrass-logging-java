@@ -6,9 +6,10 @@
 package com.aws.iot.evergreen.telemetry.impl;
 
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
-import com.aws.iot.evergreen.telemetry.models.TelemetryMetricName;
-import com.aws.iot.evergreen.telemetry.models.TelemetryNamespace;
 import com.aws.iot.evergreen.telemetry.models.TelemetryUnit;
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,9 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Metric is a class encapsulating the namespace, name, unit, aggregation,value and timestamp of the metric.
@@ -31,10 +35,10 @@ public class Metric {
     private static final long serialVersionUID = 0L;
     @NonNull
     @JsonProperty("NS")
-    private TelemetryNamespace namespace;
+    private String namespace;
     @NonNull
     @JsonProperty("N")
-    private TelemetryMetricName name;
+    private String name;
     @NonNull
     @JsonProperty("U")
     private TelemetryUnit unit;
