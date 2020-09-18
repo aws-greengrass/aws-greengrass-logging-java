@@ -58,7 +58,7 @@ public class MetricFactory implements MetricFactoryBuilder {
      * @param metric the metric to which the value has to be assigned
      * @param value  data value that has to be emitted.
      */
-    public void putMetricData(Metric metric, Object value) throws InvalidMetricException {
+    public void putMetricData(Metric metric, Object value) {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             metric.setValue(value);
@@ -73,13 +73,13 @@ public class MetricFactory implements MetricFactoryBuilder {
      *
      * @param metric emit the metric which has the value assigned to it.
      */
-    public void putMetricData(Metric metric) throws InvalidMetricException {
+    public void putMetricData(Metric metric) {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
         if (!valid(metric.getName())) {
-            throw new InvalidMetricException("Metric name cannot be null or empty." + message.getJSONMessage());
+            throw new IllegalArgumentException("Metric name cannot be null or empty. " + message.getJSONMessage());
         }
         if (!valid(metric.getNamespace())) {
-            throw new InvalidMetricException("Metric namespace cannot be null or empty." + message.getJSONMessage());
+            throw new IllegalArgumentException("Metric namespace cannot be null or empty. " + message.getJSONMessage());
         }
         logMetrics(message);
     }

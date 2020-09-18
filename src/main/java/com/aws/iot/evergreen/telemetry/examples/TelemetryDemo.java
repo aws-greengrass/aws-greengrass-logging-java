@@ -5,7 +5,6 @@
 
 package com.aws.iot.evergreen.telemetry.examples;
 
-import com.aws.iot.evergreen.telemetry.impl.InvalidMetricException;
 import com.aws.iot.evergreen.telemetry.impl.Metric;
 import com.aws.iot.evergreen.telemetry.impl.MetricFactory;
 import com.aws.iot.evergreen.telemetry.models.TelemetryAggregation;
@@ -27,12 +26,7 @@ public class TelemetryDemo {
                 .aggregation(TelemetryAggregation.Average)
                 .build();
         MetricFactory mf = new MetricFactory("Test");
-        try {
-            mf.putMetricData(metric, 10);
-            mf.putMetricData(metric, 230);
-        } catch (InvalidMetricException e) {
-            System.out.println(e);
-        }
-
+        mf.putMetricData(metric, 10);
+        mf.putMetricData(metric, 230);
     }
 }

@@ -5,7 +5,6 @@
 
 package com.aws.iot.evergreen.telemetry.api;
 
-import com.aws.iot.evergreen.telemetry.impl.InvalidMetricException;
 import com.aws.iot.evergreen.telemetry.impl.Metric;
 
 /**
@@ -18,5 +17,5 @@ public interface MetricFactoryBuilder {
      *
      * @return
      */
-    void putMetricData(Metric metric, Object value) throws InvalidMetricException;
+    void putMetricData(Metric metric, Object value);
 }
