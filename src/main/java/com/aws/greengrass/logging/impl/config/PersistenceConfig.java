@@ -42,6 +42,7 @@ public class PersistenceConfig {
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
     private static final String DEFAULT_STORE_NAME = "greengrass.";
     private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
+    private static final String HOME_DIR_PREFIX = "~/";
 
     protected final String prefix;
     protected LogStore store;
@@ -161,24 +162,25 @@ public class PersistenceConfig {
      * Helper function to get the path.
      */
     private Path getRootStorePath() {
-        Path storePath;
-        String rootPathStr = System.getProperty("root");
-        if (rootPathStr != null) {
-            // if root is set, use root as store path
-            storePath = Paths.get(rootPathStr);
-        } else {
-            // if root is not set, use working directory as store path
-            storePath = Paths.get(System.getProperty("user.dir"));
-        }
-        return storePath.toAbsolutePath();
+        return Paths.get(deTilde(System.getProperty("root", System.getProperty("user.dir")))).toAbsolutePath();
     }
 
     private void getFileNameFromStoreName() {
         Path fullFileName = Paths.get(this.storeName).getFileName();
         if (this.storeName != null && fullFileName != null) {
+            this.storeName = deTilde(this.storeName);
             Optional<String> fileNameWithoutExtension = stripExtension(fullFileName.toString());
             this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
         }
+    }
+
+    private String deTilde(String path) {
+        // Get path if "~/" is used
+        if (path.startsWith(HOME_DIR_PREFIX)) {
+            return Paths.get(System.getProperty("user.dir"))
+                    .resolve(path.substring(HOME_DIR_PREFIX.length())).toString();
+        }
+        return path;
     }
 
     private void getStoreDirectoryFromStoreName() {
