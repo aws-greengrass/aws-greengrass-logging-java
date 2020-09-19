@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 /**
  * An implementation of {@link LogEventBuilder} providing a fluent API to generate log events.
  */
-public class EGLogEventBuilder implements LogEventBuilder {
+public class LogEventBuilderImpl implements LogEventBuilder {
     private final Level level;
     private Throwable cause;
     private String eventType;
@@ -33,7 +33,7 @@ public class EGLogEventBuilder implements LogEventBuilder {
      * @param level             the log level setting on the logger
      * @param loggerContextData a map of key value pairs with contextual information for the logger
      */
-    public EGLogEventBuilder(Slf4jLogAdapter logger, Level level, Map<String, Object> loggerContextData) {
+    public LogEventBuilderImpl(Slf4jLogAdapter logger, Level level, Map<String, Object> loggerContextData) {
         this.logger = logger;
         this.level = level;
         eventContextData.putAll(loggerContextData);

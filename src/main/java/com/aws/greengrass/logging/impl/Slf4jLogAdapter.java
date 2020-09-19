@@ -158,7 +158,7 @@ public class Slf4jLogAdapter implements Logger {
                 context.putAll(loggerContextData);
             }
 
-            return new EGLogEventBuilder(this, logLevel, Collections.unmodifiableMap(context)).setCause(cause)
+            return new LogEventBuilderImpl(this, logLevel, Collections.unmodifiableMap(context)).setCause(cause)
                     .setEventType(eventType);
         }
         return LogEventBuilder.NOOP;
@@ -249,7 +249,7 @@ public class Slf4jLogAdapter implements Logger {
     }
 
     private void log(Level level, String msg, Object... args) {
-        new EGLogEventBuilder(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
+        new LogEventBuilderImpl(this, level, Collections.unmodifiableMap(loggerContextData)).log(msg, args);
     }
 
     private String serialize(GreengrassLogMessage message) {
