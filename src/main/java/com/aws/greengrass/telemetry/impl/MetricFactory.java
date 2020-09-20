@@ -20,7 +20,7 @@ import java.util.Objects;
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
  */
 public class MetricFactory implements MetricFactoryBuilder {
-    public static final String METRIC_LOGGER_NAME = "Metrics";
+    public static final String METRIC_LOGGER_PREFIX = "Metrics-";
     private static final String GENERIC_LOG_STORE = "generic";
     private TelemetryConfig telemetryConfig;
     @Setter(AccessLevel.PACKAGE)
@@ -45,9 +45,9 @@ public class MetricFactory implements MetricFactoryBuilder {
             storeName = GENERIC_LOG_STORE;
         }
         // TODO: get configurations from kernel config
-        String loggerName = METRIC_LOGGER_NAME + "-" + storeName;
+        String loggerName = METRIC_LOGGER_PREFIX + storeName;
         this.telemetryConfig = TelemetryConfig.getInstance();
-        this.telemetryConfig.editConfig(loggerName, storeName);
+        this.telemetryConfig.editConfigForLogger(loggerName);
         this.logger = LogManager.getTelemetryLogger(loggerName);
     }
 
