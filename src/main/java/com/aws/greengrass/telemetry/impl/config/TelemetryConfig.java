@@ -9,14 +9,18 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
+import com.aws.greengrass.logging.impl.LogManager;
 import com.aws.greengrass.logging.impl.config.LogFormat;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 
 import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_PREFIX;
@@ -30,14 +34,14 @@ public class TelemetryConfig extends PersistenceConfig {
     private static final String DEFAULT_TELEMETRY_LOG_LEVEL = "TRACE";
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
     private final LoggerContext context = new LoggerContext();
-    private Path root = getRootStorePath();
+    private Path root;
     @Setter
     private boolean metricsEnabled;
 
     /**
      * Get default metrics configurations from system properties.
      */
-    protected TelemetryConfig() {
+    private TelemetryConfig() {
         super(CONFIG_PREFIX);
         boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
@@ -63,7 +67,7 @@ public class TelemetryConfig extends PersistenceConfig {
      * @param loggerName This is used as the name of the telemetry logger.
      */
     public void editConfigForLogger(String loggerName) {
-        this.logger = context.getLogger(loggerName);
+        this.logger = getLogger(loggerName);
         this.setStorePath(Paths.get(getLogFileName(loggerName)));
     }
 
@@ -128,13 +132,27 @@ public class TelemetryConfig extends PersistenceConfig {
     }
 
     /**
-     * Change the telemetry config root path to new path
+     * Change the telemetry config root path to new path.
      *
      * @param path new path
      */
     public void setRoot(Path path) {
-        if (!Objects.equals(root, path)) {
-            root = path;
+        if (Objects.equals(root, path)) {
+            return;
+        }
+        try {
+            close();
+            if (root != null && Files.exists(root)) {
+                Files.move(root, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            com.aws.greengrass.logging.api.Logger logging = LogManager.getLogger(TelemetryConfig.class);
+            logging.atError().cause(e).log();
+        }
+        root = path;
+        for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
+            close();
+            editConfigForLogger(loggerName);
         }
     }
 }

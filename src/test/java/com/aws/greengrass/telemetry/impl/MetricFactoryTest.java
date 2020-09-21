@@ -204,16 +204,16 @@ class MetricFactoryTest {
     void GIVEN_Metrics_Factory_WHEN_invalid_metric_is_passed_THEN_throw_exception() {
         MetricFactory mf = new MetricFactory("EnableMetricsTests");
 
-        assertThrows(IllegalArgumentException.class,()->{
+        assertThrows(IllegalArgumentException.class, () -> {
             Metric m = Metric.builder().namespace("").name("CpuUsage").unit(TelemetryUnit.Percent)
                     .aggregation(TelemetryAggregation.Average).build();
-            mf.putMetricData(m,80);
+            mf.putMetricData(m, 80);
         });
 
-        assertThrows(IllegalArgumentException.class,()->{
+        assertThrows(IllegalArgumentException.class, () -> {
             Metric m = Metric.builder().namespace("SystemMetrics").name("").unit(TelemetryUnit.Percent)
                     .aggregation(TelemetryAggregation.Average).build();
-            mf.putMetricData(m,80);
+            mf.putMetricData(m, 80);
         });
     }
 
