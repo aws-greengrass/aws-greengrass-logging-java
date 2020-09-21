@@ -148,34 +148,40 @@ public class TelemetryConfig extends PersistenceConfig {
         if (Objects.equals(root, newPath)) {
             return;
         }
-        try {
-            close();
-            if (root != null && Files.exists(root)) {
-                Files.move(root, newPath, StandardCopyOption.REPLACE_EXISTING);
+        if (newPath != null) {
+            try {
+                close();
+                newPath = newPath.resolve(TELEMETRY_DIRECTORY);
+                if (root != null && Files.exists(root)) {
+                    if (!Files.exists(newPath)) {
+                        Files.createDirectories(newPath);
+                    }
+                    Files.move(root, newPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                com.aws.greengrass.logging.api.Logger logging = LogManager.getLogger(TelemetryConfig.class);
+                if (e.getClass().equals(DirectoryNotEmptyException.class)) {
+                    logging.atError().cause(e).log("Could not move the telemetry log files from source : {} to target "
+                            + ": {}. However, new logs will be written to the target directory", root, newPath);
+                } else {
+                    logging.atError().cause(e).log();
+                }
             }
-        } catch (IOException e) {
-            com.aws.greengrass.logging.api.Logger logging = LogManager.getLogger(TelemetryConfig.class);
-            if (e.getClass().equals(DirectoryNotEmptyException.class)) {
-                logging.atError().cause(e).log("Could not move the telemetry log files from source : {} to target : {}"
-                        + ". However, new logs will be written to the target directory", root, newPath);
-            } else {
-                logging.atError().cause(e).log();
+            /*
+             * telemetry
+             * |___ generic.log
+             * |___ KernelComponents.log
+             * |___ SystemMetrics.log
+             * |___ ....
+             */
+            root = newPath;
+            /*
+                Reconfigure all the telemetry loggers to use the store at new path.
+             */
+            for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
+                close();
+                editConfigForLogger(loggerName);
             }
-        }
-        /*
-         * telemetry
-         * |___ generic.log
-         * |___ KernelComponents.log
-         * |___ SystemMetrics.log
-         * |___ ....
-         */
-        root = newPath.resolve(TELEMETRY_DIRECTORY);
-        /*
-            Reconfigure all the telemetry loggers to use the store at new path.
-         */
-        for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
-            close();
-            editConfigForLogger(loggerName);
         }
     }
 }

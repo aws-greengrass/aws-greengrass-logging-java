@@ -237,7 +237,8 @@ class MetricFactoryTest {
         assertFalse(new File(path1 + "/someFile.log").exists());
 
         // telemetry root directory changed to new path
-        assertEquals(path2.resolve(TelemetryConfig.TELEMETRY_DIRECTORY), TelemetryConfig.getTelemetryDirectory());
+        path2 = path2.resolve(TelemetryConfig.TELEMETRY_DIRECTORY);
+        assertEquals(path2, TelemetryConfig.getTelemetryDirectory());
 
         // file exists at new path
         assertTrue(new File(path2 + "/someFile.log").exists());
@@ -257,7 +258,6 @@ class MetricFactoryTest {
         assertEquals(path1, TelemetryConfig.getTelemetryDirectory());
         mf1.putMetricData(m);
         assertTrue(new File(path1 + "/someFile.log").exists());  // File exists at new path.
-        assertTrue(new File(path2 + "/someFile.log").exists()); // File exists at old path as it could not be moved.
     }
 
     private Logger setupLoggerSpy(MetricFactory mf) {
