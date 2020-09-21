@@ -17,6 +17,7 @@ import lombok.Setter;
 import org.slf4j.event.Level;
 
 import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,11 +31,12 @@ public class TelemetryConfig extends PersistenceConfig {
     // TODO: Replace the default log level from Kernel Configuration.
     public static final String CONFIG_PREFIX = "log";
     public static final String METRICS_SWITCH_KEY = "log.metricsEnabled";
+    public static final String TELEMETRY_DIRECTORY = "telemetry";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
     private static final String DEFAULT_TELEMETRY_LOG_LEVEL = "TRACE";
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
     private final LoggerContext context = new LoggerContext();
-    private Path root;
+    private Path root = getRootStorePath().resolve(TELEMETRY_DIRECTORY);
     @Setter
     private boolean metricsEnabled;
 
@@ -73,11 +75,6 @@ public class TelemetryConfig extends PersistenceConfig {
 
     /**
      * Change the configured store path (only applies for file output).
-     * telemetry
-     * |___ generic.log
-     * |___ KernelComponents.log
-     * |___ SystemMetrics.log
-     * |___ ....
      *
      * @param path The path passed in must contain the file name to which the logs will be written.
      */
@@ -95,8 +92,7 @@ public class TelemetryConfig extends PersistenceConfig {
 
     /**
      * NOTE : Calling this method from elsewhere will NOT reconfigure the logger.
-     * This method is called only once from the setStorePath(..); This is used only once from the MetricFactory
-     * when we construct a metric to write metrics to a specific file.
+     * This method is called only once from the setStorePath(..);
      */
     @Override
     protected void reconfigure() {
@@ -123,33 +119,60 @@ public class TelemetryConfig extends PersistenceConfig {
         return context.getLogger(name);
     }
 
+    /**
+     * Gets the name of the log file from the logger name passed. Telemetry logger names have "Metrics-" as prefix.
+     *
+     * @param loggerName "Metrics-{namespace}"
+     * @return "{namespace}.log"
+     */
     private String getLogFileName(String loggerName) {
         return loggerName.substring(METRIC_LOGGER_PREFIX.length()) + "." + CONFIG_PREFIX;
     }
 
+    /**
+     * Stop the logger context.
+     */
     public void close() {
         context.stop();
     }
 
     /**
-     * Change the telemetry config root path to new path.
+     * Changes the telemetry config root path to new path and moves files from old path to new path if the old path
+     * exists.
+     * If the new path already exists and is not empty, then the files from old path are not moved. However, the new
+     * path will be used for all the new logs.
      *
-     * @param path new path
+     * @param newPath new path
      */
-    public void setRoot(Path path) {
-        if (Objects.equals(root, path)) {
+    public void setRoot(Path newPath) {
+        if (Objects.equals(root, newPath)) {
             return;
         }
         try {
             close();
             if (root != null && Files.exists(root)) {
-                Files.move(root, path, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(root, newPath, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
             com.aws.greengrass.logging.api.Logger logging = LogManager.getLogger(TelemetryConfig.class);
-            logging.atError().cause(e).log();
+            if (e.getClass().equals(DirectoryNotEmptyException.class)) {
+                logging.atError().cause(e).log("Could not move the telemetry log files from source : {} to target : {}"
+                        + ". However, new logs will be written to the target directory", root, newPath);
+            } else {
+                logging.atError().cause(e).log();
+            }
         }
-        root = path;
+        /*
+         * telemetry
+         * |___ generic.log
+         * |___ KernelComponents.log
+         * |___ SystemMetrics.log
+         * |___ ....
+         */
+        root = newPath.resolve(TELEMETRY_DIRECTORY);
+        /*
+            Reconfigure all the telemetry loggers to use the store at new path.
+         */
         for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
             close();
             editConfigForLogger(loggerName);
