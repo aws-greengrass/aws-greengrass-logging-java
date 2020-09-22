@@ -77,17 +77,20 @@ public class MetricFactory implements MetricFactoryBuilder {
      */
     public void putMetricData(Metric metric) {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
-        if (!valid(metric.getName())) {
+        if (trim(metric.getName()) == null) {
             throw new IllegalArgumentException("Metric name cannot be null or empty. " + message.getJSONMessage());
         }
-        if (!valid(metric.getNamespace())) {
+        if (trim(metric.getNamespace()) == null) {
             throw new IllegalArgumentException("Metric namespace cannot be null or empty. " + message.getJSONMessage());
         }
         logMetrics(message);
     }
 
-    private boolean valid(String name) {
-        return name != null && !name.isEmpty();
+    private String trim(String name) {
+        if (name != null && !name.isEmpty()) {
+            return name.trim();
+        }
+        return null;
     }
 
     /**

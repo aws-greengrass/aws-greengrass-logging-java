@@ -142,7 +142,7 @@ class MetricFactoryTest {
         ExecutorService ses = Executors.newFixedThreadPool(2);
         Future future1 = ses.submit(() -> {
             Metric m1 = new Metric("SystemMetrics", "CpuUsage", TelemetryUnit.Percent, TelemetryAggregation.Average);
-            Metric m2 = new Metric("KernelComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
+            Metric m2 = new Metric("GreengrassComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
                     TelemetryAggregation.Average);
             mf.putMetricData(m1, 400);
             mf.putMetricData(m2, 200);
@@ -150,7 +150,7 @@ class MetricFactoryTest {
         });
         Future future2 = ses.submit(() -> {
             Metric m1 = new Metric("SystemMetrics", "CpuUsage", TelemetryUnit.Percent, TelemetryAggregation.Average);
-            Metric m2 = new Metric("KernelComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
+            Metric m2 = new Metric("GreengrassComponents", "NumberOfComponentsInstalled", TelemetryUnit.Count,
                     TelemetryAggregation.Average);
             mf.putMetricData(m1, 300);
             mf.putMetricData(m2, 100);
@@ -190,7 +190,7 @@ class MetricFactoryTest {
         assertEquals((Integer) mdp.get(2).getValue(), 300);
         assertEquals((Integer) mdp.get(3).getValue(), 400);
         // assert the metric attributes in order
-        assertEquals(mdp.get(0).getNamespace(), "KernelComponents");
+        assertEquals(mdp.get(0).getNamespace(), "GreengrassComponents");
         assertEquals(mdp.get(1).getAggregation(), TelemetryAggregation.Average);
         assertEquals(mdp.get(2).getName(), "CpuUsage");
         assertEquals(mdp.get(3).getUnit(), TelemetryUnit.Percent);
