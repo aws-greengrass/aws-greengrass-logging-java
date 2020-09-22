@@ -58,12 +58,12 @@ class MetricFactoryTest {
 
     @BeforeEach
     public void setup() {
-        System.setProperty("root", tempRootDir.toAbsolutePath().toString());
+        TelemetryConfig.getInstance().setRoot(tempRootDir);
     }
 
     @AfterEach
     public void cleanup() {
-        TelemetryConfig.getInstance().close();
+        TelemetryConfig.getInstance().closeContext();
     }
 
     @Test
@@ -222,42 +222,22 @@ class MetricFactoryTest {
         MetricFactory mf1 = new MetricFactory("someFile");
         Metric m = Metric.builder().namespace("A").name("B").unit(TelemetryUnit.Percent).value(10)
                 .aggregation(TelemetryAggregation.Average).timestamp((long) 10).build();
-
         Path path1 = TelemetryConfig.getTelemetryDirectory();
         mf1.putMetricData(m);
 
-        assertTrue(new File(path1 + "/someFile.log").exists());  // file exists
+        // file exists at the default root path
+        assertTrue(new File(path1 + "/someFile.log").exists());
 
-        // case 1: New root directory does not exist
         Path path2 = tempRootDir.resolve("someNewRootDir");
         TelemetryConfig.getInstance().setRoot(path2);
         mf1.putMetricData(m);
-
-        // path1 is renamed to path2. So file not exists at path1
-        assertFalse(new File(path1 + "/someFile.log").exists());
+        path2 = path2.resolve(TelemetryConfig.TELEMETRY_DIRECTORY);
 
         // telemetry root directory changed to new path
-        path2 = path2.resolve(TelemetryConfig.TELEMETRY_DIRECTORY);
         assertEquals(path2, TelemetryConfig.getTelemetryDirectory());
 
         // file exists at new path
         assertTrue(new File(path2 + "/someFile.log").exists());
-
-        // case 2: New root directory exists and is not empty
-
-        //create path with a file in it to make it non empty
-        path1 = tempRootDir.resolve("nonEmptyDir");
-        Files.createDirectory(path1);
-
-        Path file = Files.createFile(path1.resolve("newFile"));
-        assertTrue(Files.exists(file));
-
-        TelemetryConfig.getInstance().setRoot(path1);
-        // telemetry root directory changed to new path
-        path1 = path1.resolve(TelemetryConfig.TELEMETRY_DIRECTORY);
-        assertEquals(path1, TelemetryConfig.getTelemetryDirectory());
-        mf1.putMetricData(m);
-        assertTrue(new File(path1 + "/someFile.log").exists());  // File exists at new path.
     }
 
     private Logger setupLoggerSpy(MetricFactory mf) {
