@@ -16,12 +16,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
 
-import java.io.IOException;
-import java.nio.file.DirectoryNotEmptyException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 
 import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_PREFIX;
@@ -53,6 +49,7 @@ public class TelemetryConfig extends PersistenceConfig {
         this.metricsEnabled = metricsEnabled;
         this.setLevel(Level.valueOf(DEFAULT_TELEMETRY_LOG_LEVEL));
         this.setFormat(LogFormat.JSON);
+        startContext();
     }
 
     public static TelemetryConfig getInstance() {
@@ -101,7 +98,6 @@ public class TelemetryConfig extends PersistenceConfig {
 
     @Override
     protected void reconfigure(Logger loggerToConfigure) {
-        context.start();
         Objects.requireNonNull(loggerToConfigure);
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
@@ -132,56 +128,36 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Stop the logger context.
      */
-    public void close() {
+    public void closeContext() {
         context.stop();
     }
 
     /**
-     * Changes the telemetry config root path to new path and moves files from old path to new path if the old path
-     * exists.
-     * If the new path already exists and is not empty, then the files from old path are not moved. However, the new
-     * path will be used for all the new logs.
+     * Start the logger context.
+     */
+    public void startContext() {
+        context.start();
+    }
+
+    /**
+     * Changes the telemetry config root path to new path .
      *
      * @param newPath new path
      */
     public void setRoot(Path newPath) {
-        if (Objects.equals(root, newPath)) {
-            return;
-        }
         if (newPath != null) {
-            try {
-                close();
-                newPath = newPath.resolve(TELEMETRY_DIRECTORY);
-                if (root != null && Files.exists(root)) {
-                    if (!Files.exists(newPath)) {
-                        Files.createDirectories(newPath);
-                    }
-                    Files.move(root, newPath, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException e) {
-                com.aws.greengrass.logging.api.Logger logging = LogManager.getLogger(TelemetryConfig.class);
-                if (e.getClass().equals(DirectoryNotEmptyException.class)) {
-                    logging.atError().cause(e).log("Could not move the telemetry log files from source : {} to target "
-                            + ": {}. However, new logs will be written to the target directory", root, newPath);
-                } else {
-                    logging.atError().cause(e).log();
-                }
+            newPath = newPath.resolve(TELEMETRY_DIRECTORY);
+            if (Objects.equals(root, newPath)) {
+                return;
             }
-            /*
-             * telemetry
-             * |___ generic.log
-             * |___ KernelComponents.log
-             * |___ SystemMetrics.log
-             * |___ ....
-             */
             root = newPath;
-            /*
-                Reconfigure all the telemetry loggers to use the store at new path.
-             */
+
+            //Reconfigure all the telemetry loggers to use the store at new path.
             for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
-                close();
+                closeContext();
                 editConfigForLogger(loggerName);
             }
+            startContext();
         }
     }
 }
