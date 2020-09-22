@@ -177,7 +177,7 @@ public class PersistenceConfig {
     protected String deTilde(String path) {
         // Get path if "~/" is used
         if (path.startsWith(HOME_DIR_PREFIX)) {
-            return Paths.get(System.getProperty("user.dir"))
+            return Paths.get(System.getProperty("user.home"))
                     .resolve(path.substring(HOME_DIR_PREFIX.length())).toString();
         }
         return path;
