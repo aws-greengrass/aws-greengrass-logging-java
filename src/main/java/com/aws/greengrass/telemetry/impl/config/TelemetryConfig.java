@@ -9,7 +9,6 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
-import com.aws.greengrass.logging.impl.LogManager;
 import com.aws.greengrass.logging.impl.config.LogFormat;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import lombok.Getter;
@@ -153,8 +152,10 @@ public class TelemetryConfig extends PersistenceConfig {
             root = newPath;
             closeContext();
             //Reconfigure all the telemetry loggers to use the store at new path.
-            for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
-                editConfigForLogger(loggerName);
+            for (Logger logger : context.getLoggerList()) {
+                if (!logger.getName().equals("ROOT")) {
+                    editConfigForLogger(logger.getName());
+                }
             }
             startContext();
         }

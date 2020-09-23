@@ -23,7 +23,6 @@ public class LogManager {
     private static final ConcurrentMap<String, com.aws.greengrass.logging.api.Logger> loggerMap =
             new ConcurrentHashMap<>();
     // key: name (String), value: a Logger;
-    @Getter
     private static final ConcurrentMap<String, com.aws.greengrass.logging.api.Logger> telemetryLoggerMap =
             new ConcurrentHashMap<>();
     @Getter
