@@ -135,7 +135,7 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Start the logger context.
      */
-    public void startContext() {
+    private void startContext() {
         context.start();
     }
 
@@ -151,10 +151,9 @@ public class TelemetryConfig extends PersistenceConfig {
                 return;
             }
             root = newPath;
-
+            closeContext();
             //Reconfigure all the telemetry loggers to use the store at new path.
             for (String loggerName : LogManager.getTelemetryLoggerMap().keySet()) {
-                closeContext();
                 editConfigForLogger(loggerName);
             }
             startContext();
