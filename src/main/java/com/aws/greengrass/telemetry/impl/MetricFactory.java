@@ -20,7 +20,7 @@ import java.util.Objects;
  * An implementation of {@link MetricFactoryBuilder} to generate metrics events.
  */
 public class MetricFactory implements MetricFactoryBuilder {
-    public static final String METRIC_LOGGER_NAME = "Metrics";
+    public static final String METRIC_LOGGER_PREFIX = "Metrics-";
     private static final String GENERIC_LOG_STORE = "generic";
     private TelemetryConfig telemetryConfig;
     @Setter(AccessLevel.PACKAGE)
@@ -45,9 +45,9 @@ public class MetricFactory implements MetricFactoryBuilder {
             storeName = GENERIC_LOG_STORE;
         }
         // TODO: get configurations from kernel config
-        String loggerName = METRIC_LOGGER_NAME + "-" + storeName;
+        String loggerName = METRIC_LOGGER_PREFIX + storeName;
         this.telemetryConfig = TelemetryConfig.getInstance();
-        this.telemetryConfig.editConfig(loggerName, storeName);
+        this.telemetryConfig.editConfigForLogger(loggerName);
         this.logger = LogManager.getTelemetryLogger(loggerName);
     }
 
@@ -56,8 +56,9 @@ public class MetricFactory implements MetricFactoryBuilder {
      *
      * @param metric the metric to which the value has to be assigned
      * @param value  data value that has to be emitted.
+     * @throws IllegalArgumentException This will throw an exception if namespace or name of the metric is not set.
      */
-    public void putMetricData(Metric metric, Object value) {
+    public void putMetricData(Metric metric, Object value) throws IllegalArgumentException {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             synchronized (metric) {
@@ -72,10 +73,26 @@ public class MetricFactory implements MetricFactoryBuilder {
      * The metric passed in must have the value and timestamp assigned.
      *
      * @param metric emit the metric which has the value assigned to it.
+     * @throws IllegalArgumentException This will throw an exception if namespace or name of the metric is not set.
      */
-    public void putMetricData(Metric metric) {
+    public void putMetricData(Metric metric) throws IllegalArgumentException {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
+        String name = formatString(metric.getName());
+        String namespace = formatString(metric.getNamespace());
+        if (name.length() == 0) {
+            throw new IllegalArgumentException("Metric name cannot be empty. " + message.getJSONMessage());
+        }
+        if (namespace.length() == 0) {
+            throw new IllegalArgumentException("Metric namespace cannot be empty. " + message.getJSONMessage());
+        }
+        metric.setName(name);
+        metric.setNamespace(namespace);
+        message = new TelemetryLoggerMessage(metric);
         logMetrics(message);
+    }
+
+    private String formatString(String name) {
+        return name.replaceAll("\\s", "");
     }
 
     /**

@@ -8,8 +8,6 @@ package com.aws.greengrass.telemetry.examples;
 import com.aws.greengrass.telemetry.impl.Metric;
 import com.aws.greengrass.telemetry.impl.MetricFactory;
 import com.aws.greengrass.telemetry.models.TelemetryAggregation;
-import com.aws.greengrass.telemetry.models.TelemetryMetricName;
-import com.aws.greengrass.telemetry.models.TelemetryNamespace;
 import com.aws.greengrass.telemetry.models.TelemetryUnit;
 
 /**
@@ -22,8 +20,8 @@ public class TelemetryDemo {
      */
     public static void main(String[] args) {
         Metric metric = Metric.builder()
-                .namespace(TelemetryNamespace.SystemMetrics)
-                .name(TelemetryMetricName.CpuUsage)
+                .namespace("SystemMetrics")
+                .name("CpuUsage")
                 .unit(TelemetryUnit.Percent)
                 .aggregation(TelemetryAggregation.Average)
                 .build();

@@ -19,26 +19,26 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_NAME;
+import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_PREFIX;
 
 @Getter
 public class TelemetryConfig extends PersistenceConfig {
     // TODO: Replace the default log level from Kernel Configuration.
     public static final String CONFIG_PREFIX = "log";
     public static final String METRICS_SWITCH_KEY = "log.metricsEnabled";
+    public static final String TELEMETRY_DIRECTORY = "telemetry";
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
-    private static final String TELEMETRY_LOG_DIRECTORY = "Telemetry";
     private static final String DEFAULT_TELEMETRY_LOG_LEVEL = "TRACE";
-    @Setter
-    private boolean metricsEnabled;
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
     private final LoggerContext context = new LoggerContext();
-    private String loggerName;
+    private Path root = getRootStorePath().resolve(TELEMETRY_DIRECTORY);
+    @Setter
+    private boolean metricsEnabled;
 
     /**
      * Get default metrics configurations from system properties.
      */
-    protected TelemetryConfig() {
+    private TelemetryConfig() {
         super(CONFIG_PREFIX);
         boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
@@ -47,35 +47,52 @@ public class TelemetryConfig extends PersistenceConfig {
         }
         this.metricsEnabled = metricsEnabled;
         this.setLevel(Level.valueOf(DEFAULT_TELEMETRY_LOG_LEVEL));
+        this.setFormat(LogFormat.JSON);
+        startContext();
+    }
+
+    public static TelemetryConfig getInstance() {
+        return INSTANCE;
+    }
+
+    public static Path getTelemetryDirectory() {
+        return INSTANCE.root;
     }
 
     /**
-     * Sets up logger name and store name.
+     * Sets up logger and store name.
+     *
      * @param loggerName This is used as the name of the telemetry logger.
-     * @param storeName The storeName passed will be the name of the log file created at the path shown below.
      */
-    public void editConfig(String loggerName, String storeName) {
-        this.loggerName = loggerName;
+    public void editConfigForLogger(String loggerName) {
+        this.logger = getLogger(loggerName);
+        this.setStorePath(Paths.get(getLogFileName(loggerName)));
+    }
 
-        /*
-         * Telemetry
-         *   |___ generic.log
-         *   |___ KernelComponents.log
-         *   |___ SystemMetrics.log
-         *   |___ ....
-         */
-        this.setFormat(LogFormat.JSON);
-        this.setStorePath(Paths.get(TELEMETRY_LOG_DIRECTORY, storeName + "." + CONFIG_PREFIX));
+    /**
+     * Change the configured store path (only applies for file output).
+     *
+     * @param path The path passed in must contain the file name to which the logs will be written.
+     */
+    @Override
+    public void setStorePath(Path path) {
+        String newStoreName = deTilde(root.resolve(path).toString());
+        if (Objects.equals(this.storeName, newStoreName)) {
+            return;
+        }
+        this.storeName = newStoreName;
+        getFileNameFromStoreName();
+        getStoreDirectoryFromStoreName();
+        reconfigure();
     }
 
     /**
      * NOTE : Calling this method from elsewhere will NOT reconfigure the logger.
-     * This method is called only once from the setStorePath(..); This is used only once from the MetricFactory
-     * when we construct a metric to write metrics to a specific file.
+     * This method is called only once from the setStorePath(..);
      */
     @Override
     protected void reconfigure() {
-        reconfigure(getLogger(loggerName));
+        reconfigure(logger);
     }
 
     @Override
@@ -85,7 +102,7 @@ public class TelemetryConfig extends PersistenceConfig {
         loggerToConfigure.setAdditive(true);
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
 
-        String fileAppenderName = loggerToConfigure.getName().substring(METRIC_LOGGER_NAME.length() + 1);
+        String fileAppenderName = METRIC_LOGGER_PREFIX + getFileName();
         RollingFileAppender<ILoggingEvent> logFileAppender = getAppenderForFile(loggerToConfigure, fileAppenderName);
         logFileAppender.start();
         // Add the replacement
@@ -93,16 +110,55 @@ public class TelemetryConfig extends PersistenceConfig {
         loggerToConfigure.addAppender(logFileAppender);
     }
 
-    public static TelemetryConfig getInstance() {
-        return INSTANCE;
-    }
-
     public Logger getLogger(String name) {
         return context.getLogger(name);
     }
 
-    public static Path getTelemetryDirectory() {
-        return Paths.get(INSTANCE.getStoreDirectory().toString());
+    /**
+     * Gets the name of the log file from the logger name passed. Telemetry logger names have "Metrics-" as prefix.
+     *
+     * @param loggerName "Metrics-{namespace}"
+     * @return "{namespace}.log"
+     */
+    private String getLogFileName(String loggerName) {
+        return loggerName.substring(METRIC_LOGGER_PREFIX.length()) + "." + CONFIG_PREFIX;
+    }
+
+    /**
+     * Stop the logger context.
+     */
+    public void closeContext() {
+        context.stop();
+    }
+
+    /**
+     * Start the logger context.
+     */
+    private void startContext() {
+        context.start();
+    }
+
+    /**
+     * Changes the telemetry config root path to new path .
+     *
+     * @param newPath new path
+     */
+    public void setRoot(Path newPath) {
+        if (newPath != null) {
+            newPath = Paths.get(deTilde(newPath.resolve(TELEMETRY_DIRECTORY).toString()));
+            if (Objects.equals(root, newPath)) {
+                return;
+            }
+            root = newPath;
+            closeContext();
+            //Reconfigure all the telemetry loggers to use the store at new path.
+            for (Logger logger : context.getLoggerList()) {
+                if (!logger.getName().equals("ROOT")) {
+                    editConfigForLogger(logger.getName());
+                }
+            }
+            startContext();
+        }
     }
 }
 

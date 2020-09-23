@@ -6,8 +6,6 @@
 package com.aws.greengrass.telemetry.impl;
 
 import com.aws.greengrass.telemetry.models.TelemetryAggregation;
-import com.aws.greengrass.telemetry.models.TelemetryMetricName;
-import com.aws.greengrass.telemetry.models.TelemetryNamespace;
 import com.aws.greengrass.telemetry.models.TelemetryUnit;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -31,10 +29,10 @@ public class Metric {
     private static final long serialVersionUID = 0L;
     @NonNull
     @JsonProperty("NS")
-    private TelemetryNamespace namespace;
+    private String namespace;
     @NonNull
     @JsonProperty("N")
-    private TelemetryMetricName name;
+    private String name;
     @NonNull
     @JsonProperty("U")
     private TelemetryUnit unit;

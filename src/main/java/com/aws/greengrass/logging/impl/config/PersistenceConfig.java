@@ -161,11 +161,11 @@ public class PersistenceConfig {
     /**
      * Helper function to get the path.
      */
-    private Path getRootStorePath() {
+    protected Path getRootStorePath() {
         return Paths.get(deTilde(System.getProperty("root", System.getProperty("user.dir")))).toAbsolutePath();
     }
 
-    private void getFileNameFromStoreName() {
+    protected void getFileNameFromStoreName() {
         Path fullFileName = Paths.get(this.storeName).getFileName();
         if (this.storeName != null && fullFileName != null) {
             this.storeName = deTilde(this.storeName);
@@ -174,7 +174,7 @@ public class PersistenceConfig {
         }
     }
 
-    private String deTilde(String path) {
+    protected String deTilde(String path) {
         // Get path if "~/" is used
         if (path.startsWith(HOME_DIR_PREFIX)) {
             return Paths.get(System.getProperty("user.home"))
@@ -183,7 +183,7 @@ public class PersistenceConfig {
         return path;
     }
 
-    private void getStoreDirectoryFromStoreName() {
+    protected void getStoreDirectoryFromStoreName() {
         if (this.storeName != null) {
             Path storeDirectoryPath = Paths.get(this.storeName).getParent();
             if (storeDirectoryPath != null) {
