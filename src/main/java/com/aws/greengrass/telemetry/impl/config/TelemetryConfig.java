@@ -145,7 +145,7 @@ public class TelemetryConfig extends PersistenceConfig {
      */
     public void setRoot(Path newPath) {
         if (newPath != null) {
-            newPath = newPath.resolve(TELEMETRY_DIRECTORY);
+            newPath = Paths.get(deTilde(newPath.resolve(TELEMETRY_DIRECTORY).toString()));
             if (Objects.equals(root, newPath)) {
                 return;
             }
