@@ -111,7 +111,7 @@ class MetricFactoryTest {
     }
 
     @Test
-    void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_should_be_logged() {
+    void GIVEN_metricsFactory_WHEN_metrics_are_enabled_THEN_metrics_are_formatted_and_logged() {
         MetricFactory mf = new MetricFactory("EnableMetricsTests");
         Logger loggerSpy = setupLoggerSpy(mf);
         doCallRealMethod().when(loggerSpy).trace(message.capture());
@@ -131,6 +131,10 @@ class MetricFactoryTest {
         mf.putMetricData(m, 80);
         verify(loggerSpy, times(1)).trace(any());
         assertThat(message.getValue(), containsString("CpuUsage"));
+
+        m.setName(" cpu usage");
+        mf.putMetricData(m);
+        assertFalse(message.getValue().contains("cpu usage"));
     }
 
     @Test
@@ -201,24 +205,54 @@ class MetricFactoryTest {
     }
 
     @Test
-    void GIVEN_Metrics_Factory_WHEN_invalid_metric_is_passed_THEN_throw_exception() {
+    void GIVEN_Metrics_Factory_WHEN_an_invalid_metric_is_passed_THEN_an_exception_is_thrown() {
         MetricFactory mf = new MetricFactory("EnableMetricsTests");
 
         assertThrows(IllegalArgumentException.class, () -> {
-            Metric m = Metric.builder().namespace("").name("CpuUsage").unit(TelemetryUnit.Percent)
+            Metric m = Metric.builder().namespace("").name("A").unit(TelemetryUnit.Percent)
                     .aggregation(TelemetryAggregation.Average).build();
             mf.putMetricData(m, 80);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            Metric m = Metric.builder().namespace("SystemMetrics").name("").unit(TelemetryUnit.Percent)
+            Metric m = Metric.builder().namespace("B").name("").unit(TelemetryUnit.Percent)
                     .aggregation(TelemetryAggregation.Average).build();
             mf.putMetricData(m, 80);
+        });
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            Metric m = Metric.builder().namespace("").name("").unit(TelemetryUnit.Percent)
+                    .aggregation(TelemetryAggregation.Average).build();
+            mf.putMetricData(m, 80);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            Metric m = Metric.builder().namespace(null).name("A").unit(TelemetryUnit.Percent)
+                    .aggregation(TelemetryAggregation.Average).build();
+            mf.putMetricData(m, 80);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            Metric m = Metric.builder().namespace("B").name(null).unit(TelemetryUnit.Percent)
+                    .aggregation(TelemetryAggregation.Average).build();
+            mf.putMetricData(m, 80);
+        });
+
+        assertThrows(NullPointerException.class, () -> {
+            Metric m = Metric.builder().namespace(null).name(null).unit(TelemetryUnit.Percent).value(10)
+                    .aggregation(TelemetryAggregation.Average).build();
+            mf.putMetricData(m);
+        });
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            Metric m = Metric.builder().namespace("     ").name("").unit(TelemetryUnit.Percent).value(10)
+                    .aggregation(TelemetryAggregation.Average).build();
+            mf.putMetricData(m);
         });
     }
 
     @Test
-    void GIVEN_metricsFactory_WHEN_store_root_path_changes_THEN_metrics_are_logged_at_new_path() throws IOException {
+    void GIVEN_metricsFactory_WHEN_store_root_path_changes_THEN_metrics_are_logged_at_new_path() {
         MetricFactory mf1 = new MetricFactory("someFile");
         Metric m = Metric.builder().namespace("A").name("B").unit(TelemetryUnit.Percent).value(10)
                 .aggregation(TelemetryAggregation.Average).timestamp((long) 10).build();

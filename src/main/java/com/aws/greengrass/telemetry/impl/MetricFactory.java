@@ -52,13 +52,13 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * The value provided will be assigned to the metric along with the current timestamp. This will throw an exception
-     * if namespace orname of the metric is not set.
+     * The value provided will be assigned to the metric along with the current timestamp.
      *
      * @param metric the metric to which the value has to be assigned
      * @param value  data value that has to be emitted.
+     * @throws IllegalArgumentException This will throw an exception if namespace or name of the metric is not set.
      */
-    public void putMetricData(Metric metric, Object value) {
+    public void putMetricData(Metric metric, Object value) throws IllegalArgumentException {
         if (telemetryConfig.isMetricsEnabled()) {
             Objects.requireNonNull(metric);
             synchronized (metric) {
@@ -70,27 +70,29 @@ public class MetricFactory implements MetricFactoryBuilder {
     }
 
     /**
-     * The metric passed in must have the value and timestamp assigned. This will throw an exception if namespace or
-     * name of the metric is not set.
+     * The metric passed in must have the value and timestamp assigned.
      *
      * @param metric emit the metric which has the value assigned to it.
+     * @throws IllegalArgumentException This will throw an exception if namespace or name of the metric is not set.
      */
-    public void putMetricData(Metric metric) {
+    public void putMetricData(Metric metric) throws IllegalArgumentException {
         TelemetryLoggerMessage message = new TelemetryLoggerMessage(metric);
-        if (trim(metric.getName()) == null) {
-            throw new IllegalArgumentException("Metric name cannot be null or empty. " + message.getJSONMessage());
+        String name = formatString(metric.getName());
+        String namespace = formatString(metric.getNamespace());
+        if (name.length() == 0) {
+            throw new IllegalArgumentException("Metric name cannot be empty. " + message.getJSONMessage());
         }
-        if (trim(metric.getNamespace()) == null) {
-            throw new IllegalArgumentException("Metric namespace cannot be null or empty. " + message.getJSONMessage());
+        if (namespace.length() == 0) {
+            throw new IllegalArgumentException("Metric namespace cannot be empty. " + message.getJSONMessage());
         }
+        metric.setName(name);
+        metric.setNamespace(namespace);
+        message = new TelemetryLoggerMessage(metric);
         logMetrics(message);
     }
 
-    private String trim(String name) {
-        if (name != null && !name.isEmpty()) {
-            return name.trim();
-        }
-        return null;
+    private String formatString(String name) {
+        return name.replaceAll("\\s", "");
     }
 
     /**
