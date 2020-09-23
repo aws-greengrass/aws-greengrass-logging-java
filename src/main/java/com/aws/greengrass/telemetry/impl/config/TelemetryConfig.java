@@ -76,7 +76,7 @@ public class TelemetryConfig extends PersistenceConfig {
      */
     @Override
     public void setStorePath(Path path) {
-        String newStoreName = root.resolve(path).toAbsolutePath().toString();
+        String newStoreName = deTilde(root.resolve(path).toString());
         if (Objects.equals(this.storeName, newStoreName)) {
             return;
         }
