@@ -39,6 +39,10 @@ public class GreengrassLogMessage {
 
     @JsonIgnore
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    @JsonIgnore
+    // Use ThreadLocal because SDFs are not threadsafe
+    private static final ThreadLocal<SimpleDateFormat> sdf = ThreadLocal.withInitial(
+            () -> new SimpleDateFormat("yyyy MMM dd HH:mm:ss,SSSZ"));
 
     /**
      * Constructor for structured log message.
@@ -81,9 +85,7 @@ public class GreengrassLogMessage {
     @JsonIgnore
     @SuppressWarnings("checkstyle:emptycatchblock")
     public String getTextMessage() {
-        // Create a new SDF every time because SDF isn't threadsafe
-        StringBuilder msg = new StringBuilder(new SimpleDateFormat("yyyy MMM dd hh:mm:ss,SSSZ")
-                                              .format(new Date(timestamp)));
+        StringBuilder msg = new StringBuilder(sdf.get().format(new Date(timestamp)));
         // Equivalent to String.format("%s [%s] (%s) %s: %s", SDF, level, thread, loggerName, formattedMessage)
         msg.append(" [").append(level).append("] (")
                 .append(thread).append(") ")
