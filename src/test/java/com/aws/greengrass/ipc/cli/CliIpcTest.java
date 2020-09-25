@@ -122,7 +122,7 @@ public class CliIpcTest {
     }
 
     @Test
-    public void GIVEN_cli_client_WHEN_get_component_request_sent_with_succcess_response_THEN_parse_response_successfully() throws Exception {
+    public void GIVEN_cli_client_WHEN_get_component_request_sent_with_success_response_THEN_parse_response_successfully() throws Exception {
         CliImpl cliImpl = new CliImpl(ipc);
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);
@@ -167,7 +167,7 @@ public class CliIpcTest {
     }
 
     @Test
-    public void GIVEN_cli_client_WHEN_list_components_request_sent_with_succcess_response_THEN_parse_response_successfully() throws Exception {
+    public void GIVEN_cli_client_WHEN_list_components_request_sent_with_success_response_THEN_parse_response_successfully() throws Exception {
         CliImpl cliImpl = new CliImpl(ipc);
         ComponentDetails componentDetails1 =
                 ComponentDetails.builder().componentName("Component1").state(LifecycleState.RUNNING).version("1.0.0").build();
@@ -191,7 +191,7 @@ public class CliIpcTest {
     }
 
     @Test
-    public void GIVEN_cli_client_WHEN_restart_component_request_sent_with_succcess_response_THEN_parse_response_successfully() throws Exception {
+    public void GIVEN_cli_client_WHEN_restart_component_request_sent_with_success_response_THEN_parse_response_successfully() throws Exception {
         CliImpl cliImpl = new CliImpl(ipc);
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);
@@ -255,7 +255,7 @@ public class CliIpcTest {
     }
 
     @Test
-    public void GIVEN_cli_client_WHEN_stop_component_request_sent_with_succcess_response_THEN_parse_response_successfully() throws Exception {
+    public void GIVEN_cli_client_WHEN_stop_component_request_sent_with_success_response_THEN_parse_response_successfully() throws Exception {
         CliImpl cliImpl = new CliImpl(ipc);
         Future<?> fut = executor.submit(() -> {
             FrameReader.MessageFrame inFrame = readFrame(in);

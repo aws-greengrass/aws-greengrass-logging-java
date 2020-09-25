@@ -133,6 +133,11 @@
                             <value>TEXT</value>
                         </property>
                     </systemProperties>
+                    <properties>
+                        <configurationParameters>
+                            junit.jupiter.execution.timeout.default = 5m
+                        </configurationParameters>
+                    </properties>
                 </configuration>
             </plugin>
             <plugin>
