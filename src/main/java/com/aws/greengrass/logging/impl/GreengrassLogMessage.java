@@ -16,9 +16,8 @@ import org.slf4j.event.Level;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -41,8 +40,8 @@ public class GreengrassLogMessage {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     @JsonIgnore
     // Use ThreadLocal because SDFs are not threadsafe
-    private static final ThreadLocal<SimpleDateFormat> sdf = ThreadLocal.withInitial(
-            () -> new SimpleDateFormat("yyyy MMM dd HH:mm:ss,SSSZ"));
+    private static final ThreadLocal<DateTimeFormatter> sdf = ThreadLocal.withInitial(
+            () -> DateTimeFormatter.ISO_INSTANT);
 
     /**
      * Constructor for structured log message.
@@ -85,7 +84,7 @@ public class GreengrassLogMessage {
     @JsonIgnore
     @SuppressWarnings("checkstyle:emptycatchblock")
     public String getTextMessage() {
-        StringBuilder msg = new StringBuilder(sdf.get().format(new Date(timestamp)));
+        StringBuilder msg = new StringBuilder(sdf.get().format(Instant.ofEpochMilli(timestamp)));
         // Equivalent to String.format("%s [%s] (%s) %s: %s", SDF, level, thread, loggerName, formattedMessage)
         msg.append(" [").append(level).append("] (")
                 .append(thread).append(") ")
