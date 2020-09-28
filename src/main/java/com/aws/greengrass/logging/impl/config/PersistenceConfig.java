@@ -13,6 +13,7 @@ import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -27,6 +28,7 @@ import java.util.Optional;
  * PersistenceConfig groups the persistence configuration for monitoring data.
  */
 @Getter
+@SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
 public class PersistenceConfig {
     public static final String STORAGE_TYPE_SUFFIX = ".store";
     public static final String DATA_FORMAT_SUFFIX = ".fmt";
@@ -211,7 +213,7 @@ public class PersistenceConfig {
         reconfigure(logger);
     }
 
-    protected void reconfigure(Logger loggerToConfigure) {
+    protected synchronized void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
         logger = loggerToConfigure;
         // Set sub-loggers to inherit this config

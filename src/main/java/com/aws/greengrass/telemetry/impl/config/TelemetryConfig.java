@@ -96,7 +96,7 @@ public class TelemetryConfig extends PersistenceConfig {
     }
 
     @Override
-    protected void reconfigure(Logger loggerToConfigure) {
+    protected synchronized void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
         // Set sub-loggers to inherit this config
         loggerToConfigure.setAdditive(true);
