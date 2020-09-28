@@ -278,9 +278,9 @@
                             </transformers>
                             <artifactSet>
                                 <includes>
-                                    <include>ch.qos.logback:logback-classic:jar:*</include>
-                                    <include>org.slf4j:slf4j-api:jar:*</include>
-                                    <include>com.aws.iot:evergreen-java-sdk:*</include>
+                                    <include>ch.qos.logback:*:jar:*</include>
+                                    <include>org.slf4j:*:jar:*</include>
+                                    <include>com.aws.iot:*:*</include>
                                 </includes>
                             </artifactSet>
                             <filters>
