@@ -103,7 +103,8 @@ public class TelemetryConfig extends PersistenceConfig {
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
 
         String fileAppenderName = METRIC_LOGGER_PREFIX + getFileName();
-        RollingFileAppender<ILoggingEvent> logFileAppender = getAppenderForFile(loggerToConfigure, fileAppenderName);
+        RollingFileAppender<ILoggingEvent> logFileAppender = getAppenderForFile(loggerToConfigure, fileAppenderName,
+                storeName, totalLogStoreSizeKB, fileSizeKB, getFileName());
         logFileAppender.start();
         // Add the replacement
         loggerToConfigure.detachAndStopAllAppenders();

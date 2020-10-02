@@ -6,10 +6,12 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
+import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -26,7 +28,9 @@ public class LogManager {
     private static final ConcurrentMap<String, com.aws.greengrass.logging.api.Logger> telemetryLoggerMap =
             new ConcurrentHashMap<>();
     @Getter
-    private static final LogConfig config = LogConfig.getInstance();
+    private static final LogConfig rootLogConfiguration = LogConfig.getInstance();
+    @Getter
+    private static final Map<String, LogConfig> logConfigurations = new ConcurrentHashMap<>();
     @Getter
     private static final TelemetryConfig telemetryConfig = TelemetryConfig.getInstance();
 
@@ -38,9 +42,33 @@ public class LogManager {
      * @return a Logger instance
      */
     public static com.aws.greengrass.logging.api.Logger getLogger(String name) {
+        logConfigurations.put(name, rootLogConfiguration);
         return loggerMap.computeIfAbsent(name, n -> {
-            Logger logger = config.getLogger(name);
-            return new Slf4jLogAdapter(logger, config);
+            Logger logger = rootLogConfiguration.getLogger(name);
+            return new Slf4jLogAdapter(logger, rootLogConfiguration);
+        });
+    }
+
+    /**
+     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name
+     * parameter.
+     *
+     * @param name                  the name of the Logger to return
+     * @param loggerConfiguration   the configuration for the Logger
+     * @return a Logger instance
+     */
+    public static com.aws.greengrass.logging.api.Logger getLogger(String name,
+                                                                  LoggerConfiguration loggerConfiguration) {
+        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(name, loggerConfiguration));
+        if (loggerConfiguration != null && loggerConfiguration.getLevel() != null) {
+            logConfig.setLevel(loggerConfiguration.getLevel());
+        }
+        if (loggerConfiguration != null && loggerConfiguration.getFormat() != null) {
+            logConfig.setFormat(loggerConfiguration.getFormat());
+        }
+        return loggerMap.computeIfAbsent(name, n -> {
+            Logger logger = logConfig.getLogger(name);
+            return new Slf4jLogAdapter(logger, logConfig);
         });
     }
 
@@ -68,5 +96,4 @@ public class LogManager {
             return new Slf4jLogAdapter(logger, telemetryConfig);
         });
     }
-
 }
