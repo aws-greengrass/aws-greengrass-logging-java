@@ -16,5 +16,9 @@ public class CreateLocalDeploymentRequest {
     String groupName;
     Map<String, String> rootComponentVersionsToAdd;
     List<String> rootComponentsToRemove;
+    @Deprecated
     Map<String, Map<String, Object>> componentToConfiguration;
+
+    // config update for each component, in the format of <componentName, <MERGE/RESET, <key>>>
+    Map<String, Map<String, Object>> configurationUpdate;
 }
