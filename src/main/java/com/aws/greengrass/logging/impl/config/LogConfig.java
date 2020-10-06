@@ -46,8 +46,12 @@ public class LogConfig extends PersistenceConfig {
      * @param name                  the name of the logger.
      * @param loggerConfiguration   the configuration for the logger.
      */
-    public LogConfig(String name, LoggerConfiguration loggerConfiguration) {
+    public LogConfig(String name, LoggerConfiguration loggerConfiguration, LogStore logStore, LogFormat logFormat,
+                     Path storeDirectory) {
         super(CONFIG_PREFIX, LOGS_DIRECTORY);
+        this.format = logFormat;
+        this.store = logStore;
+        this.storeDirectory = storeDirectory;
         reconfigure(context.getLogger(name), loggerConfiguration);
     }
 
@@ -60,10 +64,6 @@ public class LogConfig extends PersistenceConfig {
         if (loggerConfiguration != null && !loggerConfiguration.getFileName().isEmpty()) {
             loggerFileName = loggerConfiguration.getFileName();
         }
-        LogStore loggerLogStore = store;
-        if (loggerConfiguration != null && loggerConfiguration.getLogStore() != null) {
-            loggerLogStore = loggerConfiguration.getLogStore();
-        }
         long loggerTotalLogStoreSizeKB = totalLogStoreSizeKB;
         if (loggerConfiguration != null && loggerConfiguration.getTotalLogStoreSizeKB() != -1) {
             loggerTotalLogStoreSizeKB = loggerConfiguration.getTotalLogStoreSizeKB();
@@ -73,7 +73,7 @@ public class LogConfig extends PersistenceConfig {
         if (loggerConfiguration != null && loggerConfiguration.getTotalLogStoreSizeKB() != -1) {
             loggerFileSizeKB = loggerConfiguration.getFileSizeKB();
         }
-        reconfigure(loggerToConfigure, loggerLogStore, loggerFileName, loggerTotalLogStoreSizeKB, loggerFileSizeKB);
+        reconfigure(loggerToConfigure, loggerFileName, loggerTotalLogStoreSizeKB, loggerFileSizeKB);
     }
 
     /**
@@ -105,9 +105,7 @@ public class LogConfig extends PersistenceConfig {
             closeContext();
             //Reconfigure all the telemetry loggers to use the store at new path.
             for (Logger logger : context.getLoggerList()) {
-                if (!logger.getName().equals("ROOT")) {
-                    editConfigForLogger(logger.getName());
-                }
+                editConfigForLogger(logger.getName());
             }
             startContext();
         }

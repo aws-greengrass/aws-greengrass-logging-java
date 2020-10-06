@@ -59,12 +59,11 @@ public class LogManager {
      */
     public static com.aws.greengrass.logging.api.Logger getLogger(String name,
                                                                   LoggerConfiguration loggerConfiguration) {
-        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(name, loggerConfiguration));
+        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s ->
+                new LogConfig(name, loggerConfiguration, rootLogConfiguration.getStore(),
+                        rootLogConfiguration.getFormat(), rootLogConfiguration.getStoreDirectory()));
         if (loggerConfiguration != null && loggerConfiguration.getLevel() != null) {
             logConfig.setLevel(loggerConfiguration.getLevel());
-        }
-        if (loggerConfiguration != null && loggerConfiguration.getFormat() != null) {
-            logConfig.setFormat(loggerConfiguration.getFormat());
         }
         return loggerMap.computeIfAbsent(name, n -> {
             Logger logger = logConfig.getLogger(name);

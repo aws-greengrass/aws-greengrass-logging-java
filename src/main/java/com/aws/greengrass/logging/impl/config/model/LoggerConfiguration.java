@@ -18,11 +18,8 @@ import java.nio.file.Path;
 @Setter
 @Builder
 public class LoggerConfiguration {
-    private LogStore logStore;
     private Level level;
     private String fileName;
-    private Path storeDirectory;
-    private LogFormat format;
     @Builder.Default
     private long fileSizeKB = -1;
     @Builder.Default
