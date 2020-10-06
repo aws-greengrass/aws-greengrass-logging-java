@@ -36,7 +36,7 @@ public class LoggerDemo {
      * {"contexts":{"component":"demo","device":"asdf"},"level":"INFO","loggerName":"com.aws.greengrass.logging
      *   .examples.LoggerDemo","message":"test main info","timestamp":1581380225608}
      * {"cause":{"localizedMessage":"some error","message":"some error","stackTrace":[{"className":"com.aws.iot
-     *   .evergreen.logging.examples.LoggerDemo","fileName":"LoggerDemo.java","lineNumber":56,"methodName":"main",
+     *   .greengrass.logging.examples.LoggerDemo","fileName":"LoggerDemo.java","lineNumber":56,"methodName":"main",
      *   "nativeMethod":false}],"suppressed":[]},"contexts":{"key2":"value2","component":"demo","device":"asdf"}
      *   ,"eventType":"error-event","level":"ERROR","loggerName":"com.aws.greengrass.logging.examples.LoggerDemo",
      *   "message":"test error","timestamp":1581380225631}
