@@ -49,7 +49,7 @@ public class PersistenceConfig {
     private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
     private static final String HOME_DIR_PREFIX = "~/";
 
-    protected final String prefix;
+    protected final String extension;
     @Setter
     protected LogStore store;
     protected String storeName;
@@ -68,21 +68,21 @@ public class PersistenceConfig {
     /**
      * Get default PersistenceConfig from system properties.
      */
-    public PersistenceConfig(String prefix) {
-        this(prefix, "");
+    public PersistenceConfig(String extension) {
+        this(extension, "");
     }
 
     /**
      * Get default PersistenceConfig from system properties.
      *
-     * @param prefix    The prefix for the config.
+     * @param extension    The prefix for the config.
      * @param directory The directory in which the logs/metrics will be written to.
      */
-    public PersistenceConfig(String prefix, String directory) {
-        this.prefix = prefix;
+    public PersistenceConfig(String extension, String directory) {
+        this.extension = extension;
         LogStore store;
         try {
-            store = LogStore.valueOf(System.getProperty(prefix + STORAGE_TYPE_SUFFIX, DEFAULT_STORAGE_TYPE));
+            store = LogStore.valueOf(System.getProperty(extension + STORAGE_TYPE_SUFFIX, DEFAULT_STORAGE_TYPE));
         } catch (IllegalArgumentException e) {
             store = LogStore.FILE;
         }
@@ -90,7 +90,7 @@ public class PersistenceConfig {
 
         LogFormat format;
         try {
-            format = LogFormat.valueOf(System.getProperty(prefix + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
+            format = LogFormat.valueOf(System.getProperty(extension + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
         } catch (IllegalArgumentException e) {
             format = LogFormat.JSON;
         }
@@ -98,14 +98,14 @@ public class PersistenceConfig {
 
         long totalLogStoreSizeKB;
         try {
-            totalLogStoreSizeKB = Long.parseLong(System.getProperty(prefix + TOTAL_STORE_SIZE_SUFFIX));
+            totalLogStoreSizeKB = Long.parseLong(System.getProperty(extension + TOTAL_STORE_SIZE_SUFFIX));
         } catch (NumberFormatException e) {
             totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
         }
 
         Level level;
         try {
-            level = Level.valueOf(System.getProperty(prefix + LOG_LEVEL_SUFFIX, DEFAULT_LOG_LEVEL));
+            level = Level.valueOf(System.getProperty(extension + LOG_LEVEL_SUFFIX, DEFAULT_LOG_LEVEL));
         } catch (IllegalArgumentException e) {
             level = Level.INFO;
         }
@@ -114,7 +114,7 @@ public class PersistenceConfig {
 
         int fileSizeKB;
         try {
-            fileSizeKB = Integer.parseInt(System.getProperty(prefix + TOTAL_FILE_SIZE_SUFFIX));
+            fileSizeKB = Integer.parseInt(System.getProperty(extension + TOTAL_FILE_SIZE_SUFFIX));
         } catch (NumberFormatException e) {
             fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
         }
@@ -122,7 +122,7 @@ public class PersistenceConfig {
         this.fileSizeKB = fileSizeKB;
         this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
-        initializeStoreName(prefix, directory);
+        initializeStoreName(extension, directory);
     }
 
     /**
@@ -228,13 +228,13 @@ public class PersistenceConfig {
     }
 
     protected synchronized void reconfigure(Logger loggerToConfigure) {
-        reconfigure(loggerToConfigure, fileName + "." + prefix, totalLogStoreSizeKB, fileSizeKB);
+        reconfigure(loggerToConfigure, fileName + "." + extension, totalLogStoreSizeKB, fileSizeKB);
     }
 
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {
         Objects.requireNonNull(loggerToConfigure);
         logger = loggerToConfigure;
-        // Set sub-loggers to inherit this config
+        // Set additive to false so that all the logs are not also written to the main greengrass.log file
         loggerToConfigure.setAdditive(false);
         // set backend logger level to trace because we'll be filtering it in the frontend
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
@@ -312,7 +312,7 @@ public class PersistenceConfig {
         logFilePolicy.setContext(logCtx);
         logFilePolicy.setParent(fileAppender);
         logFilePolicy.setTotalSizeCap(new FileSize(totalLogStoreSizeKB * FileSize.KB_COEFFICIENT));
-        logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + prefix)
+        logFilePolicy.setFileNamePattern(storeDirectory.resolve(fileName + "_%d{yyyy_MM_dd_HH}_%i" + "." + extension)
                 .toString());
         logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
         logFilePolicy.setMaxHistory(maxHistory);

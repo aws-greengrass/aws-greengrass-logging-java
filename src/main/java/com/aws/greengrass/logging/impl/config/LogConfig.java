@@ -14,13 +14,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_PREFIX;
-
 @Getter
 public class LogConfig extends PersistenceConfig {
     // TODO: Replace the default log level from Kernel Configuration.
     public static final String LOGS_DIRECTORY = "logs";
-    public static final String CONFIG_PREFIX = "log";
+    public static final String LOG_FILE_EXTENSION = "log";
     private static final LoggerContext context = new LoggerContext();
     private Path root = getRootStorePath().resolve(LOGS_DIRECTORY);
 
@@ -35,7 +33,7 @@ public class LogConfig extends PersistenceConfig {
      * Get default logging configuration from system properties.
      */
     protected LogConfig() {
-        super(CONFIG_PREFIX, LOGS_DIRECTORY);
+        super(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
         reconfigure(context.getLogger(Logger.ROOT_LOGGER_NAME));
         startContext();
     }
@@ -48,7 +46,7 @@ public class LogConfig extends PersistenceConfig {
      */
     public LogConfig(String name, LoggerConfiguration loggerConfiguration, LogStore logStore, LogFormat logFormat,
                      Path storeDirectory) {
-        super(CONFIG_PREFIX, LOGS_DIRECTORY);
+        super(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
         this.format = logFormat;
         this.store = logStore;
         this.storeDirectory = storeDirectory;
@@ -60,7 +58,7 @@ public class LogConfig extends PersistenceConfig {
     }
 
     private synchronized void reconfigure(Logger loggerToConfigure, LoggerConfiguration loggerConfiguration) {
-        String loggerFileName = this.fileName + "." + prefix;
+        String loggerFileName = this.fileName + "." + extension;
         if (loggerConfiguration != null && !loggerConfiguration.getFileName().isEmpty()) {
             loggerFileName = loggerConfiguration.getFileName();
         }
@@ -128,6 +126,6 @@ public class LogConfig extends PersistenceConfig {
      * @return "{namespace}.log"
      */
     private String getLogFileName(String loggerName) {
-        return loggerName.substring(APPENDER_PREFIX.length()) + "." + CONFIG_PREFIX;
+        return loggerName.substring(APPENDER_PREFIX.length()) + "." + LOG_FILE_EXTENSION;
     }
 }
