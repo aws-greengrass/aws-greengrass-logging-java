@@ -81,8 +81,8 @@ public class TelemetryConfig extends PersistenceConfig {
             return;
         }
         this.storeName = newStoreName;
-        getFileNameFromStoreName();
-        getStoreDirectoryFromStoreName();
+        setFileNameFromStoreName();
+        setStoreDirectoryFromStoreName();
         reconfigure();
     }
 

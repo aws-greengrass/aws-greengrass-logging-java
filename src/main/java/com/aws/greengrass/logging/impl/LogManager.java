@@ -11,9 +11,14 @@ import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static com.aws.greengrass.logging.impl.config.LogConfig.LOGS_DIRECTORY;
 
 /**
  * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger}
@@ -94,5 +99,29 @@ public class LogManager {
             Logger logger = telemetryConfig.getLogger(name);
             return new Slf4jLogAdapter(logger, telemetryConfig);
         });
+    }
+
+
+    /**
+     * Changes the logger config root path to new path .
+     *
+     * @param newPath new path
+     */
+    public static void setRoot(Path newPath) {
+        if (newPath != null) {
+            LogConfig rootConfig = LogConfig.getInstance();
+            Path root = rootConfig.getRoot();
+            newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
+            if (Objects.equals(root, newPath)) {
+                return;
+            }
+            //Reconfigure all the loggers to use the store at new path.
+            for (LogConfig logConfig: logConfigurations.values()) {
+                logConfig.closeContext();
+                logConfig.setStorePath(newPath
+                        .resolve(logConfig.getFileName() + "." + logConfig.getExtension()));
+                logConfig.startContext();
+            }
+        }
     }
 }

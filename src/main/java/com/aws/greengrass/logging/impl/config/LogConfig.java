@@ -13,6 +13,7 @@ import lombok.Getter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 
 @Getter
 public class LogConfig extends PersistenceConfig {
@@ -50,6 +51,8 @@ public class LogConfig extends PersistenceConfig {
         this.format = logFormat;
         this.store = logStore;
         this.storeDirectory = storeDirectory;
+        Optional<String> fileNameWithoutExtension = stripExtension(loggerConfiguration.getFileName());
+        this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
         reconfigure(context.getLogger(name), loggerConfiguration);
     }
 
@@ -84,48 +87,7 @@ public class LogConfig extends PersistenceConfig {
     /**
      * Start the logger context.
      */
-    private void startContext() {
+    public void startContext() {
         context.start();
-    }
-
-    /**
-     * Changes the telemetry config root path to new path .
-     *
-     * @param newPath new path
-     */
-    public void setRoot(Path newPath) {
-        if (newPath != null) {
-            newPath = Paths.get(deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
-            if (Objects.equals(root, newPath)) {
-                return;
-            }
-            root = newPath;
-            closeContext();
-            //Reconfigure all the telemetry loggers to use the store at new path.
-            for (Logger logger : context.getLoggerList()) {
-                editConfigForLogger(logger.getName());
-            }
-            startContext();
-        }
-    }
-
-    /**
-     * Sets up logger and store name.
-     *
-     * @param loggerName This is used as the name of the telemetry logger.
-     */
-    private void editConfigForLogger(String loggerName) {
-        this.logger = getLogger(loggerName);
-        this.setStorePath(Paths.get(getLogFileName(loggerName)));
-    }
-
-    /**
-     * Gets the name of the log file from the logger name passed. Telemetry logger names have "Metrics-" as prefix.
-     *
-     * @param loggerName "Metrics-{namespace}"
-     * @return "{namespace}.log"
-     */
-    private String getLogFileName(String loggerName) {
-        return loggerName.substring(APPENDER_PREFIX.length()) + "." + LOG_FILE_EXTENSION;
     }
 }

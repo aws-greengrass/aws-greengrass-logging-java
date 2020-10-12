@@ -49,6 +49,7 @@ public class PersistenceConfig {
     private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
     private static final String HOME_DIR_PREFIX = "~/";
 
+    @Getter
     protected final String extension;
     @Setter
     protected LogStore store;
@@ -149,8 +150,8 @@ public class PersistenceConfig {
             return;
         }
         this.storeName = newStoreName;
-        getFileNameFromStoreName();
-        getStoreDirectoryFromStoreName();
+        setFileNameFromStoreName();
+        setStoreDirectoryFromStoreName();
         reconfigure();
     }
 
@@ -170,8 +171,8 @@ public class PersistenceConfig {
     private void initializeStoreName(String prefix, String logsDirectory) {
         this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
                 getRootStorePath().resolve(logsDirectory).resolve(DEFAULT_STORE_NAME + prefix).toString());
-        getFileNameFromStoreName();
-        getStoreDirectoryFromStoreName();
+        setFileNameFromStoreName();
+        setStoreDirectoryFromStoreName();
     }
 
     /**
@@ -181,7 +182,7 @@ public class PersistenceConfig {
         return Paths.get(deTilde(System.getProperty("root", System.getProperty("user.dir")))).toAbsolutePath();
     }
 
-    protected void getFileNameFromStoreName() {
+    protected void setFileNameFromStoreName() {
         Path fullFileName = Paths.get(this.storeName).getFileName();
         if (this.storeName != null && fullFileName != null) {
             this.storeName = deTilde(this.storeName);
@@ -190,7 +191,12 @@ public class PersistenceConfig {
         }
     }
 
-    protected String deTilde(String path) {
+    /**
+     * De-tilde the root path if given "~/".
+     * @param path  The path to transform.
+     * @return transformed path without the "~".
+     */
+    public String deTilde(String path) {
         // Get path if "~/" is used
         if (path.startsWith(HOME_DIR_PREFIX)) {
             return Paths.get(System.getProperty("user.home"))
@@ -199,7 +205,7 @@ public class PersistenceConfig {
         return path;
     }
 
-    protected void getStoreDirectoryFromStoreName() {
+    protected void setStoreDirectoryFromStoreName() {
         if (this.storeName != null) {
             Path storeDirectoryPath = Paths.get(this.storeName).getParent();
             if (storeDirectoryPath != null) {
@@ -208,7 +214,7 @@ public class PersistenceConfig {
         }
     }
 
-    private Optional<String> stripExtension(String fileName) {
+    protected Optional<String> stripExtension(String fileName) {
         // Handle null case specially.
         if (fileName == null) {
             return Optional.empty();
