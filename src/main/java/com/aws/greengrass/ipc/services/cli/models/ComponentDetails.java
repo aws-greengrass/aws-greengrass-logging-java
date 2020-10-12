@@ -15,5 +15,8 @@ public class ComponentDetails {
     String componentName;
     String version;
     LifecycleState state;
+    @Deprecated
     Map<String, Object> configuration;
+
+    Map<String, Object> nestedConfiguration;
 }
