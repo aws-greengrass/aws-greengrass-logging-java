@@ -47,7 +47,6 @@ public class LogManager {
      * @return a Logger instance
      */
     public static com.aws.greengrass.logging.api.Logger getLogger(String name) {
-        logConfigurations.put(name, rootLogConfiguration);
         return loggerMap.computeIfAbsent(name, n -> {
             Logger logger = rootLogConfiguration.getLogger(name);
             return new Slf4jLogAdapter(logger, rootLogConfiguration);
@@ -64,9 +63,7 @@ public class LogManager {
      */
     public static com.aws.greengrass.logging.api.Logger getLogger(String name,
                                                                   LoggerConfiguration loggerConfiguration) {
-        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s ->
-                new LogConfig(name, loggerConfiguration, rootLogConfiguration.getStore(),
-                        rootLogConfiguration.getFormat(), rootLogConfiguration.getStoreDirectory()));
+        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(loggerConfiguration));
         if (loggerConfiguration != null && loggerConfiguration.getLevel() != null) {
             logConfig.setLevel(loggerConfiguration.getLevel());
         }
@@ -115,11 +112,16 @@ public class LogManager {
             if (Objects.equals(root, newPath)) {
                 return;
             }
+            rootLogConfiguration.closeContext();
+            rootLogConfiguration.setRoot(newPath);
+            rootLogConfiguration.setStorePath(newPath.resolve(rootLogConfiguration.getFileName() + "."
+                    + rootLogConfiguration.getExtension()));
+            rootLogConfiguration.startContext();
             //Reconfigure all the loggers to use the store at new path.
             for (LogConfig logConfig: logConfigurations.values()) {
                 logConfig.closeContext();
-                logConfig.setStorePath(newPath
-                        .resolve(logConfig.getFileName() + "." + logConfig.getExtension()));
+                logConfig.setRoot(newPath);
+                logConfig.setStorePath(newPath.resolve(logConfig.getFileName() + "." + logConfig.getExtension()));
                 logConfig.startContext();
             }
         }

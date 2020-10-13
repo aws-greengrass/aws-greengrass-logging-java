@@ -240,8 +240,8 @@ public class PersistenceConfig {
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {
         Objects.requireNonNull(loggerToConfigure);
         logger = loggerToConfigure;
-        // Set additive to false so that all the logs are not also written to the main greengrass.log file
-        loggerToConfigure.setAdditive(false);
+        // Set sub-loggers to inherit this config
+        loggerToConfigure.setAdditive(true);
         // set backend logger level to trace because we'll be filtering it in the frontend
         loggerToConfigure.setLevel(ch.qos.logback.classic.Level.TRACE);
         // remove all default appenders
@@ -265,10 +265,12 @@ public class PersistenceConfig {
             if (originalAppender != null) {
                 loggerToConfigure.detachAppender(originalAppender);
                 originalAppender.stop();
+                logConsoleAppenders.remove(loggerToConfigure.getName());
             }
             if (fileAppender != null) {
                 loggerToConfigure.detachAppender(fileAppender);
                 fileAppender.stop();
+                logFileAppenders.remove(loggerToConfigure.getName());
             }
             logConsoleAppenders.put(loggerToConfigure.getName(), newConsoleAppender);
         } else if (LogStore.FILE.equals(store)) {
@@ -286,10 +288,12 @@ public class PersistenceConfig {
             if (originalAppender != null) {
                 loggerToConfigure.detachAppender(originalAppender);
                 originalAppender.stop();
+                logFileAppenders.remove(loggerToConfigure.getName());
             }
             if (consoleAppender != null) {
                 loggerToConfigure.detachAppender(consoleAppender);
                 consoleAppender.stop();
+                logConsoleAppenders.remove(loggerToConfigure.getName());
             }
             logFileAppenders.put(loggerToConfigure.getName(), newLogFileAppender);
         }

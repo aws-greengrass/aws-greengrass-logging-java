@@ -41,86 +41,94 @@ class FileLoggerTest {
 
     @Test
     void GIVEN_root_logger_WHEN_get_logger_THEN_greengrass_log_file_is_created() throws IOException {
-        String randomLogFileName = UUID.randomUUID().toString() + ".log";
-        LogManager.getRootLogConfiguration().setStorePath(tempRootDir.resolve("logs").resolve(randomLogFileName)
-                .toAbsolutePath());
+        String randomFolder = UUID.randomUUID().toString();
+        String randomString = UUID.randomUUID().toString();
         logger = LogManager.getLogger(FileLoggerTest.class);
+        LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
+
         File logFile = new File(LogManager.getRootLogConfiguration().getStoreName());
-        logger.atInfo().log("Something");
-        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase(randomLogFileName)));
+        this.logger.atInfo().log(randomString + "Something");
+        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase("greengrass.log")));
+        assertTrue(logFile.length() > 0);
         try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-            assertTrue(lines.anyMatch(s -> s.contains("Something")));
+            assertTrue(lines.allMatch(s -> s.contains(randomString + "Something")));
         }
     }
 
     @Test
     void GIVEN_root_logger_child_WHEN_get_logger_THEN_greengrass_log_file_is_created() throws IOException {
-        String randomLogFileName = UUID.randomUUID().toString() + ".log";
-        LogManager.getRootLogConfiguration().setStorePath(tempRootDir.resolve("logs").resolve(randomLogFileName)
-                .toAbsolutePath());
+        String randomFolder = UUID.randomUUID().toString();
+        String randomString = UUID.randomUUID().toString();
         logger = LogManager.getLogger(FileLoggerTest.class);
+        LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
         Logger logger2 = logger.createChild();
         File logFile = new File(LogManager.getRootLogConfiguration().getStoreName());
-        logger2.atInfo().log("Nothing");
-        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase(randomLogFileName)));
-        try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-            assertTrue(lines.anyMatch(s -> s.contains("Nothing")));
+        logger2.atInfo().log(randomString + "Nothing");
+        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase("greengrass.log")));
+        assertTrue(logFile.length() > 0);
+        try (Stream<String> lines = Files.lines(Paths.get(logFile.toURI()))) {
+            assertTrue(lines.anyMatch(s -> s.contains(randomString + "Nothing")));
         }
     }
 
     @Test
     void GIVEN_new_logger_with_config_WHEN_get_logger_THEN_correct_log_file_is_created() throws IOException {
+        String randomFolder = UUID.randomUUID().toString();
         String randomLogFileName = UUID.randomUUID().toString() + ".log";
         String randomLoggerName = UUID.randomUUID().toString();
-        LogManager.getRootLogConfiguration().setStorePath(tempRootDir.resolve("logs").resolve("greengrass.log")
-                .toAbsolutePath());
-        logger = LogManager.getLogger(FileLoggerTest.class);
+        String randomString = UUID.randomUUID().toString();
+        LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
         Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
                 .fileName(randomLogFileName)
                 .build());
-        logger2.atInfo().log("Something");
+
+        logger2.atInfo().log(randomString + "Something");
         String filePath = LogManager.getLogConfigurations().get(randomLoggerName).getStoreDirectory()
                 .resolve(randomLogFileName).toAbsolutePath().toString();
         File logFile = new File(filePath);
         MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase(randomLogFileName)));
+        assertTrue(logFile.length() > 0);
         try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            assertTrue(lines.allMatch(s -> s.contains("Something")));
+            assertTrue(lines.allMatch(s -> s.contains(randomString + "Something")));
         }
         if (Files.exists(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
             try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-                assertTrue(lines.noneMatch(s -> s.contains("Something") || s.contains("Nothing")));
+                assertTrue(lines.noneMatch(s -> s.contains(randomString + "Something")
+                        || s.contains(randomString + "Nothing")));
             }
         }
     }
 
     @Test
     void GIVEN_new_logger_child_with_config_WHEN_get_logger_THEN_correct_log_file_is_created() throws IOException {
+        String randomFolder = UUID.randomUUID().toString();
         String randomLogFileName = UUID.randomUUID().toString() + ".log";
         String randomLoggerName = UUID.randomUUID().toString();
-        LogManager.getRootLogConfiguration().setStorePath(tempRootDir.resolve("logs").resolve("greengrass.log")
-                .toAbsolutePath());
-        logger = LogManager.getLogger(FileLoggerTest.class);
+        String randomString = UUID.randomUUID().toString();
         Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
                 .fileName(randomLogFileName)
                 .build());
         Logger logger2Child = logger2.createChild();
-        logger2.atInfo().log("Something");
+        LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
+        logger2.atInfo().log(randomString + "Something");
         String filePath = LogManager.getLogConfigurations().get(randomLoggerName).getStoreDirectory()
                 .resolve(randomLogFileName).toAbsolutePath().toString();
 
         File logFile = new File(filePath);
         MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase(randomLogFileName)));
 
-        logger2Child.atInfo().log("Nothing");
+        logger2Child.atInfo().log(randomString + "Nothing");
+        assertTrue(logFile.length() > 0);
         try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            assertTrue(lines.anyMatch(s -> s.contains("Something")));
+            assertTrue(lines.anyMatch(s -> s.contains(randomString + "Something")));
         }
         try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            assertTrue(lines.anyMatch(s -> s.contains("Nothing")));
+            assertTrue(lines.anyMatch(s -> s.contains(randomString + "Nothing")));
         }
         if (Files.exists(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
             try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-                assertTrue(lines.noneMatch(s -> s.contains("Something") || s.contains("Nothing")));
+                assertTrue(lines.noneMatch(s -> s.contains(randomString + "Something")
+                        || s.contains(randomString + "Nothing")));
             }
         }
     }
@@ -129,47 +137,54 @@ class FileLoggerTest {
     void GIVEN_2_loggers_WHEN_update_root_THEN_all_loggers_root_path_updated() throws IOException {
         String randomFolder = UUID.randomUUID().toString();
         String randomFolder2 = UUID.randomUUID().toString();
-        LogManager.getRootLogConfiguration().setStorePath(tempRootDir.resolve(randomFolder).resolve("logs")
-                .resolve("greengrass.log")
-                .toAbsolutePath());
-
-        logger = LogManager.getLogger(FileLoggerTest.class);
-        File logFile = new File(LogManager.getRootLogConfiguration().getStoreName());
-        logger.atInfo().log("Something");
-        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase("greengrass.log")));
-        try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-            assertTrue(lines.anyMatch(s -> s.contains("Something")));
-        }
+        String randomString = UUID.randomUUID().toString();
         String randomLogFileName = UUID.randomUUID().toString() + ".log";
         String randomLoggerName = UUID.randomUUID().toString();
+
+        logger = LogManager.getLogger(FileLoggerTest.class);
         Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
                 .fileName(randomLogFileName)
                 .build());
-        logger2.atInfo().log("Something");
+
+        LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
+        File logFile = new File(LogManager.getRootLogConfiguration().getStoreName());
+        logger.atInfo().log(randomString + "Something");
+
+        MatcherAssert.assertThat(logFile, aFileNamed(equalToIgnoringCase("greengrass.log")));
+        assertTrue(logFile.length() > 0);
+        try (Stream<String> lines = Files.lines(Paths.get(logFile.toURI()))) {
+            assertTrue(lines.anyMatch(s -> s.contains(randomString + "Something")));
+        }
+        logger2.atInfo().log(randomString + "Something");
         String filePath = LogManager.getLogConfigurations().get(randomLoggerName).getStoreDirectory()
                 .resolve(randomLogFileName).toAbsolutePath().toString();
         File logFile2 = new File(filePath);
         MatcherAssert.assertThat(logFile2, aFileNamed(equalToIgnoringCase(randomLogFileName)));
-        try (Stream<String> lines = Files.lines(Paths.get(filePath))) {
-            assertTrue(lines.allMatch(s -> s.contains("Something")));
+        assertTrue(logFile2.length() > 0);
+        try (Stream<String> lines = Files.lines(Paths.get(logFile2.toURI()))) {
+            assertTrue(lines.allMatch(s -> s.contains(randomString + "Something")));
         }
-
         LogManager.setRoot(tempRootDir.resolve(randomFolder2));
-        logger.atInfo().log("SomeOtherThing");
-        logger2.atInfo().log("SomeOtherThing");
+        logger.atInfo().log(randomString + "SomeOtherThing");
+        logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
+                .fileName(randomLogFileName)
+                .build());
+        logger2.atInfo().log(randomString + "SomeOtherThing");
 
         File logFile3 = new File(LogManager.getRootLogConfiguration().getStoreName());
-        assertTrue(logFile3.exists());
-        try (Stream<String> lines = Files.lines(Paths.get(LogManager.getRootLogConfiguration().getStoreName()))) {
-            assertTrue(lines.allMatch(s -> s.contains("SomeOtherThing")));
+        MatcherAssert.assertThat(logFile3, aFileNamed(equalToIgnoringCase("greengrass.log")));
+        assertTrue(logFile3.length() > 0);
+        try (Stream<String> lines = Files.lines(Paths.get(logFile3.toURI()))) {
+            assertTrue(lines.allMatch(s -> s.contains(randomString + "SomeOtherThing")));
         }
         String filePath2 = LogManager.getLogConfigurations().get(randomLoggerName).getStoreDirectory()
                 .resolve(randomLogFileName).toAbsolutePath().toString();
 
         File logFile4 = new File(filePath2);
-        assertTrue(logFile4.exists());
+        MatcherAssert.assertThat(logFile4, aFileNamed(equalToIgnoringCase(randomLogFileName)));
+        assertTrue(logFile4.length() > 0);
         try (Stream<String> lines = Files.lines(Paths.get(filePath2))) {
-            assertTrue(lines.allMatch(s -> s.contains("SomeOtherThing")));
+            assertTrue(lines.allMatch(s -> s.contains(randomString + "SomeOtherThing")));
         }
     }
 }
