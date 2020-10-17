@@ -285,7 +285,7 @@
                                 <includes>
                                     <include>ch.qos.logback:*:jar:*</include>
                                     <include>org.slf4j:*:jar:*</include>
-                                    <include>com.aws.iot:*:*</include>
+                                    <include>com.aws.greengrass:*:*</include>
                                 </includes>
                             </artifactSet>
                             <filters>
@@ -356,9 +356,9 @@
     </build>
     <distributionManagement>
         <snapshotRepository>
-            <id>evergreen-ipc-java-sdk</id>
-            <name>Evergreen ipc java sdk</name>
-            <url>${evergreen-ipc-java-sdk-repository-url}</url>
+            <id>greengrass-ipc-java-sdk</id>
+            <name>Greengrass ipc java sdk</name>
+            <url>${greengrass-ipc-java-sdk-repository-url}</url>
         </snapshotRepository>
     </distributionManagement>
 </project>
