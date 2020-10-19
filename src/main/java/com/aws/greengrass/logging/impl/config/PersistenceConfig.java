@@ -171,8 +171,7 @@ public class PersistenceConfig {
         this.storeDirectory = Paths.get(System.getProperty(prefix + DIRECTORY_PATH_SUFFIX,
                 getRootStorePath().resolve(directory).toString()));
         this.fileName = DEFAULT_STORE_NAME;
-        this.storeName = this.storeDirectory.resolve(directory).resolve(this.fileName)
-                .toAbsolutePath().toString();
+        this.storeName = this.storeDirectory.resolve(this.fileName + "." + prefix).toAbsolutePath().toString();
     }
 
     /**
