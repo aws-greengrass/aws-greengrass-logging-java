@@ -107,21 +107,17 @@ public class LogManager {
     public static void setRoot(Path newPath) {
         if (newPath != null) {
             LogConfig rootConfig = LogConfig.getInstance();
-            Path root = rootConfig.getRoot();
             newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
-            if (Objects.equals(root, newPath)) {
+            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
                 return;
             }
             rootLogConfiguration.closeContext();
-            rootLogConfiguration.setRoot(newPath);
-            rootLogConfiguration.setStorePath(newPath.resolve(rootLogConfiguration.getFileName() + "."
-                    + rootLogConfiguration.getExtension()));
+            rootLogConfiguration.setStoreDirectory(newPath);
             rootLogConfiguration.startContext();
             //Reconfigure all the loggers to use the store at new path.
             for (LogConfig logConfig: logConfigurations.values()) {
                 logConfig.closeContext();
-                logConfig.setRoot(newPath);
-                logConfig.setStorePath(newPath.resolve(logConfig.getFileName() + "." + logConfig.getExtension()));
+                logConfig.setStoreDirectory(newPath);
                 logConfig.startContext();
             }
         }

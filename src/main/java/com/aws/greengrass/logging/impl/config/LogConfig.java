@@ -9,9 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import lombok.Getter;
-import lombok.Setter;
 
-import java.nio.file.Path;
 import java.util.Optional;
 
 @Getter
@@ -20,8 +18,6 @@ public class LogConfig extends PersistenceConfig {
     public static final String LOGS_DIRECTORY = "logs";
     public static final String LOG_FILE_EXTENSION = "log";
     private final LoggerContext context = new LoggerContext();
-    @Setter
-    private Path root = getRootStorePath().resolve(LOGS_DIRECTORY);
 
     private static final LogConfig INSTANCE = new LogConfig();
 
@@ -48,7 +44,6 @@ public class LogConfig extends PersistenceConfig {
         this.format = getInstance().getFormat();
         this.store = getInstance().getStore();
         this.storeDirectory = getInstance().getStoreDirectory();
-        this.root = getInstance().getRoot();
         Optional<String> fileNameWithoutExtension = stripExtension(loggerConfiguration.getFileName());
         this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
         this.storeName = this.storeDirectory.resolve(loggerConfiguration.getFileName()).toAbsolutePath().toString();

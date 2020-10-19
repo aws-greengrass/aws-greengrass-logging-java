@@ -36,7 +36,7 @@ public class PersistenceConfig {
     public static final String DATA_FORMAT_SUFFIX = ".fmt";
     public static final String TOTAL_STORE_SIZE_SUFFIX = ".file.sizeInKB";
     public static final String TOTAL_FILE_SIZE_SUFFIX = ".file.fileSizeInKB";
-    public static final String STORE_NAME_SUFFIX = ".storeName";
+    public static final String DIRECTORY_PATH_SUFFIX = ".directory";
     public static final String LOG_LEVEL_SUFFIX = ".level";
     public static final String APPENDER_PREFIX = "gg-";
 
@@ -45,7 +45,7 @@ public class PersistenceConfig {
     private static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
     private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
     private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
-    private static final String DEFAULT_STORE_NAME = "greengrass.";
+    private static final String DEFAULT_STORE_NAME = "greengrass";
     private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
     private static final String HOME_DIR_PREFIX = "~/";
 
@@ -123,7 +123,7 @@ public class PersistenceConfig {
         this.fileSizeKB = fileSizeKB;
         this.totalLogStoreSizeKB = totalLogStoreSizeKB;
 
-        initializeStoreName(extension, directory);
+        initializeStoreDirectory(extension, directory);
     }
 
     /**
@@ -140,18 +140,17 @@ public class PersistenceConfig {
     }
 
     /**
-     * Change the configured store path (only applies for file output).
+     * Change the configured store directory (only applies for file output).
      *
-     * @param path The path passed in must contain the file name to which the logs will be written.
+     * @param path The path passed in must not contain the file name to which the logs will be written
      */
-    public void setStorePath(Path path) {
-        String newStoreName = getRootStorePath().resolve(path).toAbsolutePath().toString();
-        if (Objects.equals(this.storeName, newStoreName)) {
+    public void setStoreDirectory(Path path) {
+        Path newStoreDirectory = getRootStorePath().resolve(path).toAbsolutePath();
+        if (Objects.equals(this.storeDirectory, newStoreDirectory)) {
             return;
         }
-        this.storeName = newStoreName;
-        setFileNameFromStoreName();
-        setStoreDirectoryFromStoreName();
+        this.storeDirectory = newStoreDirectory;
+        this.storeName = this.storeDirectory.resolve(this.fileName + "." + this.extension).toAbsolutePath().toString();
         reconfigure();
     }
 
@@ -168,11 +167,12 @@ public class PersistenceConfig {
         reconfigure();
     }
 
-    private void initializeStoreName(String prefix, String logsDirectory) {
-        this.storeName = System.getProperty(prefix + STORE_NAME_SUFFIX,
-                getRootStorePath().resolve(logsDirectory).resolve(DEFAULT_STORE_NAME + prefix).toString());
-        setFileNameFromStoreName();
-        setStoreDirectoryFromStoreName();
+    private void initializeStoreDirectory(String prefix, String directory) {
+        this.storeDirectory = Paths.get(System.getProperty(prefix + DIRECTORY_PATH_SUFFIX,
+                getRootStorePath().resolve(directory).toString()));
+        this.fileName = DEFAULT_STORE_NAME;
+        this.storeName = this.storeDirectory.resolve(directory).resolve(this.fileName)
+                .toAbsolutePath().toString();
     }
 
     /**

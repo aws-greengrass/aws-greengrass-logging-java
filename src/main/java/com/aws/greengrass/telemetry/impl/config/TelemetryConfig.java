@@ -74,8 +74,7 @@ public class TelemetryConfig extends PersistenceConfig {
      *
      * @param path The path passed in must contain the file name to which the logs will be written.
      */
-    @Override
-    public void setStorePath(Path path) {
+    private void setStorePath(Path path) {
         String newStoreName = deTilde(root.resolve(path).toString());
         if (Objects.equals(this.storeName, newStoreName)) {
             return;
