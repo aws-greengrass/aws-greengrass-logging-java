@@ -145,7 +145,7 @@ public class PersistenceConfig {
      * @param path The path passed in must not contain the file name to which the logs will be written
      */
     public void setStoreDirectory(Path path) {
-        Path newStoreDirectory = getRootStorePath().resolve(path).toAbsolutePath();
+        Path newStoreDirectory = Paths.get(deTilde(getRootStorePath().resolve(path).toAbsolutePath().toString()));
         if (Objects.equals(this.storeDirectory, newStoreDirectory)) {
             return;
         }
@@ -168,8 +168,9 @@ public class PersistenceConfig {
     }
 
     private void initializeStoreDirectory(String prefix, String directory) {
-        this.storeDirectory = Paths.get(System.getProperty(prefix + DIRECTORY_PATH_SUFFIX,
-                getRootStorePath().resolve(directory).toString()));
+        String storePath = System.getProperty(prefix + DIRECTORY_PATH_SUFFIX,
+                getRootStorePath().resolve(directory).toString());
+        this.storeDirectory = Paths.get(deTilde(storePath));
         this.fileName = DEFAULT_STORE_NAME;
         this.storeName = this.storeDirectory.resolve(this.fileName + "." + prefix).toAbsolutePath().toString();
     }
