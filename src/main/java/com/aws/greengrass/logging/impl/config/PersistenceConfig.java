@@ -234,7 +234,7 @@ public class PersistenceConfig {
     }
 
     protected synchronized void reconfigure(Logger loggerToConfigure) {
-        reconfigure(loggerToConfigure, fileName + "." + extension, totalLogStoreSizeKB, fileSizeKB);
+        reconfigure(loggerToConfigure, fileName, totalLogStoreSizeKB, fileSizeKB);
     }
 
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {
@@ -280,7 +280,8 @@ public class PersistenceConfig {
                     logConsoleAppenders.getOrDefault(loggerToConfigure.getName(), null);
             final RollingFileAppender<ILoggingEvent> newLogFileAppender = getAppenderForFile(loggerToConfigure,
                     APPENDER_PREFIX + loggerToConfigure.getName(),
-                    storeDirectory.resolve(fileName).toString(), totalLogStoreSizeKB, fileSizeKB, fileName);
+                    storeDirectory.resolve(fileName + "." + extension).toString(), totalLogStoreSizeKB, fileSizeKB,
+                    fileName);
             newLogFileAppender.start();
             // Add the replacement
             loggerToConfigure.addAppender(newLogFileAppender);
