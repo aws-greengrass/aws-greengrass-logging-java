@@ -12,16 +12,21 @@ import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
 
-import java.nio.file.Path;
 
 @Getter
 @Setter
 @Builder
 public class LoggerConfiguration {
-    private Level level;
+    @Builder.Default
+    private Level level = Level.INFO;
     private String fileName;
     @Builder.Default
     private long fileSizeKB = -1;
     @Builder.Default
     private long totalLogStoreSizeKB = -1;
+    @Builder.Default
+    private LogFormat format = LogFormat.JSON;
+    @Builder.Default
+    private LogStore store = LogStore.CONSOLE;
+    private String storeDirectory;
 }
