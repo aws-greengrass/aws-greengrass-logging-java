@@ -13,6 +13,7 @@ import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
+import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,13 +41,13 @@ public class PersistenceConfig {
     public static final String LOG_LEVEL_SUFFIX = ".level";
     public static final String APPENDER_PREFIX = "gg-";
 
-    private static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10L; // set 10 MB to be the default max size
-    private static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
-    private static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
-    private static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
-    private static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
-    private static final String DEFAULT_STORE_NAME = "greengrass";
-    private static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
+    static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10L; // set 10 MB to be the default max size
+    static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
+    static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
+    static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
+    static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
+    static final String DEFAULT_STORE_NAME = "greengrass";
+    static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
     private static final String HOME_DIR_PREFIX = "~/";
 
     @Getter
@@ -235,6 +236,20 @@ public class PersistenceConfig {
 
     protected synchronized void reconfigure(Logger loggerToConfigure) {
         reconfigure(loggerToConfigure, fileName, totalLogStoreSizeKB, fileSizeKB);
+    }
+
+    /**
+     * Reconfigures the logger based on the logger configuration provided.
+     * @param loggerConfiguration   The configuration for the logger.
+     */
+    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration) {
+        level = loggerConfiguration.getLevel();
+        store = loggerConfiguration.getOutputType();
+        format = loggerConfiguration.getFormat();
+        fileName = loggerConfiguration.getFileName();
+        fileSizeKB = loggerConfiguration.getFileSizeKB();
+        totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        setStoreDirectory(Paths.get(loggerConfiguration.getOutputDirectory()));
     }
 
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {

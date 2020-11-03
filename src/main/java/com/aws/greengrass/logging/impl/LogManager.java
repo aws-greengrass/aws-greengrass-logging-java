@@ -122,4 +122,40 @@ public class LogManager {
             }
         }
     }
+
+    /**
+     * Reconfigure all loggers to use the new configuration.
+     * @param loggerConfiguration   configuration for all loggers.
+     */
+    public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
+        LogConfig rootConfig = LogConfig.getInstance();
+        if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
+            loggerConfiguration.setFileName(rootConfig.getFileName());
+        }
+        if (loggerConfiguration.getOutputDirectory() == null
+                || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
+            loggerConfiguration.setOutputDirectory(rootConfig.getStoreDirectory().toAbsolutePath().toString());
+        } else {
+            Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
+            newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
+            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
+                return;
+            }
+            loggerConfiguration.setOutputDirectory(newPath.toAbsolutePath().toString());
+        }
+        rootLogConfiguration.closeContext();
+        rootLogConfiguration.reconfigure(loggerConfiguration);
+        rootLogConfiguration.startContext();
+        //Reconfigure all the loggers to use the store at new path.
+        for (LogConfig logConfig: logConfigurations.values()) {
+            logConfig.closeContext();
+            logConfig.reconfigure(loggerConfiguration);
+            logConfig.startContext();
+        }
+
+        // Reconfigure the telemetry logger as well.
+        telemetryConfig.closeContext();
+        telemetryConfig.reconfigure(loggerConfiguration);
+        telemetryConfig.startContext();
+    }
 }

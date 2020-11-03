@@ -11,6 +11,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.aws.greengrass.logging.impl.config.LogFormat;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
+import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -94,6 +95,30 @@ public class TelemetryConfig extends PersistenceConfig {
         reconfigure(logger);
     }
 
+    /**
+     * Reconfigures the logger based on the logger configuration provided. Overriding this since we don't want
+     * to change the telemetry directory or file name.
+     * @param loggerConfiguration   The configuration for the logger.
+     */
+    @Override
+    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration) {
+        level = loggerConfiguration.getLevel();
+        store = loggerConfiguration.getOutputType();
+        format = loggerConfiguration.getFormat();
+        fileSizeKB = loggerConfiguration.getFileSizeKB();
+        totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        closeContext();
+        //Reconfigure all the telemetry loggers to use the store at new path.
+        for (Logger logger : context.getLoggerList()) {
+            if (!logger.getName().equals("ROOT")) {
+                editConfigForLogger(logger.getName());
+            }
+        }
+        startContext();
+
+    }
+
+
     @Override
     protected synchronized void reconfigure(Logger loggerToConfigure) {
         Objects.requireNonNull(loggerToConfigure);
@@ -134,7 +159,7 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Start the logger context.
      */
-    private void startContext() {
+    public void startContext() {
         context.start();
     }
 
