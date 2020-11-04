@@ -40,14 +40,13 @@ public class PersistenceConfig {
     public static final String DIRECTORY_PATH_SUFFIX = ".directory";
     public static final String LOG_LEVEL_SUFFIX = ".level";
     public static final String APPENDER_PREFIX = "gg-";
-
-    static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10L; // set 10 MB to be the default max size
-    static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
-    static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
-    static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
-    static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
-    static final String DEFAULT_STORE_NAME = "greengrass";
-    static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
+    public static final long DEFAULT_MAX_SIZE_IN_KB = 1024 * 10L; // set 10 MB to be the default max size
+    public static final int DEFAULT_MAX_FILE_SIZE_IN_KB = 1024; // set 1 MB to be the default max file size
+    public static final int DEFAULT_FILE_ROLLOVER_TIME_MINS = 15; // set 15 mins.
+    public static final String DEFAULT_STORAGE_TYPE = LogStore.CONSOLE.name();
+    public static final String DEFAULT_DATA_FORMAT = LogFormat.TEXT.name();
+    public static final String DEFAULT_STORE_NAME = "greengrass";
+    public static final String DEFAULT_LOG_LEVEL = Level.INFO.name();
     private static final String HOME_DIR_PREFIX = "~/";
 
     @Getter
@@ -94,7 +93,7 @@ public class PersistenceConfig {
         try {
             format = LogFormat.valueOf(System.getProperty(extension + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
         } catch (IllegalArgumentException e) {
-            format = LogFormat.JSON;
+            format = LogFormat.TEXT;
         }
         this.format = format;
 

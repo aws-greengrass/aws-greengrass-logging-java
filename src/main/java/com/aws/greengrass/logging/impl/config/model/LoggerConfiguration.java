@@ -21,16 +21,13 @@ import org.slf4j.event.Level;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoggerConfiguration {
-    @Builder.Default
-    private Level level = Level.INFO;
+    private Level level;
     private String fileName;
     @Builder.Default
-    private long fileSizeKB = 1024L;
+    private long fileSizeKB = -1;
     @Builder.Default
-    private long totalLogsSizeKB = 10240L;
-    @Builder.Default
-    private LogFormat format = LogFormat.JSON;
-    @Builder.Default
-    private LogStore outputType = LogStore.CONSOLE;
+    private long totalLogsSizeKB = -1;
+    private LogFormat format;
+    private LogStore outputType;
     private String outputDirectory;
 }

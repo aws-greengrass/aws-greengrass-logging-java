@@ -6,10 +6,13 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
+import com.aws.greengrass.logging.impl.config.LogFormat;
+import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,6 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.aws.greengrass.logging.impl.config.LogConfig.LOGS_DIRECTORY;
+import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_DATA_FORMAT;
+import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_LOG_LEVEL;
+import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_STORAGE_TYPE;
 
 /**
  * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger}
@@ -142,6 +148,21 @@ public class LogManager {
                 return;
             }
             loggerConfiguration.setOutputDirectory(newPath.toAbsolutePath().toString());
+        }
+        if (loggerConfiguration.getFileSizeKB() == -1) {
+            loggerConfiguration.setFileSizeKB(rootConfig.getFileSizeKB());
+        }
+        if (loggerConfiguration.getTotalLogsSizeKB() == -1) {
+            loggerConfiguration.setTotalLogsSizeKB(rootConfig.getTotalLogStoreSizeKB());
+        }
+        if (loggerConfiguration.getFormat() == null) {
+            loggerConfiguration.setFormat(rootConfig.getFormat());
+        }
+        if (loggerConfiguration.getLevel() == null) {
+            loggerConfiguration.setLevel(rootConfig.getLevel());
+        }
+        if (loggerConfiguration.getOutputType() == null) {
+            loggerConfiguration.setOutputType(rootConfig.getStore());
         }
         rootLogConfiguration.closeContext();
         rootLogConfiguration.reconfigure(loggerConfiguration);

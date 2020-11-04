@@ -10,6 +10,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.aws.greengrass.logging.impl.config.LogFormat;
+import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import lombok.Getter;
@@ -98,13 +99,12 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Reconfigures the logger based on the logger configuration provided. Overriding this since we don't want
      * to change the telemetry directory or file name.
-     * @param loggerConfiguration   The configuration for the logger.
+     *
+     * @param loggerConfiguration The configuration for the logger.
      */
     @Override
     public synchronized void reconfigure(LoggerConfiguration loggerConfiguration) {
-        level = loggerConfiguration.getLevel();
         store = loggerConfiguration.getOutputType();
-        format = loggerConfiguration.getFormat();
         fileSizeKB = loggerConfiguration.getFileSizeKB();
         totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
         closeContext();
@@ -184,6 +184,16 @@ public class TelemetryConfig extends PersistenceConfig {
             }
             startContext();
         }
+    }
+
+    /**
+     * Used in unit tests.
+     */
+    public void reset() {
+        this.store = LogStore.valueOf(DEFAULT_STORAGE_TYPE);
+        this.storeDirectory = getRootStorePath().resolve(TELEMETRY_DIRECTORY);
+        this.fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
+        this.totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
     }
 }
 
