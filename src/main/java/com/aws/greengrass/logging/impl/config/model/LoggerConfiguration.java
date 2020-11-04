@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.slf4j.event.Level;
 
+import java.util.Objects;
+
 
 @Getter
 @Setter
@@ -30,4 +32,31 @@ public class LoggerConfiguration {
     private LogFormat format;
     private LogStore outputType;
     private String outputDirectory;
+
+    @Override
+    public boolean equals(Object o) {
+        // If the object is compared with itself then return true
+        if (o == this) {
+            return true;
+        }
+        /* Check if o is an instance of LoggerConfiguration or not "null instanceof [type]" also returns false */
+        if (!(o instanceof LoggerConfiguration)) {
+            return false;
+        }
+
+        // typecast o to LoggerConfiguration so that we can compare data members
+        LoggerConfiguration newConfiguration = (LoggerConfiguration) o;
+
+        // Compare the data members and return accordingly
+        return this.level.equals(newConfiguration.level) && this.format.equals(newConfiguration.format)
+                && this.outputType.equals(newConfiguration.outputType)
+                && this.fileSizeKB == newConfiguration.fileSizeKB
+                && this.totalLogsSizeKB == newConfiguration.totalLogsSizeKB
+                && Objects.equals(this.outputDirectory, newConfiguration.outputDirectory);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }
