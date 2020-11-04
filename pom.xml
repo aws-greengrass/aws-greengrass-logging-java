@@ -310,6 +310,15 @@
                                         <exclude>org/slf4j/impl/StaticLoggerBinder.class</exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                    <artifact>ch.qos.logback:logback-core:jar:*</artifact>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>ch/qos/logback/core/util</exclude>
+                                    </excludes>
+                                </filter>
                             </filters>
                         </configuration>
                     </execution>
@@ -344,6 +353,15 @@
                                     </includes>
                                     <excludes>
                                         <exclude>org/slf4j/impl/StaticLoggerBinder.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>ch.qos.logback:logback-core:jar:*</artifact>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>ch/qos/logback/core/util</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
