@@ -93,7 +93,7 @@ public class PersistenceConfig {
         try {
             format = LogFormat.valueOf(System.getProperty(extension + DATA_FORMAT_SUFFIX, DEFAULT_DATA_FORMAT));
         } catch (IllegalArgumentException e) {
-            format = LogFormat.TEXT;
+            format = LogFormat.JSON;
         }
         this.format = format;
 
@@ -240,15 +240,16 @@ public class PersistenceConfig {
     /**
      * Reconfigures the logger based on the logger configuration provided.
      * @param loggerConfiguration   The configuration for the logger.
+     * @param storePath             Ths output directory path.
      */
-    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration) {
+    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
         level = loggerConfiguration.getLevel();
         store = loggerConfiguration.getOutputType();
         format = loggerConfiguration.getFormat();
         fileName = loggerConfiguration.getFileName();
         fileSizeKB = loggerConfiguration.getFileSizeKB();
         totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
-        setStoreDirectory(Paths.get(loggerConfiguration.getOutputDirectory()));
+        setStoreDirectory(storePath);
     }
 
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {

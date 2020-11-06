@@ -6,13 +6,10 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
-import com.aws.greengrass.logging.impl.config.LogFormat;
-import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
-import org.slf4j.event.Level;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,9 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.aws.greengrass.logging.impl.config.LogConfig.LOGS_DIRECTORY;
-import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_DATA_FORMAT;
-import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_LOG_LEVEL;
-import static com.aws.greengrass.logging.impl.config.PersistenceConfig.DEFAULT_STORAGE_TYPE;
 
 /**
  * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger}
@@ -138,16 +132,17 @@ public class LogManager {
         if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
             loggerConfiguration.setFileName(rootConfig.getFileName());
         }
+        Path storePath = null;
         if (loggerConfiguration.getOutputDirectory() == null
                 || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
-            loggerConfiguration.setOutputDirectory(rootConfig.getStoreDirectory().toAbsolutePath().toString());
+            storePath = rootConfig.getStoreDirectory();
         } else {
             Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
             newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
             if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
                 return;
             }
-            loggerConfiguration.setOutputDirectory(newPath.toAbsolutePath().toString());
+            storePath = newPath;
         }
         if (loggerConfiguration.getFileSizeKB() == -1) {
             loggerConfiguration.setFileSizeKB(rootConfig.getFileSizeKB());
@@ -165,18 +160,18 @@ public class LogManager {
             loggerConfiguration.setOutputType(rootConfig.getStore());
         }
         rootLogConfiguration.closeContext();
-        rootLogConfiguration.reconfigure(loggerConfiguration);
+        rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
         rootLogConfiguration.startContext();
         //Reconfigure all the loggers to use the store at new path.
         for (LogConfig logConfig: logConfigurations.values()) {
             logConfig.closeContext();
-            logConfig.reconfigure(loggerConfiguration);
+            logConfig.reconfigure(loggerConfiguration, storePath);
             logConfig.startContext();
         }
 
         // Reconfigure the telemetry logger as well.
         telemetryConfig.closeContext();
-        telemetryConfig.reconfigure(loggerConfiguration);
+        telemetryConfig.reconfigure(loggerConfiguration, storePath);
         telemetryConfig.startContext();
     }
 }

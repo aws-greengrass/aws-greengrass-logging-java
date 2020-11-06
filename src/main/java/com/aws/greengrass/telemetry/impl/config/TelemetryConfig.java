@@ -100,10 +100,11 @@ public class TelemetryConfig extends PersistenceConfig {
      * Reconfigures the logger based on the logger configuration provided. Overriding this since we don't want
      * to change the telemetry directory or file name.
      *
-     * @param loggerConfiguration The configuration for the logger.
+     * @param loggerConfiguration   The configuration for the logger.
+     * @param storePath             Ths output directory path.
      */
     @Override
-    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration) {
+    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
         store = loggerConfiguration.getOutputType();
         fileSizeKB = loggerConfiguration.getFileSizeKB();
         totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();

@@ -29,7 +29,8 @@ public class LoggerConfiguration {
     private long fileSizeKB = -1;
     @Builder.Default
     private long totalLogsSizeKB = -1;
-    private LogFormat format;
+    @Builder.Default
+    private LogFormat format = LogFormat.JSON;
     private LogStore outputType;
     private String outputDirectory;
 
