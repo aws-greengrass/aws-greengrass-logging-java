@@ -122,4 +122,56 @@ public class LogManager {
             }
         }
     }
+
+    /**
+     * Reconfigure all loggers to use the new configuration.
+     * @param loggerConfiguration   configuration for all loggers.
+     */
+    public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
+        LogConfig rootConfig = LogConfig.getInstance();
+        if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
+            loggerConfiguration.setFileName(rootConfig.getFileName());
+        }
+        Path storePath = null;
+        if (loggerConfiguration.getOutputDirectory() == null
+                || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
+            storePath = rootConfig.getStoreDirectory();
+        } else {
+            Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
+            newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
+            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
+                return;
+            }
+            storePath = newPath;
+        }
+        if (loggerConfiguration.getFileSizeKB() == -1) {
+            loggerConfiguration.setFileSizeKB(rootConfig.getFileSizeKB());
+        }
+        if (loggerConfiguration.getTotalLogsSizeKB() == -1) {
+            loggerConfiguration.setTotalLogsSizeKB(rootConfig.getTotalLogStoreSizeKB());
+        }
+        if (loggerConfiguration.getFormat() == null) {
+            loggerConfiguration.setFormat(rootConfig.getFormat());
+        }
+        if (loggerConfiguration.getLevel() == null) {
+            loggerConfiguration.setLevel(rootConfig.getLevel());
+        }
+        if (loggerConfiguration.getOutputType() == null) {
+            loggerConfiguration.setOutputType(rootConfig.getStore());
+        }
+        rootLogConfiguration.closeContext();
+        rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
+        rootLogConfiguration.startContext();
+        //Reconfigure all the loggers to use the store at new path.
+        for (LogConfig logConfig: logConfigurations.values()) {
+            logConfig.closeContext();
+            logConfig.reconfigure(loggerConfiguration, storePath);
+            logConfig.startContext();
+        }
+
+        // Reconfigure the telemetry logger as well.
+        telemetryConfig.closeContext();
+        telemetryConfig.reconfigure(loggerConfiguration, storePath);
+        telemetryConfig.startContext();
+    }
 }

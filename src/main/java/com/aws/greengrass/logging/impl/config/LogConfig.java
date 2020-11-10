@@ -9,6 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import lombok.Getter;
+import org.slf4j.event.Level;
 
 import java.util.Optional;
 
@@ -67,5 +68,18 @@ public class LogConfig extends PersistenceConfig {
      */
     public void startContext() {
         context.start();
+    }
+
+    /**
+     * Used in unit tests.
+     */
+    public void reset() {
+        this.fileName = DEFAULT_STORE_NAME;
+        this.level = Level.valueOf(DEFAULT_LOG_LEVEL);
+        this.format = LogFormat.valueOf(DEFAULT_DATA_FORMAT);
+        this.store = LogStore.valueOf(DEFAULT_STORAGE_TYPE);
+        this.storeDirectory = getRootStorePath().resolve(LOGS_DIRECTORY);
+        this.fileSizeKB = DEFAULT_MAX_FILE_SIZE_IN_KB;
+        this.totalLogStoreSizeKB = DEFAULT_MAX_SIZE_IN_KB;
     }
 }
