@@ -16,15 +16,13 @@ jobs:
           ref: ${{github.head_ref}}
         if: github.event_name == 'pull_request'
       - uses: actions/checkout@v2
-        with:
-          ref: master
         if: github.event_name == 'push'
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
       - name: Publish with Maven
-        run: mvn -ntp --settings settings.xml clean deploy -Dgreengrass-ipc-java-sdk-repository-url=${{ secrets.greengrass_ipc_java_sdk_dev_snapshot_url }}
+        run: mvn -U -ntp --settings settings.xml clean deploy -Dgreengrass-ipc-java-sdk-repository-url=${{ secrets.greengrass_ipc_java_sdk_dev_snapshot_url }}
       - name: Convert Jacoco to Cobertura
         run: python3 .github/scripts/cover2cover.py target/jacoco-report/jacoco.xml src/main/java > target/jacoco-report/cobertura.xml
       - name: cobertura-report
@@ -49,10 +47,3 @@ jobs:
         with:
           name: Coverage Report
           path: target/jacoco-report
-      - name: GitHub Actions Artifact Cleaner
-        uses: glassechidna/artifact-cleaner@v2
-        with:
-          # Specify a minimum size of artifacts to delete in bytes. Artifacts smaller than this won't be deleted.
-          minimumDeletionSize: 0 # optional, default is 0
-          # Only delete artifacts older than this, measured in seconds.
-          minimumAge: 5184000 # optional, default is 0. Set to 5.184e+6 (60 days)
