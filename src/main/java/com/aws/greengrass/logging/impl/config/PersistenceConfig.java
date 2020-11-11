@@ -250,6 +250,7 @@ public class PersistenceConfig {
         fileSizeKB = loggerConfiguration.getFileSizeKB();
         totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
         setStoreDirectory(storePath);
+        reconfigure();
     }
 
     void reconfigure(Logger loggerToConfigure, String fileName, long totalLogStoreSizeKB, long fileSizeKB) {
