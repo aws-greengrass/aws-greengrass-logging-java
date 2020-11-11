@@ -30,7 +30,7 @@ public class LoggerConfiguration {
     @Builder.Default
     private long totalLogsSizeKB = -1;
     @Builder.Default
-    private LogFormat format = LogFormat.JSON;
+    private LogFormat format = LogFormat.TEXT;
     private LogStore outputType;
     private String outputDirectory;
 
@@ -49,8 +49,9 @@ public class LoggerConfiguration {
         LoggerConfiguration newConfiguration = (LoggerConfiguration) o;
 
         // Compare the data members and return accordingly
-        return this.level.equals(newConfiguration.level) && this.format.equals(newConfiguration.format)
-                && this.outputType.equals(newConfiguration.outputType)
+        return Objects.equals(this.level, newConfiguration.level)
+                && Objects.equals(this.format, newConfiguration.format)
+                && Objects.equals(this.outputType, newConfiguration.outputType)
                 && this.fileSizeKB == newConfiguration.fileSizeKB
                 && this.totalLogsSizeKB == newConfiguration.totalLogsSizeKB
                 && Objects.equals(this.outputDirectory, newConfiguration.outputDirectory);

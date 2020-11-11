@@ -124,25 +124,13 @@ public class LogManager {
     }
 
     /**
-     * Reconfigure all loggers to use the new configuration.
-     * @param loggerConfiguration   configuration for all loggers.
+     * Sets effective configuration.
+     * @param loggerConfiguration configuration set in yaml.
      */
-    public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
+    public static void setEffectiveConfig(LoggerConfiguration loggerConfiguration) {
         LogConfig rootConfig = LogConfig.getInstance();
         if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
             loggerConfiguration.setFileName(rootConfig.getFileName());
-        }
-        Path storePath = null;
-        if (loggerConfiguration.getOutputDirectory() == null
-                || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
-            storePath = rootConfig.getStoreDirectory();
-        } else {
-            Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
-            newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
-            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
-                return;
-            }
-            storePath = newPath;
         }
         if (loggerConfiguration.getFileSizeKB() == -1) {
             loggerConfiguration.setFileSizeKB(rootConfig.getFileSizeKB());
@@ -158,6 +146,25 @@ public class LogManager {
         }
         if (loggerConfiguration.getOutputType() == null) {
             loggerConfiguration.setOutputType(rootConfig.getStore());
+        }
+    }
+
+    /**
+     * Reconfigure all loggers to use the new configuration.
+     * @param loggerConfiguration   configuration for all loggers.
+     */
+    public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
+        LogConfig rootConfig = LogConfig.getInstance();
+        Path storePath;
+        if (loggerConfiguration.getOutputDirectory() == null
+                || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
+            storePath = rootConfig.getStoreDirectory();
+        } else {
+            Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
+            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
+                return;
+            }
+            storePath = newPath;
         }
         rootLogConfiguration.closeContext();
         rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
