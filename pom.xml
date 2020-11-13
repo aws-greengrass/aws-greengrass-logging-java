@@ -80,11 +80,6 @@
             <artifactId>spotbugs-annotations</artifactId>
             <version>4.0.1</version>
         </dependency>
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-codec</artifactId>
-            <version>4.1.44.Final</version>
-        </dependency>
     </dependencies>
     <pluginRepositories>
         <pluginRepository>
