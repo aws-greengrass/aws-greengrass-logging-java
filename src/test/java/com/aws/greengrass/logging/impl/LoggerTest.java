@@ -36,7 +36,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-// TODO: write proper unit tests https://issues.amazon.com/issues/P31936029
 @ExtendWith(MockitoExtension.class)
 @Tag("Integration")
 class LoggerTest {
