@@ -2,7 +2,7 @@
 
 ## AWS Greengrass Java
 
-This module is the Java SDK associated with aws-greengrass-kernel
+This module is the Java SDK associated with aws-greengrass-nucleus
 
 ## License
 
