@@ -154,31 +154,46 @@ public class LogManager {
      * @param loggerConfiguration configuration for all loggers.
      */
     public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
-        LogConfig rootConfig = LogConfig.getInstance();
         Path storePath;
         if (loggerConfiguration.getOutputDirectory() == null || loggerConfiguration.getOutputDirectory().trim()
                 .isEmpty()) {
-            storePath = rootConfig.getStoreDirectory();
+            storePath = rootLogConfiguration.getStoreDirectory();
         } else {
-            Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
-            if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
-                return;
-            }
-            storePath = newPath;
-        }
-        rootLogConfiguration.closeContext();
-        rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
-        rootLogConfiguration.startContext();
-        //Reconfigure all the loggers to use the store at new path.
-        for (LogConfig logConfig : logConfigurations.values()) {
-            logConfig.closeContext();
-            logConfig.reconfigure(loggerConfiguration, storePath);
-            logConfig.startContext();
+            storePath = Paths.get(loggerConfiguration.getOutputDirectory());
         }
 
-        // Reconfigure the telemetry logger as well.
-        telemetryConfig.closeContext();
-        telemetryConfig.reconfigure(loggerConfiguration, storePath);
-        telemetryConfig.startContext();
+        // Only reconfigure file when directory, file size, or store size changes. Everything else
+        // can be reconfigured without needing to recreate the log appender
+        boolean reconfiguringFileOptions =
+                !(Objects.equals(rootLogConfiguration.getStoreDirectory(), storePath) && Objects
+                .equals(rootLogConfiguration.getFileSizeKB(), loggerConfiguration.getFileSizeKB()) && Objects
+                .equals(rootLogConfiguration.getTotalLogStoreSizeKB(), loggerConfiguration.getTotalLogsSizeKB())
+                && Objects.equals(rootLogConfiguration.getStore(), loggerConfiguration.getOutputType()));
+
+        if (reconfiguringFileOptions) {
+            rootLogConfiguration.closeContext();
+            rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
+            rootLogConfiguration.startContext();
+            // Reconfigure all the loggers to use the store at new path.
+            for (LogConfig logConfig : logConfigurations.values()) {
+                logConfig.closeContext();
+                logConfig.reconfigure(loggerConfiguration, storePath);
+                logConfig.startContext();
+            }
+
+            // Reconfigure the telemetry logger as well.
+            telemetryConfig.reconfigure(loggerConfiguration, storePath);
+        } else {
+            // Set dynamically configurable options 
+            setLogConfig(rootLogConfiguration, loggerConfiguration);
+            for (LogConfig logConfig : logConfigurations.values()) {
+                setLogConfig(logConfig, loggerConfiguration);
+            }
+        }
+    }
+
+    private static void setLogConfig(LogConfig log, LoggerConfiguration config) {
+        log.setLevel(config.getLevel());
+        log.setFormat(config.getFormat());
     }
 }

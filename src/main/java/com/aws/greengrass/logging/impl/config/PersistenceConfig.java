@@ -51,7 +51,6 @@ public class PersistenceConfig {
 
     @Getter
     protected final String extension;
-    @Setter
     protected LogStore store;
     protected String storeName;
     protected Path storeDirectory;
@@ -131,7 +130,7 @@ public class PersistenceConfig {
      *
      * @param store new store type
      */
-    public void setStoreType(LogStore store) {
+    public void setStore(LogStore store) {
         if (Objects.equals(this.store, store)) {
             return;
         }
