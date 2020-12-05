@@ -116,7 +116,6 @@ public class TelemetryConfig extends PersistenceConfig {
             }
         }
         startContext();
-
     }
 
 

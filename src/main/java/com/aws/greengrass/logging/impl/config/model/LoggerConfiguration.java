@@ -12,6 +12,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.slf4j.event.Level;
 
 import java.util.Objects;
@@ -22,6 +23,7 @@ import java.util.Objects;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class LoggerConfiguration {
     private Level level;
     private String fileName;
