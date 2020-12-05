@@ -193,8 +193,8 @@ public class Slf4jLogAdapter implements Logger {
         Level runningLevel = config.getLevel();
         if (individualLevel != null) {
             runningLevel = individualLevel;
-        } else if (parentLogger != null && parentLogger.individualLevel != null) {
-            runningLevel = parentLogger.individualLevel;
+        } else if (parentLogger != null) {
+            return parentLogger.isLogLevelEnabled(logLevel);
         }
         return runningLevel.toInt() <= logLevel.toInt();
     }
