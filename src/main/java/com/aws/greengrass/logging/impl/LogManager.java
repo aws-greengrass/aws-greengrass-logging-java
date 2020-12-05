@@ -6,6 +6,7 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
+import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
@@ -21,8 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 import static com.aws.greengrass.logging.impl.config.LogConfig.LOGS_DIRECTORY;
 
 /**
- * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger}
- * instances by name.
+ * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger} instances by name.
  */
 public class LogManager {
 
@@ -40,8 +40,7 @@ public class LogManager {
     private static final TelemetryConfig telemetryConfig = TelemetryConfig.getInstance();
 
     /**
-     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name
-     * parameter.
+     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name parameter.
      *
      * @param name the name of the Logger to return
      * @return a Logger instance
@@ -54,20 +53,16 @@ public class LogManager {
     }
 
     /**
-     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name
-     * parameter.
+     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name parameter.
      *
-     * @param name                  the name of the Logger to return
-     * @param loggerConfiguration   the configuration for the Logger
+     * @param name                the name of the Logger to return
+     * @param loggerConfiguration the configuration for the Logger
      * @return a Logger instance
      */
     public static com.aws.greengrass.logging.api.Logger getLogger(String name,
                                                                   LoggerConfiguration loggerConfiguration) {
-        LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(loggerConfiguration));
-        if (loggerConfiguration != null && loggerConfiguration.getLevel() != null) {
-            logConfig.setLevel(loggerConfiguration.getLevel());
-        }
         return loggerMap.computeIfAbsent(name, n -> {
+            LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(loggerConfiguration));
             Logger logger = logConfig.getLogger(name);
             return new Slf4jLogAdapter(logger, logConfig);
         });
@@ -85,8 +80,7 @@ public class LogManager {
     }
 
     /**
-     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name
-     * parameter.
+     * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name parameter.
      *
      * @param name the name of the Telemetry Logger to return
      * @return a telemetry Logger instance
@@ -115,7 +109,7 @@ public class LogManager {
             rootLogConfiguration.setStoreDirectory(newPath);
             rootLogConfiguration.startContext();
             //Reconfigure all the loggers to use the store at new path.
-            for (LogConfig logConfig: logConfigurations.values()) {
+            for (LogConfig logConfig : logConfigurations.values()) {
                 logConfig.closeContext();
                 logConfig.setStoreDirectory(newPath);
                 logConfig.startContext();
@@ -125,6 +119,7 @@ public class LogManager {
 
     /**
      * Sets effective configuration.
+     *
      * @param loggerConfiguration configuration set in yaml.
      */
     public static void setEffectiveConfig(LoggerConfiguration loggerConfiguration) {
@@ -147,17 +142,22 @@ public class LogManager {
         if (loggerConfiguration.getOutputType() == null) {
             loggerConfiguration.setOutputType(rootConfig.getStore());
         }
+        if (loggerConfiguration.getOutputDirectory() == null && LogStore.FILE
+                .equals(loggerConfiguration.getOutputType())) {
+            loggerConfiguration.setOutputDirectory(rootConfig.getStoreDirectory().toString());
+        }
     }
 
     /**
      * Reconfigure all loggers to use the new configuration.
-     * @param loggerConfiguration   configuration for all loggers.
+     *
+     * @param loggerConfiguration configuration for all loggers.
      */
     public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
         LogConfig rootConfig = LogConfig.getInstance();
         Path storePath;
-        if (loggerConfiguration.getOutputDirectory() == null
-                || loggerConfiguration.getOutputDirectory().trim().isEmpty()) {
+        if (loggerConfiguration.getOutputDirectory() == null || loggerConfiguration.getOutputDirectory().trim()
+                .isEmpty()) {
             storePath = rootConfig.getStoreDirectory();
         } else {
             Path newPath = Paths.get(loggerConfiguration.getOutputDirectory());
@@ -170,7 +170,7 @@ public class LogManager {
         rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
         rootLogConfiguration.startContext();
         //Reconfigure all the loggers to use the store at new path.
-        for (LogConfig logConfig: logConfigurations.values()) {
+        for (LogConfig logConfig : logConfigurations.values()) {
             logConfig.closeContext();
             logConfig.reconfigure(loggerConfiguration, storePath);
             logConfig.startContext();
