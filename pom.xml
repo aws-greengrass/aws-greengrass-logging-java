@@ -20,7 +20,6 @@
         <skipTests>false</skipTests>
         <jarWithDependenciesName>greengrass-sdk-with-dependencies</jarWithDependenciesName>
     </properties>
-    <name>aws-greengrass-logging-java</name>
     <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
