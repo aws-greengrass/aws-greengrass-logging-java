@@ -21,8 +21,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Publish with Maven
-        run: mvn -U -ntp --settings settings.xml clean deploy -Dgreengrass-logging-sdk-repository-url=${{ secrets.greengrass_logging_sdk_dev_snapshot_url }}
+      - name: Build
+        run: mvn -U -ntp clean verify
       - name: Convert Jacoco to Cobertura
         run: python3 .github/scripts/cover2cover.py target/jacoco-report/jacoco.xml src/main/java > target/jacoco-report/cobertura.xml
       - name: cobertura-report
