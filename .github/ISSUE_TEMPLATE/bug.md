@@ -21,7 +21,7 @@ Tell us what actually happened.
  - OS: [e.g. Ubuntu 20.04]
  - JDK version:
  - Nucleus version:
- - Java SDK version:
+ - Logging library version:
 
 **Additional context**
 Add any other context about the problem here.
