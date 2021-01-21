@@ -175,8 +175,9 @@ public class TelemetryConfig extends PersistenceConfig {
                 return;
             }
             root = newPath;
+            this.storeDirectory = root;
             closeContext();
-            //Reconfigure all the telemetry loggers to use the store at new path.
+            // Reconfigure all the telemetry loggers to use the store at new path.
             for (Logger logger : context.getLoggerList()) {
                 if (!logger.getName().equals("ROOT")) {
                     editConfigForLogger(logger.getName());
