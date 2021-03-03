@@ -5,7 +5,9 @@
 
 package com.aws.greengrass.logging.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.jupiter.api.Test;
 import org.slf4j.event.Level;
 
@@ -15,11 +17,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class StructuredLayoutTest {
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 
     @Test
     public void GIVEN_json_appender_WHEN_write_log_events_THEN_events_are_json_encoded() throws IOException {
@@ -27,7 +31,7 @@ public class StructuredLayoutTest {
                 new GreengrassLogMessage("Logger", Level.INFO, "eventType", "message 1",
                         new HashMap<String, String>() {{
                             put("key", "value");
-                        }}, new Exception("EX!")),
+                        }}, new Exception("EX!", new Exception("the \"cause\""))),
                 new GreengrassLogMessage("Logger", Level.INFO, "eventType", "message 1", null, null),
                 new GreengrassLogMessage("Logger", Level.INFO, null, "message 1",
                         new HashMap<String, String>() {{
@@ -72,6 +76,36 @@ public class StructuredLayoutTest {
         for (int i = 0; i < messages.size(); i++) {
             GreengrassLogMessage message = messages.get(i);
             assertEquals(message.getTextMessage(), appendedMessages[i]);
+        }
+    }
+
+    @Test
+    public void GIVEN_throwable_that_fails_default_serializer_WHEN_log_it_THEN_custom_serializer_succeeds()
+            throws JsonProcessingException {
+        try {
+            // This will throw an exception that cannot be serialized successfully by Jackson's default serializer
+            JSON_MAPPER.readValue("this will go wrong", Object.class);
+            fail("Expected to raise exception");
+        } catch (Throwable e) {
+            try {
+                JSON_MAPPER.writeValueAsString(e);
+                fail("Expected default serializer to fail");
+            } catch (Exception ignore) {
+                // do nothing
+            }
+            GreengrassLogMessage message = new GreengrassLogMessage();
+            message.setMessage("testing");
+            message.setCause(e);
+            GreengrassLogMessage messageDeserialized =
+                    JSON_MAPPER.readValue(message.getJSONMessage(), GreengrassLogMessage.class);
+            assertEquals(message, messageDeserialized);
+
+            Throwable deserializedCause = messageDeserialized.getCause();
+            assertEquals(e.getMessage(), deserializedCause.getMessage());
+            assertEquals(e.getLocalizedMessage(), deserializedCause.getLocalizedMessage());
+            assertEquals(e.getCause(), deserializedCause.getCause());
+            assertArrayEquals(e.getSuppressed(), deserializedCause.getSuppressed());
+            assertArrayEquals(e.getStackTrace(), deserializedCause.getStackTrace());
         }
     }
 }
