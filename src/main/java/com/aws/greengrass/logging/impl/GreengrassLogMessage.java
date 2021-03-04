@@ -139,7 +139,6 @@ public class GreengrassLogMessage {
                 throws IOException {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeObjectField("message", throwable.getMessage());
-            jsonGenerator.writeObjectField("localizedMessage", throwable.getLocalizedMessage());
             jsonGenerator.writeObjectField("suppressed", throwable.getSuppressed());
             jsonGenerator.writeObjectField("stackTrace", throwable.getStackTrace());
             jsonGenerator.writeObjectField("cause", throwable.getCause());
