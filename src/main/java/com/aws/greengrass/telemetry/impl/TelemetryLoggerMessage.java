@@ -7,12 +7,15 @@ package com.aws.greengrass.telemetry.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.Data;
 
 @Data
 public class TelemetryLoggerMessage {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER =
+            new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
     private Object metricDataPoint;
 
     public TelemetryLoggerMessage(Object metricDataPoint) {
@@ -28,7 +31,7 @@ public class TelemetryLoggerMessage {
         try {
             return OBJECT_MAPPER.writeValueAsString(this.metricDataPoint);
         } catch (JsonProcessingException e) {
-            return "{\"error\": \"" + e.getMessage() + "\"}";
+            return "{\"error\": \"" + new String(JsonStringEncoder.getInstance().quoteAsString(e.getMessage())) + "\"}";
         }
     }
 }

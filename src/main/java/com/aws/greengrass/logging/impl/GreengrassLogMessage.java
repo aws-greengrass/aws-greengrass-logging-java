@@ -6,8 +6,14 @@
 package com.aws.greengrass.logging.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -37,7 +43,9 @@ public class GreengrassLogMessage {
     private Throwable cause;
 
     @JsonIgnore
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER =
+            new ObjectMapper().disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                    .registerModule(new SimpleModule().addSerializer(new CustomThrowableSerializer(Throwable.class)));
     @JsonIgnore
     // Use ThreadLocal because SDFs are not threadsafe
     private static final ThreadLocal<DateTimeFormatter> sdf = ThreadLocal.withInitial(
@@ -115,7 +123,26 @@ public class GreengrassLogMessage {
         try {
             return OBJECT_MAPPER.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            return "{\"error\": \"" + e.getMessage() + "\"}";
+            return "{\"error\": \"" + new String(JsonStringEncoder.getInstance().quoteAsString(e.getMessage())) + "\"}";
+        }
+    }
+
+    private static class CustomThrowableSerializer extends StdSerializer<Throwable> {
+        private static final long serialVersionUID = 1L;  // required by spotbugs
+
+        protected CustomThrowableSerializer(Class<Throwable> t) {
+            super(t);
+        }
+
+        @Override
+        public void serialize(Throwable throwable, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+                throws IOException {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeObjectField("message", throwable.getMessage());
+            jsonGenerator.writeObjectField("suppressed", throwable.getSuppressed());
+            jsonGenerator.writeObjectField("stackTrace", throwable.getStackTrace());
+            jsonGenerator.writeObjectField("cause", throwable.getCause());
+            jsonGenerator.writeEndObject();
         }
     }
 }
