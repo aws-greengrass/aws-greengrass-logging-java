@@ -105,9 +105,15 @@ public class TelemetryConfig extends PersistenceConfig {
      */
     @Override
     public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
-        store = loggerConfiguration.getOutputType();
-        fileSizeKB = loggerConfiguration.getFileSizeKB();
-        totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        if (loggerConfiguration.getOutputType() != null) {
+            store = loggerConfiguration.getOutputType();
+        }
+        if (loggerConfiguration.getFileSizeKB() != null) {
+            fileSizeKB = loggerConfiguration.getFileSizeKB();
+        }
+        if (loggerConfiguration.getTotalLogsSizeKB() != null) {
+            totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        }
         closeContext();
         //Reconfigure all the telemetry loggers to use the store at new path.
         for (Logger logger : context.getLoggerList()) {

@@ -7,6 +7,7 @@ package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
 import com.aws.greengrass.logging.impl.config.LogStore;
+import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.aws.greengrass.logging.impl.config.LogConfig.LOGS_DIRECTORY;
+import static com.aws.greengrass.logging.impl.config.LogConfig.LOG_FILE_EXTENSION;
 
 /**
  * LogManager instances manufacture {@link com.aws.greengrass.logging.api.Logger} instances by name.
@@ -118,33 +120,73 @@ public class LogManager {
     }
 
     /**
-     * Sets effective configuration.
-     *
-     * @param loggerConfiguration configuration set in yaml.
+     * If a field is null in the given loggerConfiguration, set it using the value from root logging config.
+     * Effectively inheriting the root config (which is for greengrass.log)
      */
-    public static void setEffectiveConfig(LoggerConfiguration loggerConfiguration) {
-        LogConfig rootConfig = LogConfig.getInstance();
+    public static void setNullFieldsFromRootConfig(LoggerConfiguration loggerConfiguration) {
         if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
-            loggerConfiguration.setFileName(rootConfig.getFileName());
+            loggerConfiguration.setFileName(rootLogConfiguration.getFileName());
         }
-        if (loggerConfiguration.getFileSizeKB() == -1) {
-            loggerConfiguration.setFileSizeKB(rootConfig.getFileSizeKB());
+        if (loggerConfiguration.getFileSizeKB() == null) {
+            loggerConfiguration.setFileSizeKB(rootLogConfiguration.getFileSizeKB());
         }
-        if (loggerConfiguration.getTotalLogsSizeKB() == -1) {
-            loggerConfiguration.setTotalLogsSizeKB(rootConfig.getTotalLogStoreSizeKB());
+        if (loggerConfiguration.getTotalLogsSizeKB() == null) {
+            loggerConfiguration.setTotalLogsSizeKB(rootLogConfiguration.getTotalLogStoreSizeKB());
         }
         if (loggerConfiguration.getFormat() == null) {
-            loggerConfiguration.setFormat(rootConfig.getFormat());
+            loggerConfiguration.setFormat(rootLogConfiguration.getFormat());
         }
         if (loggerConfiguration.getLevel() == null) {
-            loggerConfiguration.setLevel(rootConfig.getLevel());
+            loggerConfiguration.setLevel(rootLogConfiguration.getLevel());
         }
         if (loggerConfiguration.getOutputType() == null) {
-            loggerConfiguration.setOutputType(rootConfig.getStore());
+            loggerConfiguration.setOutputType(rootLogConfiguration.getStore());
         }
         if (loggerConfiguration.getOutputDirectory() == null && LogStore.FILE
                 .equals(loggerConfiguration.getOutputType())) {
-            loggerConfiguration.setOutputDirectory(rootConfig.getStoreDirectory().toString());
+            loggerConfiguration.setOutputDirectory(rootLogConfiguration.getStoreDirectory().toString());
+        }
+    }
+
+    /**
+     * Reset the non-null fields of given config for all loggers back to the default value.
+     * Supported RESET topics:
+     *      level, format, outputType, fileSizeKB, totalLogsSizeKB, outputDirectory
+     *
+     * @param resetTopicName name of the topic to reset
+     */
+    public static void resetAllLoggers(String resetTopicName) {
+        // Constructing a new PersistenceConfig here because its constructor can check system properties for logging
+        // configs, which should be used as default
+        PersistenceConfig defaultConfig = new PersistenceConfig(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
+        if (resetTopicName == null) {  // reset all to default
+            reconfigureAllLoggers(new LoggerConfiguration(defaultConfig));
+        } else {  // reset individual config
+            LoggerConfiguration configToApply = LoggerConfiguration.builder().build();
+            switch (resetTopicName) {
+                case "level":
+                    configToApply.setLevel(defaultConfig.getLevel());
+                    break;
+                case "format":
+                    configToApply.setFormat(defaultConfig.getFormat());
+                    break;
+                case "outputType":
+                    configToApply.setOutputType(defaultConfig.getStore());
+                    break;
+                case "fileSizeKB":
+                    configToApply.setFileSizeKB(defaultConfig.getFileSizeKB());
+                    break;
+                case "totalLogsSizeKB":
+                    configToApply.setTotalLogsSizeKB(defaultConfig.getTotalLogStoreSizeKB());
+                    break;
+                case "outputDirectory":
+                    configToApply.setOutputDirectory(defaultConfig.getStoreDirectory().toString());
+                    break;
+                default:
+                    // Unknown config topic. Do nothing
+                    return;
+            }
+            reconfigureAllLoggers(configToApply);
         }
     }
 
@@ -180,11 +222,10 @@ public class LogManager {
                 logConfig.reconfigure(loggerConfiguration, storePath);
                 logConfig.startContext();
             }
-
             // Reconfigure the telemetry logger as well.
             telemetryConfig.reconfigure(loggerConfiguration, storePath);
         } else {
-            // Set dynamically configurable options 
+            // Set dynamically configurable options
             setLogConfig(rootLogConfiguration, loggerConfiguration);
             for (LogConfig logConfig : logConfigurations.values()) {
                 setLogConfig(logConfig, loggerConfiguration);
@@ -193,7 +234,11 @@ public class LogManager {
     }
 
     private static void setLogConfig(LogConfig log, LoggerConfiguration config) {
-        log.setLevel(config.getLevel());
-        log.setFormat(config.getFormat());
+        if (config.getLevel() != null) {
+            log.setLevel(config.getLevel());
+        }
+        if (config.getFormat() != null) {
+            log.setFormat(config.getFormat());
+        }
     }
 }

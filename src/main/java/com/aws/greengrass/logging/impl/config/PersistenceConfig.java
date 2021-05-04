@@ -9,6 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
@@ -239,15 +240,28 @@ public class PersistenceConfig {
     /**
      * Reconfigures the logger based on the logger configuration provided.
      * @param loggerConfiguration   The configuration for the logger.
+     *                              Can be a partial config. The null fields are ignored
      * @param storePath             Ths output directory path.
      */
     public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
-        level = loggerConfiguration.getLevel();
-        store = loggerConfiguration.getOutputType();
-        format = loggerConfiguration.getFormat();
-        fileName = loggerConfiguration.getFileName();
-        fileSizeKB = loggerConfiguration.getFileSizeKB();
-        totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        if (loggerConfiguration.getLevel() != null) {
+            level = loggerConfiguration.getLevel();
+        }
+        if (loggerConfiguration.getOutputType() != null) {
+            store = loggerConfiguration.getOutputType();
+        }
+        if (loggerConfiguration.getFormat() != null) {
+            format = loggerConfiguration.getFormat();
+        }
+        if (loggerConfiguration.getFileName() != null) {
+            fileName = loggerConfiguration.getFileName();
+        }
+        if (loggerConfiguration.getFileSizeKB() != null) {
+            fileSizeKB = loggerConfiguration.getFileSizeKB();
+        }
+        if (loggerConfiguration.getTotalLogsSizeKB() != null) {
+            totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        }
         setStoreDirectory(storePath);
         reconfigure();
     }

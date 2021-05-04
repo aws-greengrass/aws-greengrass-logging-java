@@ -60,8 +60,7 @@ class LogConfigTest {
 
         assertEquals(LogStore.CONSOLE, config.getStore());
         assertEquals(Level.DEBUG, config.getLevel());
-        // This format is text because the default value in LoggerConfiguration builder is to use TEXT
-        assertEquals(LogFormat.TEXT, config.getFormat());
+        assertEquals(LogFormat.JSON, config.getFormat());
         assertTrue(config.getStoreName().endsWith(DEFAULT_STORE_NAME));
         assertEquals(DEFAULT_STORE_NAME, config.getFileName());
 

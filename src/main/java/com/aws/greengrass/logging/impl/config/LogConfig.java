@@ -23,6 +23,9 @@ public class LogConfig extends PersistenceConfig {
 
     private static final LogConfig INSTANCE = new LogConfig();
 
+    /**
+     * This is the root logger configuration. Child loggers may refer to this to find default config values
+     */
     public static LogConfig getInstance() {
         return INSTANCE;
     }
@@ -43,7 +46,7 @@ public class LogConfig extends PersistenceConfig {
      */
     public LogConfig(LoggerConfiguration loggerConfiguration) {
         super(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
-        LogManager.setEffectiveConfig(loggerConfiguration);
+        LogManager.setNullFieldsFromRootConfig(loggerConfiguration);
         this.format = loggerConfiguration.getFormat();
         this.store = loggerConfiguration.getOutputType();
         if (loggerConfiguration.getOutputDirectory() == null) {
