@@ -7,7 +7,7 @@ package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.api.Logger;
 import com.aws.greengrass.logging.impl.config.LogStore;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,7 +83,7 @@ class FileLoggerTest {
         String randomLoggerName = UUID.randomUUID().toString();
         String randomString = UUID.randomUUID().toString();
         LogManager.setRoot(tempRootDir.resolve(randomFolder).toAbsolutePath());
-        Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
+        Logger logger2 = LogManager.getLogger(randomLoggerName, LogConfigUpdate.builder()
                 .fileName(randomLogFileName)
                 .build());
 
@@ -110,7 +110,7 @@ class FileLoggerTest {
         String randomLogFileName = UUID.randomUUID().toString() + ".log";
         String randomLoggerName = UUID.randomUUID().toString();
         String randomString = UUID.randomUUID().toString();
-        Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
+        Logger logger2 = LogManager.getLogger(randomLoggerName, LogConfigUpdate.builder()
                 .fileName(randomLogFileName)
                 .build());
         Logger logger2Child = logger2.createChild();
@@ -147,7 +147,7 @@ class FileLoggerTest {
         String randomLoggerName = UUID.randomUUID().toString();
 
         logger = LogManager.getLogger(FileLoggerTest.class);
-        Logger logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
+        Logger logger2 = LogManager.getLogger(randomLoggerName, LogConfigUpdate.builder()
                 .fileName(randomLogFileName)
                 .build());
 
@@ -171,7 +171,7 @@ class FileLoggerTest {
         }
         LogManager.setRoot(tempRootDir.resolve(randomFolder2));
         logger.atInfo().log(randomString + "SomeOtherThing");
-        logger2 = LogManager.getLogger(randomLoggerName, LoggerConfiguration.builder()
+        logger2 = LogManager.getLogger(randomLoggerName, LogConfigUpdate.builder()
                 .fileName(randomLogFileName)
                 .build());
         logger2.atInfo().log(randomString + "SomeOtherThing");

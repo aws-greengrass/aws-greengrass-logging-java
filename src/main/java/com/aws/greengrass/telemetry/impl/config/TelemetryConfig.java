@@ -12,7 +12,7 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.aws.greengrass.logging.impl.config.LogFormat;
 import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -100,19 +100,19 @@ public class TelemetryConfig extends PersistenceConfig {
      * Reconfigures the logger based on the logger configuration provided. Overriding this since we don't want
      * to change the telemetry directory or file name.
      *
-     * @param loggerConfiguration   The configuration for the logger.
+     * @param logConfigUpdate   The configuration for the logger.
      * @param storePath             Ths output directory path.
      */
     @Override
-    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
-        if (loggerConfiguration.getOutputType() != null) {
-            store = loggerConfiguration.getOutputType();
+    public synchronized void reconfigure(LogConfigUpdate logConfigUpdate, Path storePath) {
+        if (logConfigUpdate.getOutputType() != null) {
+            store = logConfigUpdate.getOutputType();
         }
-        if (loggerConfiguration.getFileSizeKB() != null) {
-            fileSizeKB = loggerConfiguration.getFileSizeKB();
+        if (logConfigUpdate.getFileSizeKB() != null) {
+            fileSizeKB = logConfigUpdate.getFileSizeKB();
         }
-        if (loggerConfiguration.getTotalLogsSizeKB() != null) {
-            totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        if (logConfigUpdate.getTotalLogsSizeKB() != null) {
+            totalLogStoreSizeKB = logConfigUpdate.getTotalLogsSizeKB();
         }
         closeContext();
         //Reconfigure all the telemetry loggers to use the store at new path.

@@ -9,12 +9,11 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
-import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
 import ch.qos.logback.core.util.FileSize;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
@@ -196,7 +195,7 @@ public class PersistenceConfig {
      * @param path  The path to transform.
      * @return transformed path without the "~".
      */
-    public String deTilde(String path) {
+    public static String deTilde(String path) {
         // Get path if "~/" is used
         if (path.startsWith(HOME_DIR_PREFIX)) {
             return Paths.get(System.getProperty("user.home"))
@@ -214,7 +213,7 @@ public class PersistenceConfig {
         }
     }
 
-    protected Optional<String> stripExtension(String fileName) {
+    protected static Optional<String> stripExtension(String fileName) {
         // Handle null case specially.
         if (fileName == null) {
             return Optional.empty();
@@ -239,28 +238,28 @@ public class PersistenceConfig {
 
     /**
      * Reconfigures the logger based on the logger configuration provided.
-     * @param loggerConfiguration   The configuration for the logger.
+     * @param logConfigUpdate   The configuration for the logger.
      *                              Can be a partial config. The null fields are ignored
      * @param storePath             Ths output directory path.
      */
-    public synchronized void reconfigure(LoggerConfiguration loggerConfiguration, Path storePath) {
-        if (loggerConfiguration.getLevel() != null) {
-            level = loggerConfiguration.getLevel();
+    public synchronized void reconfigure(LogConfigUpdate logConfigUpdate, Path storePath) {
+        if (logConfigUpdate.getLevel() != null) {
+            level = logConfigUpdate.getLevel();
         }
-        if (loggerConfiguration.getOutputType() != null) {
-            store = loggerConfiguration.getOutputType();
+        if (logConfigUpdate.getOutputType() != null) {
+            store = logConfigUpdate.getOutputType();
         }
-        if (loggerConfiguration.getFormat() != null) {
-            format = loggerConfiguration.getFormat();
+        if (logConfigUpdate.getFormat() != null) {
+            format = logConfigUpdate.getFormat();
         }
-        if (loggerConfiguration.getFileName() != null) {
-            fileName = loggerConfiguration.getFileName();
+        if (logConfigUpdate.getFileName() != null) {
+            fileName = logConfigUpdate.getFileName();
         }
-        if (loggerConfiguration.getFileSizeKB() != null) {
-            fileSizeKB = loggerConfiguration.getFileSizeKB();
+        if (logConfigUpdate.getFileSizeKB() != null) {
+            fileSizeKB = logConfigUpdate.getFileSizeKB();
         }
-        if (loggerConfiguration.getTotalLogsSizeKB() != null) {
-            totalLogStoreSizeKB = loggerConfiguration.getTotalLogsSizeKB();
+        if (logConfigUpdate.getTotalLogsSizeKB() != null) {
+            totalLogStoreSizeKB = logConfigUpdate.getTotalLogsSizeKB();
         }
         setStoreDirectory(storePath);
         reconfigure();

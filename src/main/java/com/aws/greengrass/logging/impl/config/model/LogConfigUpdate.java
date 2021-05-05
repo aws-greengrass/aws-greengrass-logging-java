@@ -14,10 +14,13 @@ import lombok.Data;
 import org.slf4j.event.Level;
 
 
+/**
+ * Data transfer object for passing around log config parameters.
+ */
 @Builder
 @Data
 @AllArgsConstructor
-public class LoggerConfiguration {
+public class LogConfigUpdate {
     private Level level;
     private String fileName;
     private Long fileSizeKB;
@@ -30,7 +33,7 @@ public class LoggerConfiguration {
      * Construct from a PersistenceConfig by reading the config values from it.
      * @param persistenceConfig a PersistenceConfig object
      */
-    public LoggerConfiguration(PersistenceConfig persistenceConfig) {
+    public LogConfigUpdate(PersistenceConfig persistenceConfig) {
         level = persistenceConfig.getLevel();
         fileName = persistenceConfig.getFileName();
         fileSizeKB = persistenceConfig.getFileSizeKB();

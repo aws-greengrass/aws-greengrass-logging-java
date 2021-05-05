@@ -6,9 +6,8 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
-import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -58,13 +57,13 @@ public class LogManager {
      * Return an appropriate {@link com.aws.greengrass.logging.api.Logger} instance as specified by the name parameter.
      *
      * @param name                the name of the Logger to return
-     * @param loggerConfiguration the configuration for the Logger
+     * @param logConfigUpdate the configuration for the Logger
      * @return a Logger instance
      */
-    public static com.aws.greengrass.logging.api.Logger getLogger(String name,
-                                                                  LoggerConfiguration loggerConfiguration) {
+    public static com.aws.greengrass.logging.api.Logger getLogger(String name, LogConfigUpdate logConfigUpdate) {
         return loggerMap.computeIfAbsent(name, n -> {
-            LogConfig logConfig = logConfigurations.computeIfAbsent(name, s -> new LogConfig(loggerConfiguration));
+            LogConfig logConfig =
+                    logConfigurations.computeIfAbsent(name, s -> LogConfig.newLogConfigFromRootConfig(logConfigUpdate));
             Logger logger = logConfig.getLogger(name);
             return new Slf4jLogAdapter(logger, logConfig);
         });
@@ -120,35 +119,6 @@ public class LogManager {
     }
 
     /**
-     * If a field is null in the given loggerConfiguration, set it using the value from root logging config.
-     * Effectively inheriting the root config (which is for greengrass.log)
-     */
-    public static void setNullFieldsFromRootConfig(LoggerConfiguration loggerConfiguration) {
-        if (loggerConfiguration.getFileName() == null || loggerConfiguration.getFileName().trim().isEmpty()) {
-            loggerConfiguration.setFileName(rootLogConfiguration.getFileName());
-        }
-        if (loggerConfiguration.getFileSizeKB() == null) {
-            loggerConfiguration.setFileSizeKB(rootLogConfiguration.getFileSizeKB());
-        }
-        if (loggerConfiguration.getTotalLogsSizeKB() == null) {
-            loggerConfiguration.setTotalLogsSizeKB(rootLogConfiguration.getTotalLogStoreSizeKB());
-        }
-        if (loggerConfiguration.getFormat() == null) {
-            loggerConfiguration.setFormat(rootLogConfiguration.getFormat());
-        }
-        if (loggerConfiguration.getLevel() == null) {
-            loggerConfiguration.setLevel(rootLogConfiguration.getLevel());
-        }
-        if (loggerConfiguration.getOutputType() == null) {
-            loggerConfiguration.setOutputType(rootLogConfiguration.getStore());
-        }
-        if (loggerConfiguration.getOutputDirectory() == null && LogStore.FILE
-                .equals(loggerConfiguration.getOutputType())) {
-            loggerConfiguration.setOutputDirectory(rootLogConfiguration.getStoreDirectory().toString());
-        }
-    }
-
-    /**
      * Reset the non-null fields of given config for all loggers back to the default value.
      * Supported RESET topics:
      *      level, format, outputType, fileSizeKB, totalLogsSizeKB, outputDirectory
@@ -160,9 +130,9 @@ public class LogManager {
         // configs, which should be used as default
         PersistenceConfig defaultConfig = new PersistenceConfig(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
         if (resetTopicName == null) {  // reset all to default
-            reconfigureAllLoggers(new LoggerConfiguration(defaultConfig));
+            reconfigureAllLoggers(new LogConfigUpdate(defaultConfig));
         } else {  // reset individual config
-            LoggerConfiguration configToApply = LoggerConfiguration.builder().build();
+            LogConfigUpdate configToApply = LogConfigUpdate.builder().build();
             switch (resetTopicName) {
                 case "level":
                     configToApply.setLevel(defaultConfig.getLevel());
@@ -193,47 +163,47 @@ public class LogManager {
     /**
      * Reconfigure all loggers to use the new configuration.
      *
-     * @param loggerConfiguration configuration for all loggers.
+     * @param logConfigUpdate configuration for all loggers.
      */
-    public static void reconfigureAllLoggers(LoggerConfiguration loggerConfiguration) {
+    public static void reconfigureAllLoggers(LogConfigUpdate logConfigUpdate) {
         Path storePath;
-        if (loggerConfiguration.getOutputDirectory() == null || loggerConfiguration.getOutputDirectory().trim()
+        if (logConfigUpdate.getOutputDirectory() == null || logConfigUpdate.getOutputDirectory().trim()
                 .isEmpty()) {
             storePath = rootLogConfiguration.getStoreDirectory();
         } else {
-            storePath = Paths.get(loggerConfiguration.getOutputDirectory());
+            storePath = Paths.get(logConfigUpdate.getOutputDirectory());
         }
 
         // Only reconfigure file when directory, file size, or store size changes. Everything else
         // can be reconfigured without needing to recreate the log appender
         boolean reconfiguringFileOptions =
                 !(Objects.equals(rootLogConfiguration.getStoreDirectory(), storePath) && Objects
-                .equals(rootLogConfiguration.getFileSizeKB(), loggerConfiguration.getFileSizeKB()) && Objects
-                .equals(rootLogConfiguration.getTotalLogStoreSizeKB(), loggerConfiguration.getTotalLogsSizeKB())
-                && Objects.equals(rootLogConfiguration.getStore(), loggerConfiguration.getOutputType()));
+                .equals(rootLogConfiguration.getFileSizeKB(), logConfigUpdate.getFileSizeKB()) && Objects
+                .equals(rootLogConfiguration.getTotalLogStoreSizeKB(), logConfigUpdate.getTotalLogsSizeKB())
+                && Objects.equals(rootLogConfiguration.getStore(), logConfigUpdate.getOutputType()));
 
         if (reconfiguringFileOptions) {
             rootLogConfiguration.closeContext();
-            rootLogConfiguration.reconfigure(loggerConfiguration, storePath);
+            rootLogConfiguration.reconfigure(logConfigUpdate, storePath);
             rootLogConfiguration.startContext();
             // Reconfigure all the loggers to use the store at new path.
             for (LogConfig logConfig : logConfigurations.values()) {
                 logConfig.closeContext();
-                logConfig.reconfigure(loggerConfiguration, storePath);
+                logConfig.reconfigure(logConfigUpdate, storePath);
                 logConfig.startContext();
             }
             // Reconfigure the telemetry logger as well.
-            telemetryConfig.reconfigure(loggerConfiguration, storePath);
+            telemetryConfig.reconfigure(logConfigUpdate, storePath);
         } else {
             // Set dynamically configurable options
-            setLogConfig(rootLogConfiguration, loggerConfiguration);
+            setLogConfig(rootLogConfiguration, logConfigUpdate);
             for (LogConfig logConfig : logConfigurations.values()) {
-                setLogConfig(logConfig, loggerConfiguration);
+                setLogConfig(logConfig, logConfigUpdate);
             }
         }
     }
 
-    private static void setLogConfig(LogConfig log, LoggerConfiguration config) {
+    private static void setLogConfig(LogConfig log, LogConfigUpdate config) {
         if (config.getLevel() != null) {
             log.setLevel(config.getLevel());
         }
