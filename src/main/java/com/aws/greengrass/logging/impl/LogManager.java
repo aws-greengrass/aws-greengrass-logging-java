@@ -132,25 +132,28 @@ public class LogManager {
         if (resetTopicName == null) {  // reset all to default
             reconfigureAllLoggers(new LogConfigUpdate(defaultConfig));
         } else {  // reset individual config
-            LogConfigUpdate configToApply = LogConfigUpdate.builder().build();
+            LogConfigUpdate configToApply;
             switch (resetTopicName) {
                 case "level":
-                    configToApply.setLevel(defaultConfig.getLevel());
+                    configToApply = LogConfigUpdate.builder().level(defaultConfig.getLevel()).build();
                     break;
                 case "format":
-                    configToApply.setFormat(defaultConfig.getFormat());
+                    configToApply = LogConfigUpdate.builder().format(defaultConfig.getFormat()).build();
                     break;
                 case "outputType":
-                    configToApply.setOutputType(defaultConfig.getStore());
+                    configToApply = LogConfigUpdate.builder().outputType(defaultConfig.getStore()).build();
                     break;
                 case "fileSizeKB":
-                    configToApply.setFileSizeKB(defaultConfig.getFileSizeKB());
+                    configToApply = LogConfigUpdate.builder().fileSizeKB(defaultConfig.getFileSizeKB()).build();
                     break;
                 case "totalLogsSizeKB":
-                    configToApply.setTotalLogsSizeKB(defaultConfig.getTotalLogStoreSizeKB());
+                    configToApply =
+                            LogConfigUpdate.builder().totalLogsSizeKB(defaultConfig.getTotalLogStoreSizeKB()).build();
                     break;
                 case "outputDirectory":
-                    configToApply.setOutputDirectory(defaultConfig.getStoreDirectory().toString());
+                    configToApply =
+                            LogConfigUpdate.builder().outputDirectory(defaultConfig.getStoreDirectory().toString())
+                                    .build();
                     break;
                 default:
                     // Unknown config topic. Do nothing
@@ -203,12 +206,12 @@ public class LogManager {
         }
     }
 
-    private static void setLogConfig(LogConfig log, LogConfigUpdate config) {
-        if (config.getLevel() != null) {
-            log.setLevel(config.getLevel());
+    private static void setLogConfig(LogConfig log, LogConfigUpdate configUpdate) {
+        if (configUpdate.getLevel() != null) {
+            log.setLevel(configUpdate.getLevel());
         }
-        if (config.getFormat() != null) {
-            log.setFormat(config.getFormat());
+        if (configUpdate.getFormat() != null) {
+            log.setFormat(configUpdate.getFormat());
         }
     }
 }

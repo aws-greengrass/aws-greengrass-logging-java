@@ -42,11 +42,11 @@ public class LogConfig extends PersistenceConfig {
     /**
      * Create a new instance of LogConfig by inheriting configs from current root config.
      *
-     * @param configUpdate parameters to override the root config
+     * @param configOverrides parameters to override the root config
      * @return a new instance of LogConfig
      */
-    public static LogConfig newLogConfigFromRootConfig(LogConfigUpdate configUpdate) {
-        fillNullFieldsFromRootConfig(configUpdate);
+    public static LogConfig newLogConfigFromRootConfig(LogConfigUpdate configOverrides) {
+        LogConfigUpdate configUpdate = fillNullFieldsFromRootConfig(configOverrides);
         LogConfig newConfig = new LogConfig();
         newConfig.format = configUpdate.getFormat();
         newConfig.store = configUpdate.getOutputType();
@@ -65,33 +65,38 @@ public class LogConfig extends PersistenceConfig {
     }
 
     /**
-     * If a field is null in the given configUpdate, set it using the value from root logging config.
-     * Effectively inheriting the root config
+     * Create a new LogConfigUpdate from current root config, but override it with the given configUpdate.
+     * Effectively inheriting the root config with overrides.
+     *
+     * @param configOverrides params to override the root config
+     * @return a new instance of LogConfigUpdate
      */
-    private static void fillNullFieldsFromRootConfig(LogConfigUpdate configUpdate) {
+    private static LogConfigUpdate fillNullFieldsFromRootConfig(LogConfigUpdate configOverrides) {
         LogConfig rootLogConfiguration = LogManager.getRootLogConfiguration();
-        if (configUpdate.getFileName() == null || configUpdate.getFileName().trim().isEmpty()) {
-            configUpdate.setFileName(rootLogConfiguration.getFileName());
+        LogConfigUpdate.LogConfigUpdateBuilder newConfigUpdate = configOverrides.toBuilder();
+        if (configOverrides.getFileName() == null || configOverrides.getFileName().trim().isEmpty()) {
+            newConfigUpdate.fileName(rootLogConfiguration.getFileName());
         }
-        if (configUpdate.getFileSizeKB() == null) {
-            configUpdate.setFileSizeKB(rootLogConfiguration.getFileSizeKB());
+        if (configOverrides.getFileSizeKB() == null) {
+            newConfigUpdate.fileSizeKB(rootLogConfiguration.getFileSizeKB());
         }
-        if (configUpdate.getTotalLogsSizeKB() == null) {
-            configUpdate.setTotalLogsSizeKB(rootLogConfiguration.getTotalLogStoreSizeKB());
+        if (configOverrides.getTotalLogsSizeKB() == null) {
+            newConfigUpdate.totalLogsSizeKB(rootLogConfiguration.getTotalLogStoreSizeKB());
         }
-        if (configUpdate.getFormat() == null) {
-            configUpdate.setFormat(rootLogConfiguration.getFormat());
+        if (configOverrides.getFormat() == null) {
+            newConfigUpdate.format(rootLogConfiguration.getFormat());
         }
-        if (configUpdate.getLevel() == null) {
-            configUpdate.setLevel(rootLogConfiguration.getLevel());
+        if (configOverrides.getLevel() == null) {
+            newConfigUpdate.level(rootLogConfiguration.getLevel());
         }
-        if (configUpdate.getOutputType() == null) {
-            configUpdate.setOutputType(rootLogConfiguration.getStore());
+        if (configOverrides.getOutputType() == null) {
+            newConfigUpdate.outputType(rootLogConfiguration.getStore());
         }
-        if (configUpdate.getOutputDirectory() == null && LogStore.FILE
-                .equals(configUpdate.getOutputType())) {
-            configUpdate.setOutputDirectory(rootLogConfiguration.getStoreDirectory().toString());
+        if (configOverrides.getOutputDirectory() == null && LogStore.FILE
+                .equals(configOverrides.getOutputType())) {
+            newConfigUpdate.outputDirectory(rootLogConfiguration.getStoreDirectory().toString());
         }
+        return newConfigUpdate.build();
     }
 
     public Logger getLogger(String name) {

@@ -10,24 +10,28 @@ import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import org.slf4j.event.Level;
 
 
 /**
  * Data transfer object for passing around log config parameters.
  */
-@Builder
-@Data
+@Builder(toBuilder = true)
+@ToString
+@EqualsAndHashCode
+@Getter
 @AllArgsConstructor
 public class LogConfigUpdate {
-    private Level level;
-    private String fileName;
-    private Long fileSizeKB;
-    private Long totalLogsSizeKB;
-    private LogFormat format;
-    private String outputDirectory;
-    private LogStore outputType;
+    private final Level level;
+    private final String fileName;
+    private final Long fileSizeKB;
+    private final Long totalLogsSizeKB;
+    private final LogFormat format;
+    private final String outputDirectory;
+    private final LogStore outputType;
 
     /**
      * Construct from a PersistenceConfig by reading the config values from it.
