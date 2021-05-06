@@ -21,13 +21,13 @@ public class LogConfig extends PersistenceConfig {
     public static final String LOG_FILE_EXTENSION = "log";
     private final LoggerContext context = new LoggerContext();
 
-    private static final LogConfig INSTANCE = new LogConfig();
+    private static final LogConfig ROOT_LOG_CONFIG = new LogConfig();
 
     /**
      * This is the root logger configuration. Child loggers may refer to this to find default config values
      */
-    public static LogConfig getInstance() {
-        return INSTANCE;
+    public static LogConfig getRootLogConfig() {
+        return ROOT_LOG_CONFIG;
     }
 
     /**
@@ -51,7 +51,7 @@ public class LogConfig extends PersistenceConfig {
         newConfig.format = configUpdate.getFormat();
         newConfig.store = configUpdate.getOutputType();
         if (configUpdate.getOutputDirectory() == null) {
-            newConfig.storeDirectory = getInstance().getStoreDirectory();
+            newConfig.storeDirectory = getRootLogConfig().getStoreDirectory();
         } else {
             newConfig.storeDirectory = Paths.get(deTilde(configUpdate.getOutputDirectory()));
         }

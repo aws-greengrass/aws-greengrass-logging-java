@@ -49,12 +49,12 @@ class LoggerTest {
     @BeforeEach
     void beforeTesting() {
         System.setProperty("root", tempDir.toAbsolutePath().toString());
-        LogConfig.getInstance().setLevel(Level.TRACE);
+        LogConfig.getRootLogConfig().setLevel(Level.TRACE);
     }
 
     @Test
     void GIVEN_logger_for_name_WHEN_check_level_THEN_level_is_info_by_default() {
-        LogConfig.getInstance().setLevel(Level.INFO);
+        LogConfig.getRootLogConfig().setLevel(Level.INFO);
         Logger logger = LogManager.getLogger("test");
 
         assertEquals("test", logger.getName());
@@ -73,7 +73,7 @@ class LoggerTest {
     @Test
     void GIVEN_logger_WHEN_log_at_level_below_setting_THEN_message_is_not_logged() {
         // Setup logger with spy
-        LogConfig.getInstance().setLevel(Level.INFO);
+        LogConfig.getRootLogConfig().setLevel(Level.INFO);
         Slf4jLogAdapter logger = (Slf4jLogAdapter) LogManager.getLogger("test");
         org.slf4j.Logger loggerSpy = setupLoggerSpy(logger);
 

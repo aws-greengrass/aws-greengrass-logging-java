@@ -34,7 +34,7 @@ public class LogManager {
     private static final ConcurrentMap<String, com.aws.greengrass.logging.api.Logger> telemetryLoggerMap =
             new ConcurrentHashMap<>();
     @Getter
-    private static final LogConfig rootLogConfiguration = LogConfig.getInstance();
+    private static final LogConfig rootLogConfiguration = LogConfig.getRootLogConfig();
     @Getter
     private static final Map<String, LogConfig> logConfigurations = new ConcurrentHashMap<>();
     @Getter
@@ -101,7 +101,7 @@ public class LogManager {
      */
     public static void setRoot(Path newPath) {
         if (newPath != null) {
-            LogConfig rootConfig = LogConfig.getInstance();
+            LogConfig rootConfig = LogConfig.getRootLogConfig();
             newPath = Paths.get(rootConfig.deTilde(newPath.resolve(LOGS_DIRECTORY).toString()));
             if (Objects.equals(rootLogConfiguration.getStoreDirectory(), newPath)) {
                 return;

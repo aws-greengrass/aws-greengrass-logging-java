@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LogConfigTest {
     @AfterEach
     void cleanup() {
-        LogConfig.getInstance().reset();
+        LogConfig.getRootLogConfig().reset();
     }
 
 
@@ -51,7 +51,7 @@ class LogConfigTest {
 
     @Test
     void GIVEN_provided_LoggerConfiguration_and_global_THEN_LogConfig_is_configured_with_merged() {
-        LogConfig root = LogConfig.getInstance();
+        LogConfig root = LogConfig.getRootLogConfig();
         root.setLevel(Level.DEBUG);
         root.setFormat(LogFormat.JSON);
 
