@@ -8,7 +8,7 @@ package com.aws.greengrass.logging.impl.config;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import com.aws.greengrass.logging.impl.LogManager;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import lombok.Getter;
 import org.slf4j.event.Level;
 
@@ -21,10 +21,13 @@ public class LogConfig extends PersistenceConfig {
     public static final String LOG_FILE_EXTENSION = "log";
     private final LoggerContext context = new LoggerContext();
 
-    private static final LogConfig INSTANCE = new LogConfig();
+    private static final LogConfig ROOT_LOG_CONFIG = new LogConfig();
 
-    public static LogConfig getInstance() {
-        return INSTANCE;
+    /**
+     * This is the root logger configuration. Child loggers may refer to this to find default config values
+     */
+    public static LogConfig getRootLogConfig() {
+        return ROOT_LOG_CONFIG;
     }
 
     /**
@@ -37,26 +40,63 @@ public class LogConfig extends PersistenceConfig {
     }
 
     /**
-     * Get default logging configuration from system properties.
+     * Create a new instance of LogConfig by inheriting configs from current root config.
      *
-     * @param loggerConfiguration the configuration for the logger.
+     * @param configOverrides parameters to override the root config
+     * @return a new instance of LogConfig
      */
-    public LogConfig(LoggerConfiguration loggerConfiguration) {
-        super(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
-        LogManager.setEffectiveConfig(loggerConfiguration);
-        this.format = loggerConfiguration.getFormat();
-        this.store = loggerConfiguration.getOutputType();
-        if (loggerConfiguration.getOutputDirectory() == null) {
-            this.storeDirectory = getInstance().getStoreDirectory();
+    public static LogConfig newLogConfigFromRootConfig(LogConfigUpdate configOverrides) {
+        LogConfigUpdate configUpdate = fillNullFieldsFromRootConfig(configOverrides);
+        LogConfig newConfig = new LogConfig();
+        newConfig.format = configUpdate.getFormat();
+        newConfig.store = configUpdate.getOutputType();
+        if (configUpdate.getOutputDirectory() == null) {
+            newConfig.storeDirectory = getRootLogConfig().getStoreDirectory();
         } else {
-            this.storeDirectory = Paths.get(deTilde(loggerConfiguration.getOutputDirectory()));
+            newConfig.storeDirectory = Paths.get(deTilde(configUpdate.getOutputDirectory()));
         }
-        Optional<String> fileNameWithoutExtension = stripExtension(loggerConfiguration.getFileName());
-        this.fileName = fileNameWithoutExtension.orElseGet(() -> this.storeName);
-        this.storeName = this.storeDirectory.resolve(loggerConfiguration.getFileName()).toAbsolutePath().toString();
-        this.level = loggerConfiguration.getLevel();
-        reconfigure(context.getLogger(Logger.ROOT_LOGGER_NAME));
-        startContext();
+        Optional<String> fileNameWithoutExtension = stripExtension(configUpdate.getFileName());
+        newConfig.fileName = fileNameWithoutExtension.orElseGet(() -> newConfig.storeName);
+        newConfig.storeName =
+                newConfig.storeDirectory.resolve(configUpdate.getFileName()).toAbsolutePath().toString();
+        newConfig.level = configUpdate.getLevel();
+        newConfig.reconfigure(newConfig.context.getLogger(Logger.ROOT_LOGGER_NAME));
+        return newConfig;
+    }
+
+    /**
+     * Create a new LogConfigUpdate from current root config, but override it with the given configUpdate.
+     * Effectively inheriting the root config with overrides.
+     *
+     * @param configOverrides params to override the root config
+     * @return a new instance of LogConfigUpdate
+     */
+    private static LogConfigUpdate fillNullFieldsFromRootConfig(LogConfigUpdate configOverrides) {
+        LogConfig rootLogConfiguration = LogManager.getRootLogConfiguration();
+        LogConfigUpdate.LogConfigUpdateBuilder newConfigUpdate = configOverrides.toBuilder();
+        if (configOverrides.getFileName() == null || configOverrides.getFileName().trim().isEmpty()) {
+            newConfigUpdate.fileName(rootLogConfiguration.getFileName());
+        }
+        if (configOverrides.getFileSizeKB() == null) {
+            newConfigUpdate.fileSizeKB(rootLogConfiguration.getFileSizeKB());
+        }
+        if (configOverrides.getTotalLogsSizeKB() == null) {
+            newConfigUpdate.totalLogsSizeKB(rootLogConfiguration.getTotalLogStoreSizeKB());
+        }
+        if (configOverrides.getFormat() == null) {
+            newConfigUpdate.format(rootLogConfiguration.getFormat());
+        }
+        if (configOverrides.getLevel() == null) {
+            newConfigUpdate.level(rootLogConfiguration.getLevel());
+        }
+        if (configOverrides.getOutputType() == null) {
+            newConfigUpdate.outputType(rootLogConfiguration.getStore());
+        }
+        if (configOverrides.getOutputDirectory() == null && LogStore.FILE
+                .equals(configOverrides.getOutputType())) {
+            newConfigUpdate.outputDirectory(rootLogConfiguration.getStoreDirectory().toString());
+        }
+        return newConfigUpdate.build();
     }
 
     public Logger getLogger(String name) {

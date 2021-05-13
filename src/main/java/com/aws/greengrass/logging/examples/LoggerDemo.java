@@ -7,7 +7,7 @@ package com.aws.greengrass.logging.examples;
 
 import com.aws.greengrass.logging.api.Logger;
 import com.aws.greengrass.logging.impl.LogManager;
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -29,10 +29,10 @@ public class LoggerDemo {
         logger1 = LogManager.getLogger(LoggerDemo.class);
         randomNewLogger = LogManager.getLogger("RandomNewLogger");
         logger1Child = logger1.createChild();
-        LoggerConfiguration loggerConfiguration = LoggerConfiguration.builder()
+        LogConfigUpdate logConfigUpdate = LogConfigUpdate.builder()
                 .fileName("testComponent/testLog.log")
                 .build();
-        logger2 = LogManager.getLogger("newLogger", loggerConfiguration);
+        logger2 = LogManager.getLogger("newLogger", logConfigUpdate);
         logger2Child = logger2.createChild();
         logger1.addDefaultKeyValue("component", "demo").addDefaultKeyValue("device", "asdf");
     }

@@ -5,7 +5,7 @@
 
 package com.aws.greengrass.logging.impl.config;
 
-import com.aws.greengrass.logging.impl.config.model.LoggerConfiguration;
+import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.event.Level;
@@ -17,14 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LogConfigTest {
     @AfterEach
     void cleanup() {
-        LogConfig.getInstance().reset();
+        LogConfig.getRootLogConfig().reset();
     }
 
 
     @Test
     void GIVEN_provided_LoggerConfiguration_THEN_LogConfig_is_configured_the_same() {
-        LoggerConfiguration builder = LoggerConfiguration.builder().build();
-        LogConfig config = new LogConfig(builder);
+        LogConfigUpdate builder = LogConfigUpdate.builder().build();
+        LogConfig config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(LogStore.CONSOLE, config.getStore());
         assertEquals(Level.INFO, config.getLevel());
@@ -32,18 +32,18 @@ class LogConfigTest {
         assertTrue(config.getStoreName().endsWith(DEFAULT_STORE_NAME));
         assertEquals(DEFAULT_STORE_NAME, config.getFileName());
 
-        builder = LoggerConfiguration.builder().level(Level.TRACE).build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().level(Level.TRACE).build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(Level.TRACE, config.getLevel());
 
-        builder = LoggerConfiguration.builder().format(LogFormat.JSON).build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().format(LogFormat.JSON).build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(LogFormat.JSON, config.getFormat());
 
-        builder = LoggerConfiguration.builder().fileName("abc").build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().fileName("abc").build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertTrue(config.getStoreName().endsWith("abc"));
         assertEquals("abc", config.getFileName());
@@ -51,33 +51,32 @@ class LogConfigTest {
 
     @Test
     void GIVEN_provided_LoggerConfiguration_and_global_THEN_LogConfig_is_configured_with_merged() {
-        LogConfig root = LogConfig.getInstance();
+        LogConfig root = LogConfig.getRootLogConfig();
         root.setLevel(Level.DEBUG);
         root.setFormat(LogFormat.JSON);
 
-        LoggerConfiguration builder = LoggerConfiguration.builder().build();
-        LogConfig config = new LogConfig(builder);
+        LogConfigUpdate builder = LogConfigUpdate.builder().build();
+        LogConfig config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(LogStore.CONSOLE, config.getStore());
         assertEquals(Level.DEBUG, config.getLevel());
-        // This format is text because the default value in LoggerConfiguration builder is to use TEXT
-        assertEquals(LogFormat.TEXT, config.getFormat());
+        assertEquals(LogFormat.JSON, config.getFormat());
         assertTrue(config.getStoreName().endsWith(DEFAULT_STORE_NAME));
         assertEquals(DEFAULT_STORE_NAME, config.getFileName());
 
-        builder = LoggerConfiguration.builder().level(Level.TRACE).build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().level(Level.TRACE).build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(Level.TRACE, config.getLevel());
 
-        builder = LoggerConfiguration.builder().format(LogFormat.TEXT).build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().format(LogFormat.TEXT).build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(LogFormat.TEXT, config.getFormat());
 
         root.setStore(LogStore.FILE);
-        builder = LoggerConfiguration.builder().outputType(LogStore.CONSOLE).build();
-        config = new LogConfig(builder);
+        builder = LogConfigUpdate.builder().outputType(LogStore.CONSOLE).build();
+        config = LogConfig.newLogConfigFromRootConfig(builder);
 
         assertEquals(LogStore.CONSOLE, config.getStore());
     }
