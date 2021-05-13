@@ -50,6 +50,8 @@ public class LogConfig extends PersistenceConfig {
         LogConfig newConfig = new LogConfig();
         newConfig.format = configUpdate.getFormat();
         newConfig.store = configUpdate.getOutputType();
+        newConfig.fileSizeKB = configUpdate.getFileSizeKB();
+        newConfig.totalLogStoreSizeKB = configUpdate.getTotalLogsSizeKB();
         if (configUpdate.getOutputDirectory() == null) {
             newConfig.storeDirectory = getRootLogConfig().getStoreDirectory();
         } else {
