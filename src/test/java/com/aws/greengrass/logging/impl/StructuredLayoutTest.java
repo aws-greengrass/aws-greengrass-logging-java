@@ -83,13 +83,10 @@ public class StructuredLayoutTest {
     }
 
     @Test
-    public void GIVEN_throwable_that_fails_default_serializer_WHEN_use_custom_serializer_THEN_succeeds()
+    public void GIVEN_throwable_WHEN_use_custom_serializer_THEN_succeeds()
             throws JsonProcessingException {
         Throwable cause = assertThrows(JsonProcessingException.class,
                 () -> JSON_MAPPER.readValue("this will go wrong", Object.class));
-
-        // Default serializer should fail to serialize this throwable
-        assertThrows(JsonProcessingException.class, () -> JSON_MAPPER.writeValueAsString(cause));
 
         GreengrassLogMessage message = new GreengrassLogMessage();
         message.setMessage("testing");
