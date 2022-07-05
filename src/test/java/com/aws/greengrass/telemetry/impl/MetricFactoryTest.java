@@ -274,6 +274,27 @@ class MetricFactoryTest {
         assertTrue(new File(path2 + "/someFile.log").exists());
     }
 
+    @Test
+    void GIVEN_metric_factory_WHEN_new_telemetry_root_directory_THEN_does_not_create_unnecessary_metric_files() {
+        MetricFactory mf1 = new MetricFactory("com.example.component");
+        Metric m = Metric.builder().namespace("A").name("B").unit(TelemetryUnit.Percent).value(10)
+                .aggregation(TelemetryAggregation.Average).timestamp((long) 10).build();
+        mf1.putMetricData(m);
+
+        assertTrue(Files.exists(TelemetryConfig.getTelemetryDirectory().resolve("com.example.component.log")));
+        assertFalse(Files.exists(TelemetryConfig.getTelemetryDirectory().resolve("com.example.log")));
+        assertFalse(Files.exists(TelemetryConfig.getTelemetryDirectory().resolve("com.log")));
+
+        Path newTempRoot = tempRootDir.resolve("someNewRootDir");
+        TelemetryConfig.getInstance().setRoot(newTempRoot);
+        mf1.putMetricData(m);
+        newTempRoot = newTempRoot.resolve(TelemetryConfig.TELEMETRY_DIRECTORY);
+
+        assertTrue(Files.exists(newTempRoot.resolve("com.example.component.log")));
+        assertFalse(Files.exists(newTempRoot.resolve("com.example.log")));
+        assertFalse(Files.exists(newTempRoot.resolve("com.log")));
+    }
+
     private Logger setupLoggerSpy(MetricFactory mf) {
         Logger loggerSpy = spy(mf.getLogger());
         mf.setLogger(loggerSpy);

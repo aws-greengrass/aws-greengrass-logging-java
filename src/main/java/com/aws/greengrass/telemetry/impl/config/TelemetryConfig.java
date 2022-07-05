@@ -19,7 +19,9 @@ import org.slf4j.event.Level;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.aws.greengrass.telemetry.impl.MetricFactory.METRIC_LOGGER_PREFIX;
 
@@ -29,6 +31,7 @@ public class TelemetryConfig extends PersistenceConfig {
     public static final String CONFIG_PREFIX = "log";
     public static final String METRICS_SWITCH_KEY = "log.metricsEnabled";
     public static final String TELEMETRY_DIRECTORY = "telemetry";
+    public final Set<String> telemetryLoggerNamesSet = new HashSet<>();
     private static final Boolean DEFAULT_METRICS_SWITCH = true;
     private static final String DEFAULT_TELEMETRY_LOG_LEVEL = "TRACE";
     private static final TelemetryConfig INSTANCE = new TelemetryConfig();
@@ -117,7 +120,7 @@ public class TelemetryConfig extends PersistenceConfig {
         closeContext();
         //Reconfigure all the telemetry loggers to use the store at new path.
         for (Logger logger : context.getLoggerList()) {
-            if (!logger.getName().equals("ROOT")) {
+            if (!logger.getName().equals("ROOT") && telemetryLoggerNamesSet.contains(logger.getName())) {
                 editConfigForLogger(logger.getName());
             }
         }
@@ -185,7 +188,7 @@ public class TelemetryConfig extends PersistenceConfig {
             closeContext();
             // Reconfigure all the telemetry loggers to use the store at new path.
             for (Logger logger : context.getLoggerList()) {
-                if (!logger.getName().equals("ROOT")) {
+                if (!logger.getName().equals("ROOT") && telemetryLoggerNamesSet.contains(logger.getName())) {
                     editConfigForLogger(logger.getName());
                 }
             }
