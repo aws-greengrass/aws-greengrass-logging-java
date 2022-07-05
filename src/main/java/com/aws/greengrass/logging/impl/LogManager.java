@@ -89,6 +89,7 @@ public class LogManager {
     public static com.aws.greengrass.logging.api.Logger getTelemetryLogger(String name) {
         return telemetryLoggerMap.computeIfAbsent(name, n -> {
             Logger logger = telemetryConfig.getLogger(name);
+            telemetryConfig.telemetryLoggerNamesSet.add(name);
             return new Slf4jLogAdapter(logger, telemetryConfig);
         });
     }

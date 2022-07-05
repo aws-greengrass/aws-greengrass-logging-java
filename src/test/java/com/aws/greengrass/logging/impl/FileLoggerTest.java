@@ -8,6 +8,7 @@ package com.aws.greengrass.logging.impl;
 import com.aws.greengrass.logging.api.Logger;
 import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
+import lombok.extern.java.Log;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,7 +26,9 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.io.FileMatchers.aFileNamed;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +44,7 @@ class FileLoggerTest {
 
     @AfterAll
     static void cleanupLogger() {
+        LogManager.getRootLogConfiguration().closeContext();
         LogManager.getRootLogConfiguration().setStore(LogStore.CONSOLE);
     }
 
@@ -191,5 +195,25 @@ class FileLoggerTest {
         try (Stream<String> lines = Files.lines(Paths.get(filePath2))) {
             assertTrue(lines.allMatch(s -> s.contains(randomString + "SomeOtherThing")));
         }
+    }
+
+    @Test
+    void GIVEN_component_logger_WHEN_new_root_directory_THEN_does_not_create_unnecessary_log_files() {
+        String randomFolder = UUID.randomUUID().toString();
+        String componentName = "com.example.component";
+        LogManager.setRoot(tempRootDir.toAbsolutePath());
+        Logger logger = LogManager.getLogger(componentName, LogConfigUpdate.builder().fileName(componentName + ".log").build());
+        logger.atInfo().log("Something");
+
+        assertTrue(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve(componentName + ".log")));
+        assertFalse(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve("com.example.log")));
+        assertFalse(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve("com.log")));
+
+        LogManager.setRoot(tempRootDir.resolve(randomFolder));
+        logger.atInfo().log("SomeOtherThing");
+
+        assertTrue(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve(componentName + ".log")));
+        assertFalse(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve("com.example.log")));
+        assertFalse(Files.exists(LogManager.getRootLogConfiguration().getStoreDirectory().resolve("com.log")));
     }
 }
