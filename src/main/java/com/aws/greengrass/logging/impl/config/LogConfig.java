@@ -9,6 +9,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import com.aws.greengrass.logging.impl.LogManager;
 import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import org.slf4j.event.Level;
 
@@ -33,6 +34,7 @@ public class LogConfig extends PersistenceConfig {
     /**
      * Get default logging configuration from system properties.
      */
+    @SuppressFBWarnings("MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR")
     protected LogConfig() {
         super(LOG_FILE_EXTENSION, LOGS_DIRECTORY);
         reconfigure(context.getLogger(Logger.ROOT_LOGGER_NAME));

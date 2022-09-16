@@ -13,6 +13,7 @@ import com.aws.greengrass.logging.impl.config.LogFormat;
 import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
@@ -43,6 +44,7 @@ public class TelemetryConfig extends PersistenceConfig {
     /**
      * Get default metrics configurations from system properties.
      */
+    @SuppressFBWarnings("MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR")
     private TelemetryConfig() {
         super(CONFIG_PREFIX);
         boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
