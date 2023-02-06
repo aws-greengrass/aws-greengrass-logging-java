@@ -31,10 +31,12 @@ public class StaticLoggerBinder implements LoggerFactoryBinder {
         return INSTANCE;
     }
 
+    @Override
     public ILoggerFactory getLoggerFactory() {
         return factory;
     }
 
+    @Override
     public String getLoggerFactoryClassStr() {
         return factory.getClass().getName();
     }

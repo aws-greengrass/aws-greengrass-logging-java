@@ -14,8 +14,6 @@ public interface MetricFactoryBuilder {
 
     /**
      * Entry point for fluent APIs to emit metrics.
-     *
-     * @return
      */
     void putMetricData(Metric metric, Object value);
 }
