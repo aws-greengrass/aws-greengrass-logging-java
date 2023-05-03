@@ -355,7 +355,6 @@ public class PersistenceConfig {
                 .toString());
         logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
         logFilePolicy.setMaxHistory(maxHistory);
-        logFilePolicy.setCleanHistoryOnStart(true);
         logFilePolicy.start();
 
         fileAppender.setRollingPolicy(logFilePolicy);
