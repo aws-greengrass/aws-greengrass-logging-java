@@ -59,14 +59,22 @@ public class ExecutorServiceUtil {
         return executor;
     }
 
+    /**
+     * Creates threadpool executor suitable for use by logback components.
+     * @return threadpool executor
+     */
+    public static ThreadPoolExecutor newThreadPoolExecutor() {
+        return new ThreadPoolExecutor(CoreConstants.CORE_POOL_SIZE, CoreConstants.MAX_POOL_SIZE, 0L,
+                TimeUnit.MILLISECONDS, new SynchronousQueue<>(), THREAD_FACTORY);
+    }
+
 
     /**
      * Creates an executor service suitable for use by logback components.
-     * @return executor service
+     * @deprecated replaced by {@link #newThreadPoolExecutor()}
      */
     public static ExecutorService newExecutorService() {
-        return new ThreadPoolExecutor(CoreConstants.CORE_POOL_SIZE, CoreConstants.MAX_POOL_SIZE, 0L,
-                TimeUnit.MILLISECONDS, new SynchronousQueue<>(), THREAD_FACTORY);
+        return newThreadPoolExecutor();
     }
 
     /**
@@ -74,6 +82,8 @@ public class ExecutorServiceUtil {
      * @param executorService the executor service to shut down
      */
     public static void shutdown(ExecutorService executorService) {
-        executorService.shutdownNow();
+        if (executorService != null) {
+            executorService.shutdownNow();
+        }
     }
 }

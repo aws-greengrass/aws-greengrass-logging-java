@@ -310,7 +310,6 @@ public class PersistenceConfig {
                     APPENDER_PREFIX + loggerToConfigure.getName(),
                     storeDirectory.resolve(fileName + "." + extension).toString(), totalLogStoreSizeKB, fileSizeKB,
                     fileName);
-            newLogFileAppender.start();
             // Add the replacement
             loggerToConfigure.addAppender(newLogFileAppender);
             // Remove the original. These aren't atomic, but we won't be losing any logs
@@ -324,6 +323,9 @@ public class PersistenceConfig {
                 consoleAppender.stop();
                 logConsoleAppenders.remove(loggerToConfigure.getName());
             }
+            // Start the replacement only after the original has been stopped.
+            // Activating multiple file appenders with the same output causes a collision error.
+            newLogFileAppender.start();
             logFileAppenders.put(loggerToConfigure.getName(), newLogFileAppender);
         }
     }
