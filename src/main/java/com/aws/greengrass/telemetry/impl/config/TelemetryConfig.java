@@ -17,6 +17,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.event.Level;
+import org.slf4j.impl.StaticMDCBinder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,6 +48,8 @@ public class TelemetryConfig extends PersistenceConfig {
     @SuppressFBWarnings("MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR")
     private TelemetryConfig() {
         super(CONFIG_PREFIX);
+        // Must set an MDC adapter for 1.3.8+. https://github.com/qos-ch/logback/issues/709
+        context.setMDCAdapter(StaticMDCBinder.SINGLETON.getMDCA());
         boolean metricsEnabled = DEFAULT_METRICS_SWITCH;
         String enabledStr = System.getProperty(METRICS_SWITCH_KEY);
         if (enabledStr != null) {
