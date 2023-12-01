@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ExecutorServiceUtil {
 
-    static private final String NEW_VIRTUAL_TPT_METHOD_NAME = "newVirtualThreadPerTaskExecutor";
+    private static final String NEW_VIRTUAL_TPT_METHOD_NAME = "newVirtualThreadPerTaskExecutor";
 
     private static final ThreadFactory THREAD_FACTORY_FOR_SCHEDULED_EXECUTION_SERVICE = new ThreadFactory() {
 
@@ -39,8 +39,6 @@ public class ExecutorServiceUtil {
 
         /**
          * A thread factory which may be a virtual thread factory the JDK supports it.
-         *
-         * @return
          */
         private ThreadFactory makeThreadFactory() {
             if (EnvUtil.isJDK21OrHigher()) {
@@ -92,7 +90,7 @@ public class ExecutorServiceUtil {
      *
      * @return threadpool executor
      */
-    static public ThreadPoolExecutor newThreadPoolExecutor() {
+    public static ThreadPoolExecutor newThreadPoolExecutor() {
         return new ThreadPoolExecutor(CoreConstants.CORE_POOL_SIZE, CoreConstants.MAX_POOL_SIZE, 0L,
                 TimeUnit.MILLISECONDS, new SynchronousQueue<>(), THREAD_FACTORY_FOR_SCHEDULED_EXECUTION_SERVICE);
     }
@@ -103,13 +101,12 @@ public class ExecutorServiceUtil {
      *
      * @deprecated replaced by {@link #newThreadPoolExecutor()}
      */
-    static public ExecutorService newExecutorService() {
+    public static ExecutorService newExecutorService() {
         return newThreadPoolExecutor();
     }
 
     /**
      * Shuts down an executor service.
-     * <p>
      *
      * @param executorService the executor service to shut down
      */
@@ -125,7 +122,7 @@ public class ExecutorServiceUtil {
      *
      * @since 1.3.12/1.4.12
      */
-    static public ExecutorService newAlternateThreadPoolExecutor() {
+    public static ExecutorService newAlternateThreadPoolExecutor() {
         if (EnvUtil.isJDK21OrHigher()) {
             try {
                 Method newVirtualTPTMethod = Executors.class.getMethod(NEW_VIRTUAL_TPT_METHOD_NAME);
