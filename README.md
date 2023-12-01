@@ -1,4 +1,4 @@
-![Java CI](https://github.com/aws/aws-greengrass-sdk-java/workflows/Java%20CI/badge.svg?branch=master)
+[![Java CI](https://github.com/aws-greengrass/aws-greengrass-logging-java/actions/workflows/maven.yml/badge.svg)](https://github.com/aws-greengrass/aws-greengrass-logging-java/actions/workflows/maven.yml)
 
 ## AWS Greengrass Java
 
