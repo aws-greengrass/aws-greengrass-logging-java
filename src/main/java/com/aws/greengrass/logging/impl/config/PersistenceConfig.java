@@ -12,6 +12,7 @@ import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.encoder.EncoderBase;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy;
+import ch.qos.logback.core.util.Duration;
 import ch.qos.logback.core.util.FileSize;
 import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -357,6 +358,10 @@ public class PersistenceConfig {
                 .toString());
         logFilePolicy.setMaxFileSize(new FileSize(fileSizeKB * FileSize.KB_COEFFICIENT));
         logFilePolicy.setMaxHistory(maxHistory);
+        // TODO - consider letting customers configure how often GG should check logs for rollover / cleanup
+        // Check every 2.0 second for now
+        logFilePolicy.setCheckIncrement(Duration.buildBySeconds(2.0));
+        logFilePolicy.setCleanLogsByLastModifiedDate(true);
         logFilePolicy.start();
 
         fileAppender.setRollingPolicy(logFilePolicy);
