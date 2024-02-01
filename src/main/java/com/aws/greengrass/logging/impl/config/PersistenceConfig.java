@@ -362,6 +362,7 @@ public class PersistenceConfig {
         // Check every 2.0 second for now
         logFilePolicy.setCheckIncrement(Duration.buildBySeconds(2.0));
         logFilePolicy.setCleanLogsByLastModifiedDate(true);
+        logFilePolicy.setCleanHistoryOnStart(true);
         logFilePolicy.start();
 
         fileAppender.setRollingPolicy(logFilePolicy);
