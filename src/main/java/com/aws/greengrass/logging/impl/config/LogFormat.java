@@ -6,5 +6,5 @@
 package com.aws.greengrass.logging.impl.config;
 
 public enum LogFormat {
-    JSON, TEXT
+    JSON, TEXT, RAW
 }

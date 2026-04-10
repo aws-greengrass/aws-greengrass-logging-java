@@ -6,11 +6,14 @@
 package com.aws.greengrass.logging.impl;
 
 import com.aws.greengrass.logging.impl.config.LogConfig;
+import com.aws.greengrass.logging.impl.config.LogFormat;
+import com.aws.greengrass.logging.impl.config.LogStore;
 import com.aws.greengrass.logging.impl.config.PersistenceConfig;
 import com.aws.greengrass.logging.impl.config.model.LogConfigUpdate;
 import com.aws.greengrass.telemetry.impl.config.TelemetryConfig;
 import lombok.Getter;
 import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -92,6 +95,26 @@ public class LogManager {
             telemetryConfig.telemetryLoggerNamesSet.add(name);
             return new Slf4jLogAdapter(logger, telemetryConfig);
         });
+    }
+
+
+    /**
+     * Creates a logger that writes raw messages (no envelope) to a dedicated rolling file.
+     * Intended for structured output like EMF where the consumer expects unmodified JSON per line.
+     *
+     * @param name      logger name, also used as the log file prefix
+     * @param outputDir directory for the log file
+     * @return a Logger that writes raw lines with no timestamp, level, or logger metadata
+     */
+    public static com.aws.greengrass.logging.api.Logger getRawLogger(String name, Path outputDir) {
+        LogConfigUpdate rawConfigUpdate = LogConfigUpdate.builder()
+                .format(LogFormat.RAW)
+                .outputDirectory(outputDir.toString())
+                .fileName(name)
+                .outputType(LogStore.FILE)
+                .level(Level.TRACE)
+                .build();
+        return getLogger(name, rawConfigUpdate);
     }
 
 

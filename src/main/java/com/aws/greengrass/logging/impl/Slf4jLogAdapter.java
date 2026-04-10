@@ -253,12 +253,16 @@ public class Slf4jLogAdapter implements Logger {
     }
 
     private String serialize(GreengrassLogMessage message) {
-        if (LogFormat.TEXT.equals(config.getFormat())) {
-            return message.getTextMessage();
-        } else if (LogFormat.JSON.equals(config.getFormat())) {
-            return message.getJSONMessage();
+        switch (config.getFormat()) {
+            case TEXT:
+                return message.getTextMessage();
+            case JSON:
+                return message.getJSONMessage();
+            case RAW:
+                return message.getMessage();
+            default:
+                return "ERROR Unknown LogFormat " + config.getFormat();
         }
-        return "ERROR Unknown LogFormat " + config.getFormat();
     }
 
     /**
